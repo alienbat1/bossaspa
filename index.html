@@ -84,6 +84,9 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .btn{width:100%;padding:15px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:300;letter-spacing:.08em;cursor:pointer;margin-top:20px;transition:background .2s;}
 .btn:active{background:var(--teal-mid);}
 .btn-outline{background:transparent;color:var(--teal);border:1.5px solid var(--teal);}
+/* Back button */
+.btn-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;padding:0;margin-bottom:4px;letter-spacing:.04em;}
+.btn-back:active{color:var(--teal);}
 
 /* Health form */
 .health-q{margin-bottom:18px;}
@@ -154,6 +157,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
   <!-- SCREEN 2: REGISTER (new clients only) -->
   <div class="screen" id="screen-register">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title">Welcome to Bossa</div>
     <div class="screen-sub">First visit — a few more details</div>
     <div class="alert alert-teal">
@@ -216,6 +220,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
   <!-- SCREEN 3: SERVICE SELECTION -->
   <div class="screen" id="screen-service">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title">Today's Service</div>
     <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
     <div class="cat-scroll" id="cat-scroll"></div>
@@ -226,6 +231,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
   <!-- SCREEN 4: HEALTH FORM -->
   <div class="screen" id="screen-health">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title">Health Check</div>
     <div class="screen-sub">Step <span id="health-step">4</span> — Quick health questions</div>
     <div id="healthForm"></div>
@@ -235,6 +241,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
   <!-- SCREEN 5: WAIVER (new clients only) -->
   <div class="screen" id="screen-waiver">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title">Consent & Waiver</div>
     <div class="screen-sub">Step <span id="waiver-step">5</span> — Please read and agree</div>
     <div class="waiver-text">
@@ -315,10 +322,10 @@ const SERVICES = [
   { id:'facial-hydra',        name:'Hydrafacial',                     cat:'Facial',          durs:[] },
   { id:'facial-extraction',   name:'Facial Extraction',               cat:'Facial',          durs:[] },
   { id:'facial-sculpt',       name:'Sculpt & Glow Combo',             cat:'Facial',          durs:['90 min'] },
-  { id:'facial-bundle',       name:'Facial Bundle',                   cat:'Facial',          durs:['70 min'] },
-  // SAUNA
-  { id:'sauna-30',            name:'Sauna 30 min',                    cat:'Sauna',           durs:['30 min'] },
-  { id:'sauna-60',            name:'Sauna 60 min',                    cat:'Sauna',           durs:['60 min'] },
+  { id:'facial-bundle',       name:'Facial Lymphatic + Radio Frequency', cat:'Facial',       durs:['60 min'] },
+  // SAUNA — names already include the time; no extra duration badge needed
+  { id:'sauna-30',            name:'Sauna 30 min',                    cat:'Sauna',           durs:[] },
+  { id:'sauna-60',            name:'Sauna 60 min',                    cat:'Sauna',           durs:[] },
   // WAX — women
   { id:'wax-brazilian',       name:'Brazilian Wax',                   cat:'Wax',             durs:['varies'] },
   { id:'wax-bikini',          name:'Bikini Wax',                      cat:'Wax',             durs:['varies'] },
@@ -345,6 +352,13 @@ let selectedDuration = null;
 let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
+
+function prevScreen() {
+  if (currentStep <= 0) return;
+  currentStep--;
+  showScreen(screenFlow[currentStep]);
+  updateStepBar();
+}
 
 function buildScreenFlow() {
   screenFlow = ['welcome'];
@@ -786,23 +800,25 @@ function buildServiceGrid() {
 }
 
 // ── HEALTH FORM ──
+const HEALTH_QUESTIONS = [
+  { q: 'Do you have any active infections or contagious conditions?', opts: ['No','Yes'], note: true },
+  { q: 'Do you have a heart condition or pacemaker?',                 opts: ['No','Yes'], note: true },
+  { q: 'Are you pregnant or possibly pregnant?',                      opts: ['No','Yes'], note: false },
+  { q: 'Are you currently undergoing cancer treatment?',              opts: ['No','Yes','Recently completed'], note: true },
+  { q: 'Have you had surgery in the past 3 months?',                  opts: ['No','Yes'], note: true },
+  { q: 'Do you have any allergies? (products, latex, fragrances)',    opts: ['None','Yes'], note: true },
+  { q: 'Are you taking any medications we should know about?',        opts: ['None','Yes'], note: true },
+];
+
 function buildHealthForm() {
   const form = document.getElementById('healthForm');
-  const questions = [
-    { q: 'Do you have any active infections or contagious conditions?', opts: ['No','Yes'] },
-    { q: 'Do you have a heart condition or pacemaker?', opts: ['No','Yes'] },
-    { q: 'Are you pregnant or possibly pregnant?', opts: ['No','Yes'] },
-    { q: 'Are you currently undergoing cancer treatment?', opts: ['No','Yes','Recently completed'] },
-    { q: 'Have you had surgery in the past 3 months?', opts: ['No','Yes'] },
-    { q: 'Do you have any allergies? (products, latex, fragrances)', opts: ['None','Yes — I will inform therapist'] },
-    { q: 'Are you taking any medications we should know about?', opts: ['None','Yes — I will inform therapist'] },
-  ];
-  form.innerHTML = questions.map((item,i) =>
-    `<div class="health-q">
+  form.innerHTML = HEALTH_QUESTIONS.map((item,i) =>
+    `<div class="health-q" data-idx="${i}">
       <label>${item.q}</label>
       <div class="health-opts">${item.opts.map(o =>
         `<div class="h-opt" onclick="selectHOpt(this,${i})">${o}</div>`
       ).join('')}</div>
+      ${item.note ? `<textarea class="health-note" placeholder="Please describe…" style="display:none;width:100%;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.85rem;font-weight:300;resize:vertical;min-height:64px;outline:none;color:var(--ink);background:#fff;" oninput="this.style.borderColor='var(--teal)'"></textarea>` : ''}
     </div>`
   ).join('');
 }
@@ -812,6 +828,13 @@ function selectHOpt(el, groupIdx) {
   group.querySelectorAll('.h-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   hideErr('health-err');
+  // Show note textarea when "Yes" (or "Recently completed") is selected
+  const note = group.querySelector('.health-note');
+  if (note) {
+    const isPositive = el.textContent === 'Yes' || el.textContent === 'Recently completed';
+    note.style.display = isPositive ? 'block' : 'none';
+    if (!isPositive) note.value = '';
+  }
 }
 
 function collectHealth() {
@@ -819,7 +842,12 @@ function collectHealth() {
   document.querySelectorAll('#healthForm .health-q').forEach(q => {
     const label = q.querySelector('label').textContent;
     const sel = q.querySelector('.h-opt.selected');
-    result[label.substring(0,50)] = sel ? sel.textContent : '';
+    const note = q.querySelector('.health-note');
+    const key = label.substring(0,50);
+    result[key] = sel ? sel.textContent : '';
+    if (note && note.style.display !== 'none' && note.value.trim()) {
+      result[key + ' — note'] = note.value.trim();
+    }
   });
   return result;
 }
