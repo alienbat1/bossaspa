@@ -58,8 +58,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .svc-card{padding:14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;transition:all .15s;}
 .svc-card:active,.svc-card.selected{border-color:var(--teal);background:#f0f5f4;}
-.svc-card-name{font-size:.85rem;font-weight:500;color:var(--ink);margin-bottom:2px;}
-.svc-card-dur{font-size:.72rem;color:var(--muted);}
+.svc-card-name{font-size:.85rem;font-weight:500;color:var(--ink);}
+.svc-card-sub{font-size:.72rem;color:var(--muted);}
+
+/* Duration selector */
+.dur-row{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;background:#f0f5f4;border:1.5px solid var(--teal);border-radius:var(--r);align-items:center;}
+.dur-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);font-weight:500;margin-right:4px;}
+.dur-chip{padding:7px 14px;border:1.5px solid var(--teal);border-radius:20px;background:#fff;color:var(--teal);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none;}
+.dur-chip.selected{background:var(--teal);color:#fff;}
 
 /* Alert */
 .alert{border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:.85rem;line-height:1.5;}
@@ -234,17 +240,17 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
 const SERVICES = [
-  { id:'lymphatic-full', name:'Lymphatic Drainage', sub:'Full Body', cat:'Lymphatic', dur:'60 / 90 min' },
-  { id:'lymphatic-face', name:'Face & Body Lymphatic', sub:'', cat:'Lymphatic', dur:'60 min' },
-  { id:'facial', name:'Facial', sub:'', cat:'Facial', dur:'60 / 90 min' },
-  { id:'massage-swedish', name:'Swedish Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
-  { id:'massage-deep', name:'Deep Tissue Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
-  { id:'sauna', name:'Infrared Sauna', sub:'', cat:'Sauna', dur:'30 / 45 / 60 min' },
-  { id:'body-wrap', name:'Body Wrap', sub:'Seaweed / Detox', cat:'Body', dur:'90 min' },
-  { id:'waxing', name:'Waxing', sub:'', cat:'Waxing', dur:'varies' },
-  { id:'cryo', name:'Cryo Contour', sub:'', cat:'Body', dur:'45 min' },
-  { id:'cavitation', name:'Cavitation', sub:'', cat:'Body', dur:'45 min' },
-  { id:'couples', name:'Couples Massage', sub:'', cat:'Couples', dur:'60 / 90 min' },
+  { id:'lymphatic-full', name:'Lymphatic Drainage', sub:'Full Body', cat:'Lymphatic', durs:['60 min','90 min'] },
+  { id:'lymphatic-face', name:'Face & Body Lymphatic', sub:'', cat:'Lymphatic', durs:['60 min'] },
+  { id:'facial', name:'Facial', sub:'', cat:'Facial', durs:['60 min','90 min'] },
+  { id:'massage-swedish', name:'Swedish Massage', sub:'', cat:'Massage', durs:['60 min','90 min'] },
+  { id:'massage-deep', name:'Deep Tissue Massage', sub:'', cat:'Massage', durs:['60 min','90 min'] },
+  { id:'sauna', name:'Infrared Sauna', sub:'', cat:'Sauna', durs:['30 min','45 min','60 min'] },
+  { id:'body-wrap', name:'Body Wrap', sub:'Seaweed / Detox', cat:'Body', durs:['90 min'] },
+  { id:'waxing', name:'Waxing', sub:'', cat:'Waxing', durs:['varies'] },
+  { id:'cryo', name:'Cryo Contour', sub:'', cat:'Body', durs:['45 min'] },
+  { id:'cavitation', name:'Cavitation', sub:'', cat:'Body', durs:['45 min'] },
+  { id:'couples', name:'Couples Massage', sub:'', cat:'Couples', durs:['60 min','90 min'] },
 ];
 
 // ── STATE ──
