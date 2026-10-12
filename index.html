@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,sans-serif;background:#FAF6EF}[hidden]{display:none!important}</style></head><body>
 <title>Bossa Spa — Check-In</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap">
 
@@ -7,1460 +7,281 @@
   --teal:#2C4A43; --teal-mid:#3d6359; --gold:#C6A560;
   --cream:#FAF6EF; --beige:#F2EDE1; --ink:#1a2820;
   --muted:#6b7f79; --border:#d4cbbe; --error:#9b3a2a;
-  --warn:#8a6200; --warn-bg:#fff8e6; --warn-border:#e6c96a;
-  --green:#2a6b3a; --green-bg:#edf7f0; --green-border:#a8d4b4;
-  --r:10px; color-scheme:light;
+  --r:10px;
 }
-@media(prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --teal:#4a7a6e;--gold:#d4b574;--cream:#141d19;
-    --beige:#1a2820;--ink:#e8f0ec;--muted:#8fa89f;
-    --border:#2e4038;--warn:#d4b574;--warn-bg:#2a2210;--warn-border:#6b5520;
-    --green:#5aab72;--green-bg:#0e2416;--green-border:#2a6b3a;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --teal:#4a7a6e;--gold:#d4b574;--cream:#141d19;
-  --beige:#1a2820;--ink:#e8f0ec;--muted:#8fa89f;
-  --border:#2e4038;--warn:#d4b574;--warn-bg:#2a2210;--warn-border:#6b5520;
-  --green:#5aab72;--green-bg:#0e2416;--green-border:#2a6b3a;
-  color-scheme:dark;
-}
-
 *,*::before,*::after{box-sizing:border-box;margin:0;}
-body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300;padding-inline:0;padding-block:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
 
-.page-header{text-align:center;margin-bottom:32px;}
-.page-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.4rem,4vw,2rem);font-weight:300;color:var(--teal);letter-spacing:.06em;}
-.page-sub{font-size:.78rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:4px;}
-.page-desc{font-size:.88rem;color:var(--muted);margin-top:10px;max-width:580px;margin-inline:auto;line-height:1.6;}
+/* iPad frame */
+.ipad-frame{max-width:680px;margin:0 auto;background:var(--cream);min-height:100vh;display:flex;flex-direction:column;}
+.ipad-bar{background:var(--teal);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ipad-logo{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:#fff;font-weight:300;letter-spacing:.08em;}
+.ipad-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
 
-/* tabs */
-.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:28px;overflow-x:auto;}
-.tab-btn{padding:10px 20px;font-family:'Jost',sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;}
-.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500;}
-.tab-panel{display:none;}
-.tab-panel.active{display:block;}
-
-/* scenario selector */
-.scenario-bar{background:var(--beige);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:28px;}
-.scenario-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-.scenario-btns{display:flex;gap:8px;flex-wrap:wrap;}
-.s-btn{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-size:.8rem;cursor:pointer;transition:all .2s;}
-.s-btn:hover{border-color:var(--teal);color:var(--teal);}
-.s-btn.active{background:var(--teal);color:var(--cream);border-color:var(--teal);}
-
-/* ipad frame */
-.ipad-frame{max-width:480px;margin:0 auto;background:var(--cream);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.1);}
-.ipad-bar{background:var(--teal);padding:12px 20px;display:flex;align-items:center;gap:10px;}
-.ipad-logo{font-family:'Cormorant Garamond',serif;color:rgba(255,255,255,.9);font-size:1.1rem;font-weight:300;letter-spacing:.08em;}
-.ipad-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);margin-left:auto;}
-
-/* step progress */
-.step-bar{display:flex;padding:12px 20px;gap:4px;border-bottom:1px solid var(--border);background:var(--beige);}
+/* Step bar */
+.step-bar{display:flex;gap:6px;padding:12px 20px;background:var(--beige);border-bottom:1px solid var(--border);}
 .step-dot{flex:1;height:3px;border-radius:2px;background:var(--border);}
 .step-dot.done{background:var(--gold);}
 .step-dot.active{background:var(--teal);}
 
-/* screen */
-.screen{padding:24px 20px;min-height:520px;display:none;}
+/* Screen */
+.screen{display:none;padding:24px 20px;flex:1;overflow-y:auto;}
 .screen.active{display:block;}
-
-/* typography */
-.screen-title{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--teal);margin-bottom:4px;}
+.screen-title{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--teal);font-weight:300;margin-bottom:4px;}
 .screen-sub{font-size:.78rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
-.section-label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:16px;}
 
-/* fields */
-.field{margin-bottom:14px;}
-.field label{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.fake-input{border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:.9rem;color:var(--ink);background:var(--cream);}
-.fake-input.filled{color:var(--ink);}
-.fake-input.empty{color:var(--muted);font-style:italic;}
-.fake-input.focus{border-color:var(--teal);}
+/* Fields */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input, .field select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.95rem;font-weight:300;outline:none;-webkit-appearance:none;}
+.field input:focus, .field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.field input.error{border-color:var(--error);}
+.field input::placeholder{color:var(--muted);}
 
-/* badges */
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
-.badge-new{background:#e8f0ee;color:var(--teal);}
-.badge-returning{background:rgba(198,165,96,.15);color:#7a5c1e;}
-.badge-wax{background:var(--green-bg);color:var(--green);}
+/* Section label */
+.section-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;margin-top:20px;}
 
-/* alerts */
-.alert{border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.84rem;line-height:1.5;}
-.alert-warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn);}
-.alert-green{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
-.alert-teal{background:#e8f0ee;border:1px solid #b5d0c8;color:var(--teal);}
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none;}
+.chip.selected{background:var(--teal);color:#fff;border-color:var(--teal);}
+.chip.selected-gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+
+/* Radio options */
+.radio-opts{display:flex;flex-direction:column;gap:8px;}
+.radio-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;font-size:.88rem;transition:all .15s;display:flex;align-items:center;gap:10px;}
+.radio-opt::before{content:'';width:16px;height:16px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;}
+.radio-opt.selected{border-color:var(--teal);background:#f0f5f4;}
+.radio-opt.selected::before{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px #fff;}
+
+/* Service grid */
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.svc-card{padding:14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;transition:all .15s;}
+.svc-card:active,.svc-card.selected{border-color:var(--teal);background:#f0f5f4;}
+.svc-card-name{font-size:.85rem;font-weight:500;color:var(--ink);margin-bottom:2px;}
+.svc-card-dur{font-size:.72rem;color:var(--muted);}
+
+/* Alert */
+.alert{border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:.85rem;line-height:1.5;}
+.alert-teal{background:#edf5f3;border:1px solid #b0cec9;color:var(--teal);}
+.alert-warn{background:#fff8e6;border:1px solid #e6c96a;color:#8a6200;}
 .alert-title{font-weight:500;margin-bottom:3px;}
 
-/* service grid */
-.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.svc-chip{border:1.5px solid var(--border);border-radius:8px;padding:10px 10px;cursor:pointer;transition:all .2s;text-align:center;}
-.svc-chip:hover{border-color:var(--teal);}
-.svc-chip.selected{border-color:var(--teal);background:#e8f0ee;}
-.svc-icon{font-size:1.3rem;display:block;margin-bottom:3px;}
-.svc-name{font-size:.75rem;color:var(--ink);line-height:1.3;}
-.svc-cat{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
-/* category chips — compact row */
-.svc-cat-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
-.svc-cat-chip{display:flex;align-items:center;gap:6px;border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;cursor:pointer;font-size:.8rem;transition:all .2s;background:var(--cream);}
-.svc-cat-chip:hover{border-color:var(--teal);}
-.svc-cat-chip.selected{border-color:var(--teal);background:#e8f0ee;color:var(--teal);font-weight:500;}
-.svc-cat-icon{font-size:1rem;}
+/* Button */
+.btn{width:100%;padding:15px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:300;letter-spacing:.08em;cursor:pointer;margin-top:20px;transition:background .2s;}
+.btn:active{background:var(--teal-mid);}
+.btn-outline{background:transparent;color:var(--teal);border:1.5px solid var(--teal);}
 
-/* history block */
-.history-block{background:var(--beige);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
-.history-title{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.history-row{display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid var(--border);}
-.history-row:last-child{border-bottom:none;}
-.history-key{color:var(--muted);}
-.history-val{color:var(--ink);font-weight:400;}
-.history-val.gold{color:#7a5c1e;}
+/* Health form */
+.health-q{margin-bottom:18px;}
+.health-q label{display:block;font-size:.88rem;font-weight:400;color:var(--ink);margin-bottom:8px;}
+.health-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.h-opt{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:.82rem;cursor:pointer;transition:all .15s;}
+.h-opt.selected{background:var(--teal);color:#fff;border-color:var(--teal);}
 
-/* area chips */
-.area-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
-.area-chip{border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:.78rem;cursor:pointer;transition:all .2s;background:var(--cream);}
-.area-chip:hover{border-color:var(--teal);}
-.area-chip.selected{background:var(--teal);color:var(--cream);border-color:var(--teal);}
-.area-limit{font-size:.7rem;color:var(--muted);margin-top:6px;}
+/* Textarea */
+.field textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.88rem;font-weight:300;outline:none;resize:vertical;min-height:80px;}
+.field textarea:focus{border-color:var(--teal);}
 
-/* service info */
-.info-section{margin-bottom:18px;}
-.info-heading{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:500;}
-.info-text{font-size:.84rem;line-height:1.6;color:var(--ink);}
-.info-list{font-size:.84rem;line-height:1.8;color:var(--ink);padding-left:16px;}
-.window-seal{background:var(--teal);color:var(--cream);border-radius:8px;padding:12px 16px;text-align:center;margin:16px 0;}
-.window-seal-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;}
-.window-seal-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.8;margin-top:2px;}
+/* Waiver */
+.waiver-text{font-size:.78rem;line-height:1.8;color:var(--ink);background:var(--beige);border:1px solid var(--border);border-radius:var(--r);padding:16px;max-height:280px;overflow-y:auto;margin-bottom:16px;}
+.waiver-text h4{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--teal);margin-bottom:8px;}
+.waiver-text p{margin-bottom:10px;}
 
-/* therapist note */
-.note-card{background:var(--beige);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:16px;}
-.note-who{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.note-text{font-size:.84rem;line-height:1.5;color:var(--ink);}
+/* Signature */
+#sigCanvas{width:100%;height:180px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;touch-action:none;}
+.sig-clear{font-size:.75rem;color:var(--muted);text-decoration:underline;cursor:pointer;display:block;text-align:right;margin-top:6px;}
 
-/* prev consent */
-.prev-consent{background:#e8f0ee;border:1px solid #b5d0c8;border-radius:8px;padding:12px 14px;margin-bottom:14px;}
-.prev-consent-q{font-size:.8rem;color:var(--teal);font-weight:500;margin-bottom:8px;}
+/* Thanks */
+.thanks-icon{font-size:3rem;text-align:center;margin:20px 0 10px;}
+.thanks-name{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--teal);text-align:center;margin-bottom:6px;}
+.thanks-sub{font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:24px;}
+.thanks-detail{background:var(--beige);border-radius:var(--r);padding:16px;font-size:.85rem;line-height:1.8;}
+.thanks-row{display:flex;justify-content:space-between;}
+.thanks-key{color:var(--muted);}
+.thanks-val{font-weight:500;color:var(--ink);}
 
-/* health form */
-.check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem;}
-.check-item:last-child{border-bottom:none;}
-.fake-check{width:18px;height:18px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;margin-top:1px;}
-.fake-check.checked{background:var(--teal);border-color:var(--teal);color:var(--cream);}
-.check-group{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;}
+/* Error message */
+.err-msg{font-size:.8rem;color:var(--error);margin-top:8px;display:none;}
+.err-msg.show{display:block;}
 
-/* couple cards */
-.couple-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;}
-.couple-card-head{background:var(--beige);border-bottom:1px solid var(--border);padding:8px 14px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:500;}
-.couple-card-body{padding:14px;}
-
-/* radio options */
-.radio-opts{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
-.radio-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:.85rem;}
-.radio-opt.selected{border-color:var(--teal);background:#e8f0ee;}
-.radio-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;}
-.radio-opt.selected .radio-dot{border-color:var(--teal);background:var(--teal);}
-
-/* waiver */
-.waiver-box{border:1px solid var(--border);border-radius:8px;height:200px;overflow-y:auto;padding:14px;font-size:.76rem;line-height:1.7;color:var(--muted);margin-bottom:14px;}
-.waiver-box h4{font-size:.78rem;color:var(--ink);margin-bottom:8px;font-weight:500;}
-.waiver-box p{margin-bottom:8px;}
-.waiver-box h5{font-size:.74rem;color:var(--ink);margin-top:10px;margin-bottom:4px;font-weight:500;}
-
-/* confirm checkboxes */
-.confirm-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.82rem;line-height:1.4;}
-.confirm-item:last-child{border-bottom:none;}
-
-/* signature */
-.sig-box{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-.sig-bar{background:var(--beige);border-bottom:1px solid var(--border);padding:7px 12px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-.sig-area{height:90px;background:var(--cream);display:flex;align-items:center;justify-content:center;}
-.sig-svg{opacity:.35;}
-
-/* marketing opt */
-.opt-box{background:var(--beige);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
-.opt-row{display:flex;align-items:center;gap:10px;font-size:.84rem;}
-.fake-toggle{width:36px;height:20px;border-radius:10px;background:var(--teal);flex-shrink:0;position:relative;}
-.fake-toggle::after{content:'';position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;}
-
-/* btn */
-.btn{display:block;width:100%;padding:13px;background:var(--teal);color:var(--cream);border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;margin-top:20px;}
-.btn:hover{background:var(--teal-mid);}
-.btn-outline{background:transparent;border:1.5px solid var(--teal);color:var(--teal);margin-top:8px;}
-
-/* thank you */
-.thank-you{text-align:center;padding:40px 20px;}
-.ty-icon{font-size:3rem;margin-bottom:16px;}
-.ty-title{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--teal);margin-bottom:8px;}
-.ty-sub{font-size:.84rem;color:var(--muted);line-height:1.6;}
-
-/* divider */
-.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
-
-/* sheets */
-.sheets-frame{background:#fff;border:1px solid #dadce0;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
-.sheets-toolbar{background:#f8f9fa;border-bottom:1px solid #e0e0e0;padding:8px 14px;display:flex;align-items:center;gap:12px;}
-.sheets-icon{font-size:1.1rem;}
-.sheets-title{font-size:.82rem;color:#202124;font-weight:500;}
-.sheets-nav{display:flex;border-bottom:1px solid #e0e0e0;background:#fff;overflow-x:auto;}
-.sheet-tab{padding:8px 16px;font-size:.75rem;color:#5f6368;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
-.sheet-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:500;}
-.sheets-table{overflow-x:auto;}
-table{border-collapse:collapse;width:100%;font-size:.73rem;}
-th{background:#f8f9fa;border:1px solid #e0e0e0;padding:6px 10px;text-align:left;color:#5f6368;font-weight:500;white-space:nowrap;}
-td{border:1px solid #e0e0e0;padding:6px 10px;color:#202124;white-space:nowrap;}
-tr:hover td{background:#f8f9fa;}
-.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:500;}
-.pill-green{background:#e6f4ea;color:#137333;}
-.pill-blue{background:#e8f0fe;color:#1a73e8;}
-.pill-gold{background:#fef7e0;color:#b06000;}
-.pill-gray{background:#f1f3f4;color:#5f6368;}
-/* collapsible notes */
-.notes-collapse{border:1px solid var(--warn-border);border-radius:8px;margin-bottom:16px;overflow:hidden;}
-.notes-collapse-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--warn-bg);cursor:pointer;user-select:none;}
-.notes-collapse-title{font-size:.78rem;font-weight:500;color:var(--warn);display:flex;align-items:center;gap:8px;}
-.notes-collapse-arrow{font-size:.7rem;color:var(--warn);transition:transform .2s;}
-.notes-collapse-arrow.open{transform:rotate(180deg);}
-.notes-collapse-body{display:none;padding:12px 14px;border-top:1px solid var(--warn-border);}
-.notes-collapse-body.open{display:block;}
-.note-entry{padding:8px 0;border-bottom:1px solid var(--border);}
-.note-entry:last-child{border-bottom:none;}
-.note-entry-meta{font-size:.68rem;color:var(--muted);letter-spacing:.05em;margin-bottom:3px;}
-.note-entry-text{font-size:.82rem;color:var(--ink);line-height:1.5;}
-/* intake form */
-.intake-q{margin-bottom:16px;}
-.intake-q label{display:block;font-size:.78rem;font-weight:500;color:var(--ink);margin-bottom:6px;line-height:1.4;}
-.intake-q .intake-hint{font-size:.7rem;color:var(--muted);margin-bottom:6px;font-style:italic;}
-.intake-opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
-.intake-opt{border:1.5px solid var(--border);border-radius:6px;padding:6px 12px;font-size:.78rem;cursor:pointer;transition:all .2s;background:var(--cream);}
-.intake-opt:hover{border-color:var(--teal);}
-.intake-opt.selected{background:var(--teal);color:var(--cream);border-color:var(--teal);}
-.intake-opt.selected-warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-border);}
-.intake-textarea{border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:.85rem;color:var(--muted);font-style:italic;min-height:52px;background:var(--cream);font-family:'Jost',sans-serif;}
-.therapist-section{background:var(--beige);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:18px;}
-.therapist-section-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;font-weight:500;}
-/* staff view */
-.staff-panel{max-width:800px;margin:0 auto;}
-.staff-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
-.staff-card-head{background:var(--teal);color:var(--cream);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
-.staff-card-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:300;letter-spacing:.05em;}
-.staff-card-badge{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;}
-.staff-card-body{padding:16px;}
-.staff-row{display:flex;justify-content:space-between;font-size:.82rem;padding:6px 0;border-bottom:1px solid var(--border);}
-.staff-row:last-child{border-bottom:none;}
-.staff-key{color:var(--muted);}
-.staff-val{color:var(--ink);font-weight:400;text-align:right;max-width:60%;}
-.staff-section-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:14px 0 8px;font-weight:500;}
-.staff-note-card{background:var(--beige);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:8px;}
-.staff-note-date{font-size:.65rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px;}
-.staff-note-text{font-size:.8rem;color:var(--ink);line-height:1.5;}
-.staff-note-author{font-size:.65rem;color:var(--muted);margin-top:3px;}
-.staff-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;margin:2px;background:#e8f0ee;color:var(--teal);}
-.staff-tag-warn{background:var(--warn-bg);color:var(--warn);}
-.staff-scenario-btn{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;transition:all .2s;margin-bottom:6px;}
-.staff-scenario-btn:hover{border-color:var(--teal);color:var(--teal);}
-.staff-scenario-btn.active{background:var(--teal);color:var(--cream);border-color:var(--teal);}
-/* test panel */
-.test-panel{background:#1a1a2e;border-radius:10px;margin:12px auto 0;max-width:900px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.18);}
-.test-panel-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;cursor:pointer;user-select:none;background:#16213e;}
-.test-panel-header span:first-child{font-size:.82rem;font-weight:600;color:#e2e2f0;letter-spacing:.02em;}
-.test-panel-toggle{font-size:.72rem;color:#7c7ca8;}
-.test-panel-body{padding:12px 16px 14px;}
-.test-panel-note{font-size:.72rem;color:#8888aa;margin-bottom:10px;}
-.test-screens{display:flex;flex-wrap:wrap;gap:8px;}
-.test-screen-btn{background:#0f3460;border:none;border-radius:7px;padding:7px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;transition:background .15s;}
-.test-screen-btn:hover{background:#1a5276;}
-.test-screen-btn.current{background:#0e6655;outline:2px solid #1abc9c;}
-.test-screen-btn .tsb-label{font-size:.78rem;font-weight:600;color:#e2e2f0;}
-.test-screen-btn .tsb-step{font-size:.65rem;color:#7899bb;}
+/* Spinner overlay */
+.spinner-overlay{position:fixed;inset:0;background:rgba(250,246,239,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-text{margin-top:14px;font-size:.85rem;color:var(--muted);}
 </style>
 
 <div class="ipad-frame">
-    <div class="ipad-bar">
-      <span class="ipad-logo">Bossa</span>
-      <span style="font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;">Beverly Hills</span>
-      <div class="ipad-dot"></div>
-    </div>
-
-    <div class="step-bar" id="stepBar"></div>
-
-    <!-- SCREEN 1: WELCOME LOOKUP -->
-    <div class="screen active" id="screen-welcome">
-      <div class="screen-title">Welcome</div>
-      <div class="screen-sub">Step 1 of <span id="totalSteps1">6</span></div>
-
-      <!-- Primary guest (always shown) -->
-      <div id="welcome-primary-label" style="display:none;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Person responsible for the booking</div>
-      <div class="field">
-        <label id="lbl-name">Full Name</label>
-        <div class="fake-input focus" id="inp-name"></div>
-      </div>
-      <div class="field">
-        <label id="lbl-phone">Phone Number</label>
-        <div class="fake-input" id="inp-phone"></div>
-      </div>
-      <div class="field">
-        <label id="lbl-dob">Date of Birth</label>
-        <div class="fake-input" id="inp-dob"></div>
-      </div>
-
-      <!-- Second guest (couples only) -->
-      <div id="welcome-guest2-section" style="display:none;margin-top:18px;">
-        <div style="font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Guest #2 — companion info</div>
-        <div class="alert alert-teal" style="margin-bottom:12px;font-size:.8rem;">
-          <div class="alert-title" id="g2-status-title">Guest info</div>
-          <span id="g2-status-note">Each person will be saved as a separate client profile. A couples session will appear in both histories.</span>
-        </div>
-        <div class="field">
-          <label>Full Name</label>
-          <div class="fake-input" id="inp-g2-name"></div>
-        </div>
-        <div class="field">
-          <label>Phone Number</label>
-          <div class="fake-input" id="inp-g2-phone"></div>
-        </div>
-        <div class="field">
-          <label>Date of Birth</label>
-          <div class="fake-input" id="inp-g2-dob"></div>
-        </div>
-      </div>
-
-      <button class="btn" onclick="nextScreen()">Continue →</button>
-    </div>
-
-    <!-- SCREEN 1b: NEW CLIENT REGISTRATION -->
-    <div class="screen" id="screen-register">
-      <div class="screen-title">Welcome to Bossa</div>
-      <div class="screen-sub">First visit — a few more details</div>
-      <div class="alert alert-teal" style="margin-bottom:16px;">
-        <div class="alert-title">✨ First time here?</div>
-        We'd love to get to know you. Your info is saved securely and makes every future visit faster.
-      </div>
-      <div class="section-label">Your details</div>
-      <div class="field">
-        <label>Full Name</label>
-        <div class="fake-input filled" id="reg-name"></div>
-      </div>
-      <div class="field">
-        <label>Phone Number</label>
-        <div class="fake-input filled" id="reg-phone"></div>
-      </div>
-      <div class="field">
-        <label>Date of Birth</label>
-        <div class="fake-input filled" id="reg-dob"></div>
-      </div>
-      <div class="field">
-        <label>Email Address</label>
-        <div class="fake-input empty" id="reg-email">tap to enter</div>
-      </div>
-      <div class="section-label">How did you hear about us?</div>
-      <div class="area-chips" id="heard-chips">
-        <div class="area-chip selected" onclick="selectHeardChip(this,'google')">Google</div>
-        <div class="area-chip" onclick="selectHeardChip(this,'instagram')">Instagram</div>
-        <div class="area-chip" onclick="selectHeardChip(this,'tiktok')">TikTok</div>
-        <div class="area-chip" onclick="selectHeardChip(this,'classpass')">ClassPass</div>
-        <div class="area-chip" onclick="selectHeardChip(this,'groupon')">Groupon</div>
-        <div class="area-chip" id="heard-referral-chip" onclick="selectHeardChip(this,'referral')">Referral</div>
-        <div class="area-chip" id="heard-other-chip" onclick="selectHeardChip(this,'other')">Other</div>
-      </div>
-      <div class="field" id="heard-referral-field" style="display:none;margin-top:10px;">
-        <label>Who referred you? (name)</label>
-        <div class="fake-input empty">tap to enter</div>
-      </div>
-      <div class="field" id="heard-other-field" style="display:none;margin-top:10px;">
-        <label>Please tell us more</label>
-        <div class="fake-input empty">tap to enter</div>
-      </div>
-      <div class="section-label" style="margin-top:14px;">Do you have a special price or discount?</div>
-      <div class="area-chips" id="discount-chips">
-        <div class="area-chip" onclick="toggleDiscountChip(this,'none')">No discount</div>
-        <div class="area-chip" onclick="toggleDiscountChip(this,'giftcard')">🎁 Gift Card</div>
-        <div class="area-chip" onclick="toggleDiscountChip(this,'coupon')">🏷️ Coupon Code</div>
-        <div class="area-chip" onclick="toggleDiscountChip(this,'discount')">💸 Discount Code</div>
-        <div class="area-chip" onclick="toggleDiscountChip(this,'special')">⭐ Special Price</div>
-      </div>
-      <div class="field" id="discount-notes-field" style="display:none;margin-top:10px;">
-        <label id="discount-notes-label">Please specify</label>
-        <div class="fake-input empty">tap to enter</div>
-      </div>
-      <div class="opt-box" style="margin-top:8px;">
-        <div class="opt-row">
-          <div class="fake-toggle"></div>
-          <span>I'd like to receive offers, promotions and updates from Bossa Spa</span>
-        </div>
-      </div>
-      <button class="btn" onclick="nextScreen()">Continue →</button>
-    </div>
-
-    <!-- SCREEN 2: SERVICE SELECTION -->
-    <div class="screen" id="screen-service">
-      <div class="screen-title">Today's Service</div>
-      <div class="screen-sub" id="svc-sub"></div>
-
-      <!-- returning client: package prompt -->
-      <div id="package-prompt" style="display:none;">
-        <div class="alert alert-teal" id="pkg-alert"></div>
-        <div class="section-label">Would you like to use your package today?</div>
-        <div class="radio-opts" style="margin-bottom:16px;">
-          <div class="radio-opt selected" onclick="selectPkgUse(this,'yes')">
-            <div class="radio-dot"></div>
-            <span>Yes, use my package session</span>
-          </div>
-          <div class="radio-opt" onclick="selectPkgUse(this,'no')">
-            <div class="radio-dot"></div>
-            <span>No, I'll book a different service today</span>
-          </div>
-        </div>
-        <div id="pkg-confirm" style="display:block;">
-          <div class="history-block">
-            <div class="history-title">Package details</div>
-            <div class="history-row"><span class="history-key">Package</span><span class="history-val gold" id="pkg-name-disp"></span></div>
-            <div class="history-row"><span class="history-key">Sessions done</span><span class="history-val" id="pkg-done-disp"></span></div>
-            <div class="history-row"><span class="history-key">Remaining</span><span class="history-val" id="pkg-left-disp"></span></div>
-            <div class="history-row"><span class="history-key">Purchased</span><span class="history-val" id="pkg-date-disp"></span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- history for non-package returning -->
-      <div id="visit-history" style="display:none;" class="history-block">
-        <div class="history-title" id="visit-hist-title"></div>
-        <div id="visit-hist-rows"></div>
-      </div>
-
-      <!-- coupon / third-party question (non-package or different service) -->
-      <div id="payment-source-section" style="display:none;">
-        <div class="section-label">Payment / Booking Source</div>
-        <div class="radio-opts" style="margin-bottom:14px;" id="payment-opts">
-          <div class="radio-opt selected" onclick="selectPaymentOpt(this, false)">
-            <div class="radio-dot" style="border-color:var(--teal);background:var(--teal);"></div>
-            <span>Paying directly (no discount)</span>
-          </div>
-          <div class="radio-opt" onclick="selectPaymentOpt(this, true)">
-            <div class="radio-dot"></div>
-            <span>I have a coupon, gift card, or discount code</span>
-          </div>
-          <div class="radio-opt" onclick="selectPaymentOpt(this, true)">
-            <div class="radio-dot"></div>
-            <span>Booked through a third party (ClassPass, Groupon, etc.)</span>
-          </div>
-        </div>
-        <div id="coupon-field" style="display:none;" class="field">
-          <label>Please specify</label>
-          <div class="fake-input filled">CLASSPASS</div>
-        </div>
-      </div>
-
-      <!-- service grid (shown when no package OR chose different service) -->
-      <div id="service-grid-section">
-        <div class="section-label">Select service category</div>
-        <div class="svc-cat-grid" id="svcCatGrid"></div>
-        <div id="svc-variants-section" style="display:none;">
-          <div class="section-label" id="svc-variants-label">Select option</div>
-          <div class="svc-grid" id="svcGrid"></div>
-        </div>
-      </div>
-
-      <button class="btn" id="svc-continue-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
-    </div>
-
-    <!-- SCREEN 3: SERVICE INFO -->
-    <div class="screen" id="screen-info">
-      <div class="screen-title" id="info-title"></div>
-      <div class="screen-sub">Service Information</div>
-
-      <div id="therapist-note-info" style="display:none;" class="notes-collapse">
-        <div class="notes-collapse-header" onclick="toggleNotesCollapse(this)">
-          <span class="notes-collapse-title">⚠️ Notes from previous visits</span>
-          <span class="notes-collapse-arrow">▼</span>
-        </div>
-        <div class="notes-collapse-body">
-          <div class="note-entry">
-            <div class="note-entry-meta" id="therapist-note-date"></div>
-            <div class="note-entry-text" id="therapist-note-text"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="consistency-alert-info" style="display:none;"></div>
-
-      <div class="info-section">
-        <div class="info-heading">What it is</div>
-        <div class="info-text" id="info-what"></div>
-      </div>
-      <div class="info-section">
-        <div class="info-heading">What to expect</div>
-        <div class="info-text" id="info-expect"></div>
-      </div>
-      <div class="window-seal" id="info-window">
-        <div class="window-seal-num" id="window-num"></div>
-        <div class="window-seal-label" id="window-label"></div>
-      </div>
-      <div class="info-section">
-        <div class="info-heading">Before your session</div>
-        <div class="info-text" id="info-before"></div>
-      </div>
-      <div class="info-section">
-        <div class="info-heading">After your session</div>
-        <div class="info-text" id="info-after"></div>
-      </div>
-      <div class="info-section">
-        <div class="info-heading">Contraindications</div>
-        <div class="info-text" id="info-contra"></div>
-      </div>
-      <div class="info-section" id="info-marks-section" style="display:none;">
-        <div class="info-heading">Marks that may appear (normal)</div>
-        <div class="info-text" id="info-marks"></div>
-      </div>
-      <div class="info-section" id="info-recommend-section" style="display:none;">
-        <div class="info-heading" style="color:var(--teal);">We also recommend</div>
-        <div class="info-text" id="info-recommend"></div>
-      </div>
-
-      <!-- returning: previous answers confirmation -->
-      <div id="prev-consent-block" style="display:none;" class="prev-consent">
-        <div class="prev-consent-q">You confirmed these on your last visit. Please review and confirm below.</div>
-      </div>
-
-      <button class="btn" id="info-continue-btn" onclick="nextScreen()">I've read this and I'm ready →</button>
-    </div>
-
-    <!-- SCREEN 4: HEALTH FORM -->
-    <div class="screen" id="screen-health">
-      <div class="screen-title">Health & Safety</div>
-      <div class="screen-sub" id="health-sub"></div>
-      <div id="healthForm"></div>
-      <button class="btn" onclick="nextScreen()">Continue →</button>
-    </div>
-
-    <!-- SCREEN 5: WAIVER (first visit only) -->
-    <div class="screen" id="screen-waiver">
-      <div class="screen-title">Terms & Waiver</div>
-      <div class="screen-sub">First visit — one-time signature</div>
-      <div class="alert alert-teal" style="margin-bottom:14px;">
-        <div class="alert-title">📋 One-time only</div>
-        You only need to sign this once. On future visits, you'll skip straight to your health form.
-      </div>
-      <div class="waiver-box">
-        <h4>BOSSA SPA — TERMS, CONDITIONS, WAIVER AND RELEASE OF LIABILITY</h4>
-        <p>I, the Client, desire to use the services provided by Brazil Day SPA LLC ("Bossa Spa"), located at 9730 Wilshire Blvd, STE 201, Beverly Hills, CA 90212.</p>
-        <h5>1. Consent</h5>
-        <p>I hereby give my consent to receive the services selected from Bossa Spa, and I acknowledge that I am doing so at my own risk. My health and safety are my sole responsibility.</p>
-        <h5>2. Health Conditions</h5>
-        <p>I acknowledge that some services are not recommended for individuals with: infections, heart disease, thrombosis, circulatory conditions, contagious conditions, active skin infections, severe allergies, advanced pregnancy, or chemotherapy patients.</p>
-        <h5>3. No Medical Guarantee</h5>
-        <p>Services provided are wellness and aesthetic services only. They do not substitute medical treatment and results may vary.</p>
-        <h5>4. Continuing Obligation to Disclose</h5>
-        <p>If I purchase or use multiple services, I agree to promptly inform Bossa Spa of any changes in my health or medical condition.</p>
-        <h5>5. Assumption of Risk & Liability Waiver</h5>
-        <p>CLIENT RELEASES AND WAIVES all liability, demands, losses or damages on account of injury, illness, or property damage resulting from Client's use of the premises or services.</p>
-        <h5>6. Cancellation Policy</h5>
-        <p>All appointments require a 30% deposit. Appointments may be canceled with more than 24 hours' notice. Late cancellations result in forfeiture of deposit.</p>
-        <h5>7. Package Validity</h5>
-        <p>Single sessions: 30 days. 5-session packages: 90 days. 10-session packages: 120 days. Unused sessions expire automatically.</p>
-        <h5>8. Refund Policy</h5>
-        <p>No refunds for services already performed or partially used packages. Packages are non-transferable.</p>
-        <h5>9. Age Requirement</h5>
-        <p>Clients must be at least 18 years old.</p>
-        <h5>10. Privacy</h5>
-        <p>Client information is confidential and used only for scheduling, communication, and treatment records.</p>
-      </div>
-      <div class="check-group">
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I have read and agree to the Terms, Conditions, Waiver and Release of Liability.</span></div>
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I confirm I am 18 years or older.</span></div>
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I understand this is a wellness service, not a medical treatment.</span></div>
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I agree to the cancellation and refund policies.</span></div>
-      </div>
-      <button class="btn" onclick="nextScreen()">Continue →</button>
-    </div>
-
-    <!-- SCREEN 6: CONSENT & SIGNATURE -->
-    <div class="screen" id="screen-sign">
-      <div class="screen-title">Consent & Signature</div>
-      <div class="screen-sub">Final step</div>
-      <div class="check-group">
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I confirm all health information provided is accurate and complete.</span></div>
-        <div class="confirm-item"><div class="fake-check checked">✓</div><span>I consent to receive today's selected treatment.</span></div>
-        <div class="confirm-item" id="wax-confirm-item" style="display:none;"><div class="fake-check checked">✓</div><span>I confirm I am within the 35-day Wax Club window and agree to the 50% rate.</span></div>
-      </div>
-      <div class="section-label" style="margin-top:16px;">Signature</div>
-      <div class="sig-box">
-        <div class="sig-bar">Sign with your finger</div>
-        <div class="sig-area">
-          <svg class="sig-svg" width="180" height="50" viewBox="0 0 180 50">
-            <path d="M10,35 Q30,10 50,30 Q70,50 90,25 Q110,5 130,28 Q150,48 170,20" stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round"/>
-          </svg>
-        </div>
-      </div>
-      <div class="section-label" style="margin-top:16px;">Date</div>
-      <div class="fake-input filled" id="sign-date"></div>
-      <button class="btn" onclick="nextScreen()">Submit Check-In ✓</button>
-    </div>
-
-    <!-- SCREEN 4b: SERVICE-SPECIFIC INTAKE FORM -->
-    <div class="screen" id="screen-intake">
-      <div class="screen-title" id="intake-title">Service Form</div>
-      <div class="screen-sub" id="intake-sub">A few quick questions</div>
-      <div id="intakeForm"></div>
-      <button class="btn" onclick="nextScreen()">Continue →</button>
-    </div>
-
-    <!-- SCREEN 7: THANK YOU -->
-    <div class="screen" id="screen-thanks">
-      <div class="thank-you">
-        <div class="ty-icon">✨</div>
-        <div class="ty-title">You're all checked in!</div>
-        <div class="ty-sub" id="thanks-msg"></div>
-      </div>
-    </div>
-  </div><!-- end ipad-frame -->
-
-</div>
-
-<!-- SHEETS TAB (hidden in production) -->
-<div id="tab-sheets" class="tab-panel" hidden>
-  <div class="sheets-frame">
-    <div class="sheets-toolbar">
-      <span class="sheets-icon">📊</span>
-      <span class="sheets-title">Bossa Spa — Client System</span>
-    </div>
-    <div class="sheets-nav">
-      <div class="sheet-tab active" onclick="showSheet('checkins',this)">Check-ins</div>
-      <div class="sheet-tab" onclick="showSheet('clients',this)">Clients</div>
-      <div class="sheet-tab" onclick="showSheet('packages',this)">Packages</div>
-      <div class="sheet-tab" onclick="showSheet('waxclub',this)">Wax Club</div>
-    </div>
-    <div class="sheets-table">
-      <div id="sheet-checkins">
-        <table>
-          <tr><th>Date</th><th>Name</th><th>Phone</th><th>DOB</th><th>Service</th><th>Area(s)</th><th>Payment</th><th>Package Used</th><th>Status</th></tr>
-          <tr><td>10/10/2026</td><td>Jennifer Adams</td><td>(310) 555-0182</td><td>03/14/1990</td><td>Lymphatic Drainage</td><td>Full Body</td><td>Direct</td><td>—</td><td><span class="pill pill-green">New</span></td></tr>
-          <tr><td>10/10/2026</td><td>Maria Silva</td><td>(310) 555-0091</td><td>07/22/1985</td><td>Sauna</td><td>—</td><td>Package</td><td>Sauna 10x ✓</td><td><span class="pill pill-blue">Returning</span></td></tr>
-          <tr><td>10/09/2026</td><td>Ashley Kim</td><td>(424) 555-0034</td><td>11/05/1993</td><td>Waxing</td><td>—</td><td>Direct</td><td>—</td><td><span class="pill pill-gold">Wax Club</span></td></tr>
-          <tr><td>10/08/2026</td><td>David Reyes</td><td>(213) 555-0077</td><td>09/12/1988</td><td>Couples</td><td>Focus: Lower Back</td><td>Direct</td><td>—</td><td><span class="pill pill-blue">Returning</span></td></tr>
-          <tr><td>10/08/2026</td><td>Laura Reyes</td><td>(213) 555-0077</td><td>04/21/1990</td><td>Couples</td><td>Focus: Shoulders</td><td>Direct</td><td>—</td><td><span class="pill pill-blue">Returning</span></td></tr>
-        </table>
-      </div>
-      <div id="sheet-clients" style="display:none;">
-        <table>
-          <tr><th>Name</th><th>Phone</th><th>DOB</th><th>Email</th><th>Heard Via</th><th>Marketing Opt-in</th><th>First Visit</th><th>Last Visit</th><th>Total Visits</th><th>Waiver Signed</th></tr>
-          <tr><td>Jennifer Adams</td><td>(310) 555-0182</td><td>03/14/1990</td><td>jadams@email.com</td><td>Google</td><td><span class="pill pill-green">Yes</span></td><td>10/10/2026</td><td>10/10/2026</td><td>1</td><td><span class="pill pill-green">10/10/2026</span></td></tr>
-          <tr><td>Maria Silva</td><td>(310) 555-0091</td><td>07/22/1985</td><td>msilva@email.com</td><td>Instagram</td><td><span class="pill pill-green">Yes</span></td><td>05/12/2024</td><td>10/10/2026</td><td>24</td><td><span class="pill pill-green">05/12/2024</span></td></tr>
-          <tr><td>Ashley Kim</td><td>(424) 555-0034</td><td>11/05/1993</td><td>akim@email.com</td><td>TikTok</td><td><span class="pill pill-gray">No</span></td><td>01/08/2026</td><td>10/09/2026</td><td>9</td><td><span class="pill pill-green">01/08/2026</span></td></tr>
-        </table>
-      </div>
-      <div id="sheet-packages" style="display:none;">
-        <table>
-          <tr><th>Client</th><th>Package</th><th>Purchased</th><th>Total Sessions</th><th>Used</th><th>Remaining</th><th>Paid</th><th>Expires</th><th>Status</th></tr>
-          <tr><td>Maria Silva</td><td>Sauna 10x</td><td>07/15/2026</td><td>10</td><td>8</td><td>2</td><td>$500</td><td>11/12/2026</td><td><span class="pill pill-green">Active</span></td></tr>
-          <tr><td>Maria Silva</td><td>Sauna 10x</td><td>01/10/2026</td><td>10</td><td>10</td><td>0</td><td>$500</td><td>05/10/2026</td><td><span class="pill pill-gray">Completed</span></td></tr>
-          <tr><td>David Reyes</td><td>Lymphatic 5x</td><td>08/01/2026</td><td>5</td><td>3</td><td>2</td><td>$400</td><td>11/01/2026</td><td><span class="pill pill-green">Active</span></td></tr>
-        </table>
-      </div>
-      <div id="sheet-waxclub" style="display:none;">
-        <table>
-          <tr><th>Client</th><th>Last Wax Date</th><th>Days Since</th><th>Next Deadline</th><th>50% Eligible</th><th>Total Wax Visits</th></tr>
-          <tr><td>Ashley Kim</td><td>09/12/2026</td><td>28</td><td>10/17/2026</td><td><span class="pill pill-green">Yes ✓</span></td><td>9</td></tr>
-          <tr><td>Sofia Mendez</td><td>09/01/2026</td><td>39</td><td>Expired</td><td><span class="pill pill-gray">No</span></td><td>4</td></tr>
-          <tr><td>Rachel Green</td><td>10/01/2026</td><td>9</td><td>11/05/2026</td><td><span class="pill pill-gold">Coming</span></td><td>12</td></tr>
-        </table>
-      </div>
-    </div>
+  <div class="ipad-bar">
+    <span class="ipad-logo">Bossa</span>
+    <span style="font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;">Beverly Hills</span>
+    <div class="ipad-dot"></div>
   </div>
-</div><!-- end tab-sheets -->
 
-<!-- FLOW MAP TAB (hidden in production) -->
-<div id="tab-flows" class="tab-panel" hidden>
-  <div style="background:var(--beige);border:1px solid var(--border);border-radius:var(--r);padding:24px;">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--teal);margin-bottom:20px;">Check-In Flow</div>
+  <div class="step-bar" id="stepBar"></div>
 
-    <div style="font-size:.75rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">New Client Flow</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:24px;">
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">1. Welcome<br><span style="opacity:.7;font-size:.68rem;">Name + Phone + DOB</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">2. Register<br><span style="opacity:.7;font-size:.68rem;">Email + Heard + Coupon + Opt-in</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">3. Service<br><span style="opacity:.7;font-size:.68rem;">Select + Payment source</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">4. Service Info<br><span style="opacity:.7;font-size:.68rem;">Education + Consent</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">5. Health Form<br><span style="opacity:.7;font-size:.68rem;">+ Area selection</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--gold);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">6. Waiver<br><span style="opacity:.85;font-size:.68rem;">First visit only</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">7. Signature</div>
+  <!-- SCREEN 1: WELCOME -->
+  <div class="screen active" id="screen-welcome">
+    <div class="screen-title">Welcome</div>
+    <div class="screen-sub">Step 1 — Let's find your profile</div>
+    <div class="field">
+      <label>Full Name *</label>
+      <input type="text" id="inp-name" placeholder="Your full name" autocomplete="name" autocorrect="off">
     </div>
-
-    <div style="font-size:.75rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Returning Client Flow</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:24px;">
-      <div style="background:var(--teal-mid);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">1. Welcome<br><span style="opacity:.7;font-size:.68rem;">Name + Phone + DOB → found ✓</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal-mid);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">2. Service<br><span style="opacity:.7;font-size:.68rem;">Package? + Select</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal-mid);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">3. Service Info<br><span style="opacity:.7;font-size:.68rem;">+ Therapist notes</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal-mid);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">4. Health Form<br><span style="opacity:.7;font-size:.68rem;">+ Area selection</span></div>
-      <span style="color:var(--gold);">→</span>
-      <div style="background:var(--teal-mid);color:var(--cream);border-radius:6px;padding:7px 12px;font-size:.78rem;">5. Signature<br><span style="opacity:.7;font-size:.68rem;">No waiver needed</span></div>
+    <div class="field">
+      <label>Phone Number *</label>
+      <input type="tel" id="inp-phone" placeholder="(310) 555-0000" autocomplete="tel">
     </div>
-
-    <div style="font-size:.75rem;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Area Selection Logic</div>
-    <div style="font-size:.82rem;line-height:1.8;color:var(--ink);">
-      <b>No selection:</b> Lymphatic Full Body · Seaweed Wrap · Pre-Natal · All Facials · Sauna<br>
-      <b>Select exactly 2:</b> Brazilian Style Lymphatic 60min · Face &amp; Body Lymphatic 60min<br>
-      <b>Select 1 only:</b> Vacuum / BBL → Glutes or Breasts<br>
-      <b>Select up to 3:</b> Cryo Contour → Abdomen, Flanks, Thighs, Arms, Chin, Glutes<br>
-      <b>Free selection:</b> Post-Surgery · Body Shape · Wood Therapy · Cavitation · LLLT · RF · EMS · Couples<br>
-      <b>Optional focus:</b> All massages (Swedish, Deep Tissue, Hot Stones, Hot Bamboo) · Cupping<br>
-      <b>Notes only:</b> Waxing / Wax Club
+    <div class="field">
+      <label>Date of Birth *</label>
+      <input type="text" id="inp-dob" placeholder="MM/DD/YYYY">
     </div>
+    <div class="err-msg" id="welcome-err">Please fill in all fields to continue.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 2: REGISTER (new clients only) -->
+  <div class="screen" id="screen-register">
+    <div class="screen-title">Welcome to Bossa</div>
+    <div class="screen-sub">First visit — a few more details</div>
+    <div class="alert alert-teal">
+      <div class="alert-title">✨ First time here?</div>
+      We'd love to get to know you. Your info is saved securely and makes every future visit faster.
+    </div>
+    <div class="field">
+      <label>Email Address *</label>
+      <input type="email" id="inp-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="section-label">How did you hear about us? *</div>
+    <div class="chips" id="heard-chips">
+      <div class="chip" onclick="selectChip(this,'heard')">Google</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Instagram</div>
+      <div class="chip" onclick="selectChip(this,'heard')">TikTok</div>
+      <div class="chip" onclick="selectChip(this,'heard')">ClassPass</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Groupon</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Referral</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Other</div>
+    </div>
+    <div class="field" id="referral-field" style="display:none;margin-top:12px;">
+      <label>Who referred you?</label>
+      <input type="text" id="inp-referral" placeholder="Name of person who referred you">
+    </div>
+    <div class="section-label">Marketing</div>
+    <div class="chips">
+      <div class="chip" id="optin-chip" onclick="toggleOptIn(this)">📧 I'd like to receive offers & updates</div>
+    </div>
+    <div class="err-msg" id="register-err">Please fill in email and how you heard about us.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 3: SERVICE SELECTION -->
+  <div class="screen" id="screen-service">
+    <div class="screen-title">Today's Service</div>
+    <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
+    <div class="svc-grid" id="svc-grid"></div>
+    <div class="err-msg" id="service-err">Please select a service to continue.</div>
+    <button class="btn" id="svc-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
+  </div>
+
+  <!-- SCREEN 4: HEALTH FORM -->
+  <div class="screen" id="screen-health">
+    <div class="screen-title">Health Check</div>
+    <div class="screen-sub">Step <span id="health-step">4</span> — Quick health questions</div>
+    <div id="healthForm"></div>
+    <div class="err-msg" id="health-err">Please answer all required questions.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 5: WAIVER (new clients only) -->
+  <div class="screen" id="screen-waiver">
+    <div class="screen-title">Consent & Waiver</div>
+    <div class="screen-sub">Step <span id="waiver-step">5</span> — Please read and agree</div>
+    <div class="waiver-text">
+      <h4>Bossa Spa — Informed Consent & Liability Waiver</h4>
+      <p>I understand that the services provided at Bossa Spa are intended for relaxation, wellness, and aesthetic purposes only, and are not a substitute for medical treatment.</p>
+      <p>I confirm that I have disclosed all relevant health conditions, medications, and contraindications. I release Bossa Spa and its staff from any liability for adverse reactions resulting from undisclosed conditions.</p>
+      <p>I consent to receive the selected service and understand I may request to stop at any time. I agree not to hold Bossa Spa liable for any injury, loss, or damage arising from services received.</p>
+      <p>By signing below, I confirm I have read, understood, and agree to this waiver in full.</p>
+    </div>
+    <div class="field">
+      <label>Signature *</label>
+      <canvas id="sigCanvas"></canvas>
+      <span class="sig-clear" onclick="clearSig()">Clear signature</span>
+    </div>
+    <div class="err-msg" id="waiver-err">Please sign to continue.</div>
+    <button class="btn" onclick="nextScreen()">I Agree & Sign →</button>
+  </div>
+
+  <!-- SCREEN 6: THANK YOU -->
+  <div class="screen" id="screen-thanks">
+    <div class="thanks-icon">🌿</div>
+    <div class="thanks-name" id="thanks-name">Thank you!</div>
+    <div class="thanks-sub">Your check-in is complete. Please let our team know you're ready.</div>
+    <div class="thanks-detail" id="thanks-detail"></div>
+    <button class="btn btn-outline" onclick="resetApp()" style="margin-top:16px;">New Check-In</button>
   </div>
 </div>
 
-<!-- STAFF VIEW TAB (hidden in production) -->
-<div id="tab-staff" class="tab-panel" hidden>
-  <div class="staff-panel">
-    <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--teal);margin-bottom:6px;">Staff View — Client Profile</div>
-    <div style="font-size:.78rem;color:var(--muted);margin-bottom:20px;">Internal use only. Select a scenario to preview the full client file.</div>
-    <div class="scenario-bar" style="margin-bottom:24px;">
-      <div class="scenario-label">Select client scenario</div>
-      <div class="scenario-btns" id="staff-scenario-btns">
-        <button class="staff-scenario-btn active" onclick="populateStaffView('new',this)">✨ Jennifer Adams<br><small>New client</small></button>
-        <button class="staff-scenario-btn" onclick="populateStaffView('returning',this)">🔄 Maria Silva<br><small>Returning</small></button>
-        <button class="staff-scenario-btn" onclick="populateStaffView('package',this)">📦 Sofia Mendez<br><small>Package holder</small></button>
-        <button class="staff-scenario-btn" onclick="populateStaffView('wax',this)">🌿 Ashley Kim<br><small>Wax Club</small></button>
-        <button class="staff-scenario-btn" onclick="populateStaffView('couples',this)">🌸 David Reyes<br><small>Couples</small></button>
-      </div>
-    </div>
-    <div id="staff-content"></div>
-  </div>
+<!-- Spinner -->
+<div class="spinner-overlay" id="spinner" hidden>
+  <div class="spinner"></div>
+  <div class="spinner-text">Saving your information…</div>
 </div>
 
 <script>
-const today = new Date();
-const dateStr = today.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-
-// ── GOOGLE SHEETS INTEGRATION ──
+// ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+const SERVICES = [
+  { id:'lymphatic-full', name:'Lymphatic Drainage', sub:'Full Body', cat:'Lymphatic', dur:'60 / 90 min' },
+  { id:'lymphatic-face', name:'Face & Body Lymphatic', sub:'', cat:'Lymphatic', dur:'60 min' },
+  { id:'facial', name:'Facial', sub:'', cat:'Facial', dur:'60 / 90 min' },
+  { id:'massage-swedish', name:'Swedish Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
+  { id:'massage-deep', name:'Deep Tissue Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
+  { id:'sauna', name:'Infrared Sauna', sub:'', cat:'Sauna', dur:'30 / 45 / 60 min' },
+  { id:'body-wrap', name:'Body Wrap', sub:'Seaweed / Detox', cat:'Body', dur:'90 min' },
+  { id:'waxing', name:'Waxing', sub:'', cat:'Waxing', dur:'varies' },
+  { id:'cryo', name:'Cryo Contour', sub:'', cat:'Body', dur:'45 min' },
+  { id:'cavitation', name:'Cavitation', sub:'', cat:'Body', dur:'45 min' },
+  { id:'couples', name:'Couples Massage', sub:'', cat:'Couples', dur:'60 / 90 min' },
+];
+
+// ── STATE ──
+let currentStep = 0;
+let isNewClient = true; // determined after welcome
+let selectedService = null;
+let optInMarketing = false;
+let sigHasContent = false;
+let screenFlow = [];
+
+function buildScreenFlow() {
+  screenFlow = ['welcome'];
+  if (isNewClient) screenFlow.push('register');
+  screenFlow.push('service');
+  screenFlow.push('health');
+  if (isNewClient) screenFlow.push('waiver');
+  screenFlow.push('thanks');
+}
+
+// ── SHEETS INTEGRATION ──
 async function sendToSheets(type, data) {
   try {
-    const payload = JSON.stringify({ type, timestamp: new Date().toISOString(), ...data });
-    // Use no-cors mode since Google Apps Script doesn't return CORS headers on all responses
     await fetch(WEBAPP_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: payload
+      body: JSON.stringify({ type, timestamp: new Date().toISOString(), ...data })
     });
-    console.log('[Bossa] Sent to Sheets:', type, data);
   } catch(e) {
-    // Non-blocking — the check-in continues even if sync fails
-    console.warn('[Bossa] Sheets sync skipped (offline or CORS):', e.message);
+    console.warn('[Bossa] Sync error:', e.message);
   }
 }
 
-function collectHealthFormData() {
-  const answers = {};
-  document.querySelectorAll('#healthForm .health-q').forEach(q => {
-    const label = q.querySelector('label');
-    const selected = q.querySelector('.radio-opt.selected, .check-opt.selected');
-    const textarea = q.querySelector('.h-textarea');
-    if (label) {
-      const key = label.textContent.trim().substring(0, 60);
-      if (selected) answers[key] = selected.textContent.trim();
-      else if (textarea) answers[key] = textarea.textContent.trim();
-    }
-  });
-  return answers;
-}
-
-function collectIntakeFormData() {
-  const answers = {};
-  document.querySelectorAll('#intakeForm .intake-q').forEach(q => {
-    const label = q.querySelector('label');
-    const selected = q.querySelectorAll('.intake-opt.selected');
-    const textarea = q.querySelector('.intake-textarea');
-    if (label && !q.closest('.therapist-section')) {
-      const key = label.textContent.trim().substring(0, 60);
-      if (selected.length > 0) answers[key] = Array.from(selected).map(s=>s.textContent.trim()).join(', ');
-      else if (textarea) answers[key] = textarea.textContent.trim();
-    }
-  });
-  return answers;
-}
-
-function getWaiverSignatureData() {
-  const canvas = document.getElementById('sigCanvas');
-  if (!canvas) return null;
-  try { return canvas.toDataURL('image/png').substring(0,100)+'...'; } catch(e) { return 'signed'; }
-}
-
-// ── SCENARIOS ──
-const SCENARIOS = {
-  new: {
-    name:'Jennifer Adams', phone:'(310) 555-0182', dob:'03/14/1990',
-    isNew:true, serviceId:'lymphatic',
-    history:null, consistency:null, therapistNote:null,
-    prevConsent:false, coupleMode:false, hasPackage:false, waxClub:false,
-  },
-  returning: {
-    name:'Maria Silva', phone:'(310) 555-0091', dob:'07/22/1985',
-    isNew:false, serviceId:'lymphatic-brstyle',
-    history:{type:'visits', source:'ClassPass', visitCount:5, categories:['Lymphatic','Body Treatments']},
-    consistency:{ok:true, days:10, label:'10 days since last session', window:'Up to 2 weeks'},
-    therapistNote:{text:'Prefers lighter pressure on the left side. Usually books via ClassPass.', date:'Sep 28, 2026'},
-    prevConsent:true, coupleMode:false, hasPackage:false, waxClub:false,
-  },
-  package: {
-    name:'Sofia Mendez', phone:'(424) 555-0188', dob:'05/30/1991',
-    isNew:false, serviceId:'lymphatic',
-    history:{type:'package', packageName:'Lymphatic Drainage 10x', sessionsDone:6, sessionsLeft:4, purchased:'Aug 5, 2026', paid:'$900'},
-    consistency:{ok:true, days:9, label:'9 days since last session', window:'Up to 2 weeks'},
-    therapistNote:{text:'Client prefers lighter pressure on the left side. Focus on abdominal area — she mentioned feeling bloated.', date:'Oct 3, 2026'},
-    prevConsent:true, coupleMode:false, hasPackage:true, waxClub:false,
-  },
-  wax: {
-    name:'Ashley Kim', phone:'(424) 555-0034', dob:'11/05/1993',
-    isNew:false, serviceId:'waxclub',
-    history:{type:'visits', source:'Direct', visitCount:8, categories:['Waxing']},
-    consistency:{waxClub:true, days:28, deadline:'November 5, 2026', lastArea:'Brazilian', lastService:'Brazilian Wax'},
-    therapistNote:null, prevConsent:true, coupleMode:false, hasPackage:false, waxClub:true,
-    waxClubNote:'Last session: Brazilian Wax on October 8 (28 days ago). Wax Club is only valid for the same service in the same area within 35 days.',
-  },
-  couples: {
-    name:'David Reyes', phone:'(213) 555-0077', dob:'09/12/1988',
-    isNew:false, serviceId:'couples-essencial',
-    history:{type:'visits', source:'Direct', visitCount:3, categories:['Couples Massage']},
-    consistency:null,
-    therapistNote:{text:'Both prefer medium pressure. Guest usually requests focus on lower back.', date:'Sep 5, 2026'},
-    prevConsent:true, coupleMode:'standard', hasPackage:false, waxClub:false,
-    guest2:{name:'Laura Reyes', phone:'(213) 555-0078', dob:'04/14/1991', isNew:false, prevConsent:true, note:'Sensitive on shoulders.'},
-  },
-  rioromance: {
-    name:'Ana Souza', phone:'(310) 555-0199', dob:'04/21/1990',
-    isNew:false, serviceId:'couples-rioromance',
-    history:null, consistency:null,
-    therapistNote:null,
-    prevConsent:true, coupleMode:'rioromance', hasPackage:false, waxClub:false,
-    guest2:{name:'Carlos Souza', phone:'(310) 555-0200', dob:'08/03/1988', isNew:true, prevConsent:false, note:''},
-  },
-};
-
-// ── SERVICE DATA ──
-const SERVICES = [
-  // ── LYMPHATIC ──
-  {id:'lymphatic', name:'Lymphatic Drainage', icon:'💧', cat:'Lymphatic', areas:'none',
-   what:'Manual lymphatic drainage that uses gentle, rhythmic movements to stimulate the body\'s lymphatic system. It helps reduce fluid retention, bloating, inflammation, and the feeling of heaviness. A full-body session that works from head to toe, following the natural drainage pathways of the lymphatic system.',
-   expect:'Your therapist will use slow, feather-light strokes across the full body. The pressure is very gentle — much lighter than a regular massage. You may feel an immediate sense of lightness, reduced puffiness, and deep relaxation. It is normal to feel the urge to use the restroom after the session — this is a sign the lymphatic system is working.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Drink at least 1L of water before your session. Avoid heavy meals 1 hour before.',
-   after:'Drink 2L of water. Avoid alcohol for 24h. Light movement encouraged.',
-   contra:'Not recommended during active infections, with a pacemaker, or during chemotherapy.',
-   marks:'Mild temporary redness along drainage pathways is normal and fades within hours.',
-   recommend:'For best results, pair with Body Shape, Wood Therapy, or Cavitation. Consider a Lymphatic Package for consistent results.'},
-  {id:'lymphatic-brstyle', name:'Brazilian Style Lymphatic', icon:'💧', cat:'Lymphatic',
-   hasDuration:true,
-   duration60areas:'exactly2', duration90areas:'none',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Chest'],
-   what:'Brazilian-style lymphatic drainage that uses gentle, rhythmic manual movements to stimulate the lymphatic system, reduce fluid retention, and promote detox. Performed with light pressure following the body\'s natural drainage pathways.',
-   expect:'You\'ll lie comfortably as your therapist uses slow, wave-like strokes across your body. The pressure is very light — this is not a deep tissue massage. You may feel immediate lightness, reduced puffiness, and a sense of calm. Some clients feel the urge to use the restroom shortly after — this is completely normal and a sign the lymphatic system is activated.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Drink at least 1L of water before your session.',
-   after:'Drink 2L of water. Avoid alcohol for 24h.',
-   contra:'Not recommended during active infections, with a pacemaker, or during chemotherapy.',
-   marks:'Mild temporary redness along drainage pathways is normal and fades within hours.',
-   recommend:'Best paired with Body Shape or Wood Therapy for contouring goals. A Lymphatic Package maximizes results.'},
-  {id:'lymphatic-bodyfacial', name:'Body + Face Lymphatic', icon:'💧', cat:'Lymphatic',
-   hasDuration:true,
-   duration60areas:'exactly1body', duration90areas:'none',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Chest'],
-   what:'A combination session that pairs facial lymphatic drainage with body drainage work. Ideal for clients who want to address both facial puffiness (under-eye bags, jaw tension, bloating around the face) and body retention at the same time. The facial portion is always included.',
-   expect:'Your session begins with a gentle lymphatic facial massage — slow upward strokes along the face, jaw, and neck to de-puff and lift. Your therapist will then move to the body area(s) you selected, continuing with the same light rhythmic technique. You may notice your face looking more defined and your body feeling lighter by the end.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Drink at least 1L of water before. Remove makeup.',
-   after:'Drink 2L of water. Avoid alcohol for 24h.',
-   contra:'Not recommended during active infections, with a pacemaker, or during chemotherapy.',
-   marks:'Mild temporary puffiness relief and slight redness on the face — both normal and short-lived.',
-   recommend:'Complement with an Anti-Aging or Signature Facial for enhanced skin results.'},
-  {id:'facial-lymphatic', name:'Facial Lymphatic', icon:'💧', cat:'Lymphatic', areas:'none',
-   what:'A dedicated facial lymphatic drainage session focused entirely on the face, jaw, neck, and décolleté. Designed to reduce puffiness, under-eye bags, jaw tension, and overall facial bloating. Also supports skin clarity and a more defined, sculpted appearance over time.',
-   expect:'Your therapist will use very light, slow, upward strokes along the face, neck, and jaw — following the lymphatic pathways to move fluid toward the drainage nodes. There is no extraction or active pressure. It feels deeply relaxing, almost meditative. Clients often notice an immediate de-puffing effect and a more lifted facial contour right after.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Remove makeup. Drink water.',
-   after:'Avoid heavy creams immediately after. Drink water.',
-   contra:'Not recommended during active skin infection or open wounds on the face.',
-   marks:'Mild warmth or pinkness on the skin is normal and fades quickly.',
-   recommend:'Pair with a Signature Facial or Sculpt & Glow Combo for a complete facial treatment.'},
-  {id:'postsurgery1', name:'Post-Surgery Lymphatic 1 Area', icon:'🌿', cat:'Lymphatic', areas:'exactly1postsurg',
-   areaList:['Abdomen','Arms','Legs / Thighs','Glutes','Flanks','Back','Chest'],
-   what:'A specialized lymphatic drainage session designed for clients recovering from surgery. Focused on one surgical area at a time, it helps reduce post-operative swelling, bruising, and fibrosis (hardening of tissue). It supports faster healing and a smoother recovery process.',
-   expect:'The technique is adapted to your specific surgery and recovery stage — much gentler than a standard lymphatic session. Your therapist will work carefully around the treated area, using minimal pressure to encourage fluid movement without disturbing healing tissue. Many clients experience significant swelling reduction and softer skin texture after just a few sessions.',
-   window:'3 days', windowLabel:'Optimal post-surgery interval',
-   before:'Bring surgeon\'s clearance if applicable. Wear comfortable clothing.',
-   after:'Rest after session. Keep hydrated. Follow your surgeon\'s guidelines.',
-   contra:'Medical clearance may be required. Not performed over open wounds or active infection.'},
-  {id:'postsurgery-full', name:'Post-Surgery Lymphatic Full Body', icon:'🌿', cat:'Lymphatic', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Chest','Full Body'],
-   what:'Specialized lymphatic drainage for the post-surgery recovery period. Full-body session with extremely gentle, precise movements that respect the healing process and help the body eliminate excess fluid accumulated across all operated areas.',
-   expect:'Much lighter than standard drainage. Your therapist works around the operated areas — never directly on them while healing is still active. Each session is adapted to your recovery stage. Many clients experience significant relief from swelling and discomfort, and a smoother, faster recovery with consistent sessions.',
-   window:'3 days', windowLabel:'Optimal post-surgery interval',
-   before:'Bring surgeon\'s clearance if applicable. Wear comfortable clothing.',
-   after:'Rest after session. Keep hydrated. Follow your surgeon\'s guidelines.',
-   contra:'Medical clearance may be required. Not performed over open wounds or active infection.'},
-  // ── BODY TREATMENTS (includes manual + device) ──
-  {id:'bodyshape', name:'Body Shape', icon:'✨', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Chest'],
-   what:'Brazilian body sculpting — firm, intentional manual movements working directly on the body\'s contours: gliding, kneading, pinching, and percussion across the abdomen, hips, flanks, glutes, and thighs. No machines. Performed by hand from start to finish.',
-   expect:'Entirely hands-on. Intensity is calibrated with you throughout the session. Wood therapy tools may be incorporated when appropriate. The first session can feel like post-workout soreness — this is completely normal and fades with consistency.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Avoid heavy meals 1h before.',
-   after:'Drink 2L of water. Some redness is normal.',
-   contra:'Not recommended during pregnancy, with open skin, or active infections.',
-   marks:'Redness and temporary bruising-like marks on treated areas are normal and fade within 1–3 days.',
-   recommend:'Follow with a Lymphatic Drainage session to accelerate results and reduce inflammation.'},
-  {id:'woodtherapy', name:'Wood Therapy', icon:'🪵', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks'],
-   what:'Shaped wood tools applied with rhythmic, targeted pressure over the tissue. Rooted in Eastern practices and refined in Colombia, it\'s one of the most complete manual body contouring techniques available — no machines. Designed to break down fat deposits, improve circulation, and reduce the appearance of cellulite.',
-   expect:'Rollers, boards, and cups glide and press with precise, continuous movements. Intensity is calibrated in early sessions. Some tenderness is normal at first — it decreases as the tissue responds. Mild marks or redness in early sessions are expected and pass within 24–72h.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Avoid heavy meals 1h before. Stay hydrated.',
-   after:'Drink 2L of water. Light bruising is possible and normal.',
-   contra:'Not recommended during pregnancy or over varicose veins.',
-   marks:'Light bruising and redness on treated areas is expected and resolves in 1–3 days.',
-   recommend:'Best combined with Lymphatic Drainage for faster fat removal. Pairs well with Body Shape.'},
-  {id:'cavitation', name:'Ultrasound Cavitation', icon:'🔮', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks'],
-   what:'High-frequency deep vibration that penetrates the fat tissue and disrupts fat cell membranes. The released content is then processed naturally by the lymphatic system over the days that follow. A non-invasive, no-downtime treatment for localized fat reduction.',
-   expect:'A gel-coated applicator moves in circular patterns over the target area. Sensation: gentle warmth and a subtle internal vibration — no pain, no downtime. Some bruising or fluid patches are more likely in the first session as the body processes what was mobilized; this fades within days.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Drink 2L of water before. Avoid alcohol 48h before.',
-   after:'Drink 2L of water. Avoid alcohol 48h. Lymphatic drainage after for best results.',
-   contra:'Not during pregnancy, with pacemaker, or active tumor.'},
-  {id:'lllt', name:'Lipo Laser', icon:'💡', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Face','Full Body'],
-   what:'Low-level red light that penetrates fat tissue, creating temporary openings in fat cell membranes. The released content — triglycerides and fatty acids — exits through the membranes and is eliminated by the lymphatic system. Painless, no downtime. Most effective as part of a combined protocol.',
-   expect:'Light panels or paddles positioned over the target area for 20 to 40 minutes. You rest while the light does the work. No heat, no sensation — most clients barely notice anything happening during the session. The body continues eliminating in the days after each session.',
-   window:'2 days', windowLabel:'Optimal return window',
-   before:'No preparation needed.',
-   after:'Drink water. Light activity encouraged.',
-   contra:'Not during pregnancy, with active cancer, or epilepsy.'},
-  {id:'vacuum', name:'Vacuum / BBL', icon:'⭕', cat:'Body Treatments', areas:'exactly1vacuum',
-   areaList:['Glutes','Breasts'],
-   what:'Vacuum massage using suction cups in a rhythmic pump-and-release motion, paired with red light and gentle vibration. Designed to stimulate circulation, improve firmness, and give volume to the chosen area (glutes or breasts) — without surgery.',
-   expect:'The area is warmed with manual massage and oil before the cups are applied. Intensity builds gradually at your comfort level. Red light and vibration work alongside the suction throughout the session. Mild redness and warmth in the area afterward is normal and fades within hours. Light bruising possible in the first sessions.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'No tight clothing over area.',
-   after:'Some redness normal. Avoid tight clothing for 24h.',
-   contra:'Not during pregnancy, with pacemaker, or active skin infection.'},
-  {id:'rf', name:'Radio Frequency', icon:'〰️', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes','Flanks','Face'],
-   what:'Radiofrequency energy heats the deeper layers of the skin in a controlled way. That heat stimulates the cells responsible for producing new collagen and elastin — and it\'s that new collagen, remodeling over the following weeks, that firms and tightens the skin. No downtime.',
-   expect:'A gel-coated applicator glides over the area delivering warmth in waves. Sensation: pleasant, deep heating — comfortable and relaxing. No pain. Real, lasting results appear gradually over 2 to 6 months as new collagen matures. A subtle immediate firming effect is noticeable after each session.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Clean skin, no heavy creams.',
-   after:'Stay hydrated. Avoid sun exposure on treated area.',
-   contra:'Not with pacemaker, metal implants, or during pregnancy.'},
-  {id:'ems', name:'Electro / EMS', icon:'⚡', cat:'Body Treatments', areas:'free',
-   areaList:['Abdomen','Back','Lower Back','Arms','Legs / Thighs','Glutes'],
-   what:'Low-frequency electrical impulses that induce deep, controlled muscle contractions — like exercise, but precisely targeted to the area of your choice. No joint impact, no sweat. The muscle works hard while you rest. Especially effective for arms, abdomen, and glutes.',
-   expect:'Electrodes placed on the target area create contractions you feel as an intense rhythmic pulse — tolerable and controlled. Intensity is adjustable. Each area is treated for 20 to 30 minutes. Muscle soreness in the 24h after is normal — like post-workout. This is a sign the muscle responded.',
-   window:'2 days', windowLabel:'Optimal return window',
-   before:'No metallic jewelry over area.',
-   after:'Mild muscle soreness normal, like after exercise.',
-   contra:'Not with pacemaker, epilepsy, pregnancy, or metal implants.'},
-  {id:'cryo', name:'Cryo Contour', icon:'❄️', cat:'Body Treatments', areas:'upto3cryo',
-   areaList:['Abdomen','Flanks','Thighs','Arms','Chin','Glutes'],
-   what:'Body cryotherapy with controlled cooling that targets fat cells — which are more sensitive to cold than the surrounding tissue. Combines cold, suction, deep vibration, firming energy, and light in up to three simultaneous applicators. This is not a weight loss treatment — it\'s localized fat reduction and body contouring.',
-   expect:'Applicators are positioned on your chosen areas. Cooling begins gradually with automatic skin protection. You\'ll feel intense cold that becomes comfortable numbness as the session progresses. Up to 3 areas can be treated simultaneously. Mild redness or temporary numbness after is normal and resolves within days. Session: 60–75 min. No downtime.',
-   window:'3 weeks', windowLabel:'Between sessions (same area)',
-   before:'Avoid anti-inflammatories 48h before. Drink water.',
-   after:'Mild redness or temporary numbness. No downtime. Lymphatic drainage recommended after.',
-   contra:'Not during pregnancy, with cryoglobulinemia, or Raynaud\'s disease.'},
-  // ── MASSAGE (60 or 90min chosen after selection) ──
-  {id:'swedish', name:'Swedish Massage', icon:'🙌', cat:'Massage', areas:'focus', hasDuration:true,
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'Long, smooth, flowing strokes across the full body. Ideal for total relaxation, mild muscle tension relief, and improved circulation. The classic massage experience — deeply calming and restorative.',
-   expect:'Your therapist uses continuous gliding strokes following the direction of blood flow. Pressure is comfortable and adjustable. You can choose a full-body session or focus on a specific area. Many clients fall asleep. You\'ll leave feeling lighter, calmer, and with a clear sense of physical ease.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive relaxed. Avoid heavy meals.',
-   after:'Drink water. Rest if possible.',
-   contra:'Not during fever or active infection.'},
-  {id:'deeptissue', name:'Deep Tissue Massage', icon:'💪', cat:'Massage', areas:'focus', hasDuration:true,
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Neck','Full Body (no preference)'],
-   what:'Deep pressure and slow strokes that reach the deeper muscle layers. Designed for chronic knots, accumulated tension, and persistent muscle pain. More intensive than Swedish massage — the focus is on releasing what\'s stuck underneath the surface.',
-   expect:'Your therapist works with deliberate, slower pressure — deeper than a relaxation massage. Some discomfort in tense areas is normal and expected; communicate throughout so intensity stays within your comfort range. You may feel residual soreness for 24–48h after — this is the muscle responding and releasing.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Stay hydrated.',
-   after:'Drink water. Some soreness normal for 24–48h.',
-   contra:'Not over bruised or inflamed skin.'},
-  {id:'hotstones', name:'Hot Stones Massage', icon:'🪨', cat:'Massage', areas:'focus', hasDuration:true,
-   areaList:['Back','Lower Back','Shoulders','Full Body (no preference)'],
-   what:'Heated volcanic stones are placed on and glided over the body, delivering deep muscle warmth before any manual pressure even begins. The heat dilates and relaxes the muscle, allowing a deeper release with less effort. A deeply restorative experience.',
-   expect:'Smooth heated stones are placed at key points along the body while your therapist uses others to glide and massage. The warmth spreads gradually through the muscle layers. The sensation is heavy, soothing, and deeply relaxing — many clients find it more effective than manual massage alone for total tension release.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Avoid heavy meals. Let us know if you\'re sensitive to heat.',
-   after:'Drink water. Avoid cold showers immediately after.',
-   contra:'Not during pregnancy or with heat sensitivity.'},
-  {id:'hotbamboo', name:'Hot Bamboo Massage', icon:'🎍', cat:'Massage', areas:'focus', hasDuration:true,
-   areaList:['Back','Lower Back','Shoulders','Legs / Thighs','Full Body (no preference)'],
-   what:'Heated bamboo sticks used to roll and press the muscles with firm pressure and deep muscle warmth. The heat dilates the tissue while the bamboo delivers a firmer, more targeted pressure than hands alone. More intense than Hot Stones — perfect for those who want depth with heat.',
-   expect:'Your therapist uses bamboo rods of different sizes to roll, press, and knead along the muscles. The heat and firmness work together to reach deeper layers. Expect a satisfying, intense sensation — especially in tension-heavy areas. Soreness the day after is possible and normal.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive hydrated.',
-   after:'Drink water.',
-   contra:'Not during pregnancy or with skin conditions.'},
-  {id:'sports', name:'Sports Massage', icon:'⚽', cat:'Massage', areas:'focus', hasDuration:true,
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'Specific techniques for athletes and active people: friction, percussion, and passive stretching to release adhesions, speed up recovery, and prevent injury. Designed for the body that trains — not a relaxation massage.',
-   expect:'Your therapist focuses on the muscles and joints most affected by your activity. Techniques include targeted friction, percussion on tension points, and passive stretching. Pressure is firm and purposeful. Some discomfort in tight areas is normal — communicate throughout so the session stays effective.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Inform us of any recent injuries or areas of concern.',
-   after:'Drink water. Light stretching encouraged.',
-   contra:'Not over injured or inflamed areas without clearance.'},
-  {id:'prenatal', name:'Pre-Natal Massage', icon:'🤰', cat:'Massage', areas:'none',
-   what:'A massage specifically adapted for pregnant clients, with safe positioning and techniques that relieve the lower back pain, leg swelling, and tension typical of pregnancy. Performed by a trained therapist who understands the body\'s needs at each stage.',
-   expect:'You\'ll be comfortably positioned on your side with supportive bolsters throughout the session. The techniques are gentle and adapted to avoid any pressure on the abdomen. Focus areas include the lower back, hips, legs, and shoulders — the areas most commonly affected during pregnancy.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Let us know your trimester and any doctor\'s guidance.',
-   after:'Rest. Drink water.',
-   contra:'Recommended after first trimester. Consult your OB if in doubt.'},
-  {id:'cupping', name:'Cupping', icon:'🫧', cat:'Massage', areas:'free',
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Abdomen'],
-   what:'Suction cups placed on tension points in the back, shoulders, and legs. The negative pressure decompresses the tissue, stimulates circulation from below the surface, and relieves deep tension that hands alone can\'t always reach. A powerful complement to massage work.',
-   expect:'Cups are applied to skin and create a lifting suction sensation — very different from standard massage pressure. You may feel strong pulling in tense areas, which typically becomes comfortable quickly. Circular marks (dark red to purple) are completely normal and expected — they indicate blood circulation improvement. They fade in 3–7 days.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Stay hydrated.',
-   after:'Drink water. Avoid sun on treated areas.',
-   contra:'Not over broken skin, varicose veins, or during pregnancy.',
-   marks:'Circular marks (dark red to purple) are completely normal — they indicate blood circulation improvement. They fade in 3–7 days.',
-   recommend:'Follow with a Swedish or Deep Tissue Massage for full muscle release.'},
-  // ── COUPLES MASSAGE ──
-  {id:'couples-essencial', name:'Couples Essencial', icon:'🌸', cat:'Couples Massage', areas:'couples',
-   coupleService:'Swedish 60min each',
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'A side-by-side Swedish massage experience for two. Each guest receives a full 60-minute session in the same room — relaxation, shared.',
-   expect:'You and your guest will lie side by side as two therapists work simultaneously. Each person chooses their own focus area and pressure preference. The experience is calming, quiet, and entirely personalized for each guest.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive together. Let us know any preferences for each guest.',
-   after:'Relax together. Drink water.',
-   contra:'Individual contraindications apply to each guest.'},
-  {id:'couples-relaxing', name:'Couples Relaxing', icon:'🌸', cat:'Couples Massage', areas:'couples',
-   coupleService:'Swedish 90min each',
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'A side-by-side extended Swedish massage for two. 90 minutes each — more time, more depth, more relaxation.',
-   expect:'Same as the Essencial but with an additional 30 minutes per guest. Ideal for those who want a more thorough session or tend to carry significant tension. Each person chooses their own focus area and pressure.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive together.',
-   after:'Relax together. Drink water.',
-   contra:'Individual contraindications apply.'},
-  {id:'couples-relaxing-sauna', name:'Couples Relaxing + Sauna', icon:'🌸', cat:'Couples Massage', areas:'couples',
-   coupleService:'Swedish 60min + Sauna 30min',
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'A complete experience for two: 60-minute side-by-side Swedish massage followed by 30 minutes together in the infrared sauna. Relaxation, warmth, and connection.',
-   expect:'The session begins with a simultaneous Swedish massage — each guest chooses their focus area. Afterward, you both move to the sauna for 30 minutes of heat, detox, and quiet time together. Water and towels are provided throughout.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive together. Hydrate well.',
-   after:'Drink 2L of water.',
-   contra:'Sauna: not with pacemaker, fever, or pregnancy.'},
-  {id:'couples-loveinrio', name:'Couples Love in Rio', icon:'🌸', cat:'Couples Massage', areas:'couples',
-   coupleService:'Swedish 90min + Sauna 30min',
-   areaList:['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'],
-   what:'An extended couples experience: 90-minute side-by-side Swedish massage followed by 30 minutes in the infrared sauna. The fullest version of the massage + sauna pairing.',
-   expect:'Two therapists work side by side for 90 minutes — a deeply thorough session where each guest chooses their focus area and pressure. The experience ends with 30 minutes in the sauna together: warmth, stillness, and shared recovery.',
-   window:'1 week', windowLabel:'Optimal return window',
-   before:'Arrive together. Hydrate well.',
-   after:'Drink 2L of water.',
-   contra:'Sauna: not with pacemaker, fever, or pregnancy.'},
-  {id:'couples-rioromance', name:'Couples Rio Romance', icon:'💕', cat:'Couples Massage', areas:'rioromance',
-   what:'The ultimate couples experience at Bossa Spa. A curated journey combining massage, lymphatic drainage, facial care, and sauna — all side by side.',
-   expect:'Each guest will receive a personalized combination of services selected by our team with you in mind. The experience typically includes a body massage, lymphatic or facial work, and finishes with a shared sauna session. Specific service combinations will be arranged by our team.',
-   before:'Arrive together. Remove makeup. Drink water and dress comfortably.',
-   after:'Drink 2L of water. Avoid alcohol and heavy meals. Rest and enjoy the post-treatment glow.',
-   contra:'Individual contraindications apply to each guest. Please inform us of any health conditions, pregnancy, or pacemaker.',
-   recommend:'The Rio Romance is a full-service experience — no need to add anything. Ask about our Couples Package for repeat visits at a special rate.'},
-  // ── FACIAL ──
-  {id:'dermaplaning-hydration', name:'Dermaplaning + Hydration', icon:'✦', cat:'Facial', areas:'none',
-   duration:'60min', fixedDuration:true,
-   what:'A two-step facial: exfoliation using a sterile surgical blade removes dead skin cells and fine vellus hair (peach fuzz), followed by a deep hydration treatment that infuses moisture into fresh, clean skin.',
-   expect:'Your esthetician will use a light, precise scraping motion across the face — it sounds more intense than it feels. Most clients find it relaxing. After the dermaplaning, a hydrating serum and mask are applied. You\'ll leave with immediately smoother, brighter, and more plump-looking skin.',
-   window:'4 weeks', windowLabel:'Optimal return window',
-   before:'No retinol 5 days before. Clean skin, no makeup.',
-   after:'SPF required. Avoid active exfoliants for 1 week.',
-   contra:'Not with active acne, rosacea flare, or open skin.'},
-  {id:'antiaging', name:'Anti-Aging Facial', icon:'🌟', cat:'Facial', areas:'none',
-   what:'A targeted anti-aging facial formulated with collagen-boosting active ingredients to firm, lift, and visibly reduce the appearance of fine lines and loss of elasticity. Designed for clients focused on skin longevity.',
-   expect:'Multiple steps: deep cleanse, gentle exfoliation, targeted active serums applied with massage techniques, a firming mask, and finish. Your skin will feel noticeably firmer and more radiant. Results build with consistent sessions.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'No retinol 5 days before.',
-   after:'SPF required. Avoid heavy makeup same day.',
-   contra:'Not with very sensitive or reactive skin without consultation.'},
-  {id:'signature', name:'Signature Facial', icon:'💫', cat:'Facial', areas:'none',
-   what:'Bossa\'s customized facial — fully adapted to your skin\'s current condition on the day of your appointment. No fixed protocol: your esthetician reads your skin and builds the treatment around what it actually needs.',
-   expect:'Your session begins with a skin assessment. From there, your esthetician selects the right cleansers, exfoliants, serums, and masks for your skin type and concerns that day. No two Signature sessions are exactly alike — that\'s the point.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Come with clean skin when possible.',
-   after:'SPF during the day. Gentle cleanser only.',
-   contra:'Always inform us of any skin sensitivities or products in use.'},
-  {id:'hydrafacial', name:'Hydrafacial', icon:'💦', cat:'Facial', areas:'none',
-   what:'A multi-step medical-grade facial that uses vortex suction technology to simultaneously cleanse, exfoliate, extract impurities, and infuse hydrating serums into the skin. One of the most comprehensive single-session facials available.',
-   expect:'A wand glides across your face in gentle, swirling motions — it looks impressive and feels like a light suction sensation (not uncomfortable). The extraction step clears pores without squeezing. You\'ll see an immediate glow. No redness, no downtime.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'No active exfoliants 5 days before.',
-   after:'No retinol or actives for 24h. SPF required.',
-   contra:'Not with active cold sores or open skin.'},
-  {id:'facial-bundle', name:'Facial Bundle', icon:'🔬', cat:'Facial', areas:'none',
-   duration:'70min', fixedDuration:true,
-   what:'A comprehensive 70-minute facial that covers the full spectrum of skin care: deep cleansing, steam, extractions, customized serums, and a finishing mask — all in one session. Designed for clients who want a thorough, all-inclusive treatment.',
-   expect:'This is a full facial experience from start to finish. Expect steam to open pores, followed by gentle extractions, targeted treatment with serums chosen for your skin, a calming mask, and a hydrating finish. Your skin will feel deeply clean, balanced, and refreshed.',
-   window:'3 weeks', windowLabel:'Optimal return window',
-   before:'No picking or squeezing at home beforehand.',
-   after:'No makeup for 12h. SPF required.',
-   contra:'Not during active breakout or rosacea flare.'},
-  {id:'sculptglow', name:'Sculpt & Glow Combo', icon:'🌙', cat:'Facial', areas:'none',
-   duration:'90min', fixedDuration:true,
-   what:'A 90-minute sculpting and brightening facial that combines gua sha stone work, lymphatic facial massage, and targeted brightening actives. Designed to lift, define, and illuminate — with a focus on facial contouring and skin radiance.',
-   expect:'Sculpting gua sha movements work along the jawline, cheekbones, temples, and neck to define and de-puff. Lymphatic drainage strokes follow to reduce fluid and give a lifted, more sculpted appearance. Brightening serums finish the session. You\'ll walk out looking noticeably more lifted and glowing.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Clean skin preferred.',
-   after:'Gentle routine for 24h. SPF.',
-   contra:'Not with dermal fillers within 2 weeks.'},
-  // ── SAUNA ──
-  {id:'sauna30', name:'Sauna 30min', icon:'🔥', cat:'Sauna', areas:'none',
-   duration:'30min', fixedDuration:true,
-   what:'A 30-minute infrared sauna session. Infrared heat penetrates the body more deeply than traditional steam saunas, promoting detox through sweat, easing muscle tension, and supporting circulation and relaxation.',
-   expect:'You\'ll enter the sauna alone or with a partner (couples option). The heat builds gradually over the 30 minutes — it\'s warm but comfortable. Towel and water are provided. Most clients feel deeply relaxed, with looser muscles and lighter energy by the end.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Hydrate well. Avoid heavy meals.',
-   after:'Drink 2L of water. Rest if needed.',
-   contra:'Not with pacemaker, fever, low blood pressure, or during pregnancy.'},
-  {id:'sauna60', name:'Sauna 60min', icon:'🔥', cat:'Sauna', areas:'none',
-   duration:'60min', fixedDuration:true,
-   what:'A 60-minute infrared sauna session — the extended option for a deeper sweat, longer muscle release, and more thorough detox. Infrared heat works at the tissue level, not just the surface.',
-   expect:'A longer, deeper sauna experience. The heat builds gradually and the full 60 minutes allows for a thorough sweat cycle. Many clients use the time to meditate, listen to music, or simply decompress. Towel and water are provided. You\'ll feel significantly lighter and more relaxed after.',
-   window:'2 weeks', windowLabel:'Optimal return window',
-   before:'Hydrate well. Avoid heavy meals.',
-   after:'Drink 2L of water. Rest if needed.',
-   contra:'Not with pacemaker, fever, low blood pressure, or during pregnancy.'},
-  // ── WAX ──
-  {id:'wax', name:'Waxing', icon:'🌿', cat:'Wax', areas:'waxnotes',
-   what:'Professional waxing for face and body, using high-quality wax selected for your skin type and area. From brows and lip to legs, underarms, and Brazilian — precision and care in every session.',
-   expect:'Your esthetician will apply warm wax to the chosen area and remove it quickly and precisely. Some discomfort is normal and fades within seconds — most clients find it very manageable. Skin will be smooth and hair-free immediately after.',
-   window:'35 days', windowLabel:'Wax Club window',
-   before:'Hair must be at least ¼ inch long. Exfoliate 24h before. Avoid tanning 48h before.',
-   after:'Avoid heat (sauna, hot bath) for 24h. No tight clothing over waxed area. Moisturize after 24h.',
-   contra:'Not over sunburned skin, open wounds, or with certain medications (Retin-A, Accutane).',
-   marks:'Redness and slight sensitivity in waxed areas is normal — fades within a few hours.',
-   recommend:'Book your next appointment within 35 days to qualify for Wax Club 50% off. Ask us about our Wax Club program!'},
-  {id:'waxclub', name:'Wax Club', icon:'🌿⭐', cat:'Wax', areas:'waxnotes',
-   what:'The Wax Club is Bossa\'s loyalty program for waxing clients. Return within 35 days of your previous session and receive 50% off every waxing appointment — automatically, every time. The smarter way to stay smooth.',
-   expect:'The same professional waxing experience — but with each return visit, the hair grows back finer and sparser, making the session faster and more comfortable over time. Your Wax Club discount applies automatically when you book within the 35-day window.',
-   window:'35 days', windowLabel:'Wax Club window',
-   before:'Hair must be at least ¼ inch. Exfoliate 24h before. Avoid tanning 48h before.',
-   after:'Avoid heat for 24h. Moisturize after 24h.',
-   contra:'Not over sunburned skin, open wounds, or with Retin-A / Accutane.',
-   marks:'Redness and sensitivity are normal — less so with regular visits.',
-   recommend:'Stay consistent — the more regular your appointments, the less discomfort over time.'},
-];
-
-let currentScenario = SCENARIOS.new;
-let currentStep = 0;
-let selectedService = null;
-let isNewClient = true;
-// steps: welcome, (register if new), service, info, health, (waiver if new), sign, thanks
-let screenFlow = [];
-
-const INTAKE_CATS = ['Facial','Sauna','Lymphatic','Body Treatments'];
-
-function buildFlow(scenario, svcOverride) {
-  let flow = ['welcome'];
-  if (scenario.isNew) flow.push('register');
-  flow.push('service');
-  flow.push('info');
-  flow.push('health');
-  // Add service-specific intake for relevant categories
-  const svc = svcOverride || selectedService || SERVICES.find(s=>s.id===scenario.serviceId) || SERVICES[0];
-  if (svc && INTAKE_CATS.includes(svc.cat)) flow.push('intake');
-  if (scenario.isNew) flow.push('waiver');
-  flow.push('sign');
-  flow.push('thanks');
-  return flow;
-}
-
-function loadScenario(key, triggerBtn) {
-  document.querySelectorAll('.s-btn').forEach(b=>b.classList.remove('active'));
-  const btn = triggerBtn || (typeof event !== 'undefined' && event && event.target);
-  if (btn) btn.classList.add('active');
-  currentScenario = SCENARIOS[key];
-  currentStep = 0;
-  selectedService = SERVICES.find(s=>s.id===currentScenario.serviceId) || SERVICES[0];
-  screenFlow = buildFlow(currentScenario);
-  populateWelcome();
-  populateServiceScreen();
-  populateInfoScreen();
-  populateHealthForm();
-  updateStepBar();
-  showScreen('welcome');
-  updateTestPanel();
-}
-
-const SCREEN_LABELS = {
-  welcome: {icon:'👋', label:'Welcome'},
-  register: {icon:'📝', label:'Registration'},
-  service: {icon:'💆', label:'Service'},
-  info: {icon:'📋', label:'Info / Education'},
-  health: {icon:'❤️', label:'Health Form'},
-  intake: {icon:'📋', label:'Service Form'},
-  waiver: {icon:'✍️', label:'Waiver'},
-  sign: {icon:'🖊️', label:'Signature'},
-  thanks: {icon:'✅', label:'Thank You'},
-};
-
-function updateTestPanel() {
-  const container = document.getElementById('test-screens');
-  if (!container) return;
-  container.innerHTML = '';
-  screenFlow.forEach((screenId, idx) => {
-    const info = SCREEN_LABELS[screenId] || {icon:'🔲', label:screenId};
-    const btn = document.createElement('button');
-    btn.className = 'test-screen-btn' + (idx === currentStep ? ' current' : '');
-    btn.innerHTML = `<span class="tsb-label">${info.icon} ${info.label}</span><span class="tsb-step">Step ${idx + 1} of ${screenFlow.length}</span>`;
-    btn.onclick = () => jumpToScreen(idx);
-    container.appendChild(btn);
-  });
-}
-
-function jumpToScreen(idx) {
-  currentStep = idx;
-  const screenId = screenFlow[idx];
-  // Re-populate relevant screens so they show correct state
-  if (screenId === 'service') populateServiceScreen();
-  if (screenId === 'info') populateInfoScreen();
-  if (screenId === 'health') populateHealthForm();
-  if (screenId === 'intake') populateIntakeForm();
-  updateStepBar();
-  showScreen(screenId);
-  updateTestPanel();
-}
-
-function toggleTestPanel() {
-  const body = document.getElementById('test-panel-body');
-  const toggle = document.getElementById('test-panel-toggle');
-  if (body.style.display === 'none') {
-    body.style.display = '';
-    toggle.textContent = '▲ hide';
-  } else {
-    body.style.display = 'none';
-    toggle.textContent = '▼ show';
-  }
-}
-
-function nextScreen() {
-  // Validate welcome screen before advancing
-  if (screenFlow[currentStep] === 'welcome') {
-    const name = document.getElementById('inp-name').textContent.trim();
-    const phone = document.getElementById('inp-phone').textContent.trim();
-    const dob = document.getElementById('inp-dob').textContent.trim();
-    const fields = [
-      {id:'inp-name', val:name, labelId:'lbl-name'},
-      {id:'inp-phone', val:phone, labelId:'lbl-phone'},
-      {id:'inp-dob', val:dob, labelId:'lbl-dob'},
-    ];
-    let hasError = false;
-    fields.forEach(f => {
-      const el = document.getElementById(f.id);
-      if (!f.val) {
-        el.style.borderColor = 'var(--error)';
-        el.style.boxShadow = '0 0 0 2px rgba(155,58,42,.15)';
-        hasError = true;
-      } else {
-        el.style.borderColor = '';
-        el.style.boxShadow = '';
-      }
-    });
-    let errEl = document.getElementById('welcome-error');
-    if (hasError) {
-      if (!errEl) {
-        errEl = document.createElement('div');
-        errEl.id = 'welcome-error';
-        errEl.className = 'alert alert-warn';
-        errEl.style.marginTop = '4px';
-        errEl.textContent = 'Please fill in all 3 fields to continue.';
-        document.getElementById('screen-welcome').querySelector('.btn').before(errEl);
-      }
-      errEl.style.display = 'block';
-      return;
-    }
-    if (errEl) errEl.style.display = 'none';
-  }
-
-  // Validate register screen before advancing
-  if (screenFlow[currentStep] === 'register') {
-    const email = document.getElementById('reg-email');
-    const emailVal = email.textContent.trim();
-    const emailEmpty = !emailVal || email.classList.contains('empty');
-    const heardSelected = document.querySelector('#heard-chips .area-chip.selected');
-    let hasError = false;
-
-    if (emailEmpty) {
-      email.style.borderColor = 'var(--error)';
-      email.style.boxShadow = '0 0 0 2px rgba(155,58,42,.15)';
-      hasError = true;
-    } else {
-      email.style.borderColor = '';
-      email.style.boxShadow = '';
-    }
-
-    let errEl = document.getElementById('register-error');
-    if (hasError || !heardSelected) {
-      if (!errEl) {
-        errEl = document.createElement('div');
-        errEl.id = 'register-error';
-        errEl.className = 'alert alert-warn';
-        errEl.style.marginTop = '4px';
-        document.getElementById('screen-register').querySelector('.btn').before(errEl);
-      }
-      const missing = [];
-      if (emailEmpty) missing.push('Email');
-      if (!heardSelected) missing.push('"How did you hear about us?"');
-      errEl.textContent = 'Please complete: ' + missing.join(' and ') + '.';
-      errEl.style.display = 'block';
-      return;
-    }
-    if (errEl) errEl.style.display = 'none';
-  }
-
-  // Validate service screen before advancing
-  if (screenFlow[currentStep] === 'service') {
-    const missing = [];
-
-    // Check if package prompt is visible but no option chosen
-    const pkgPrompt = document.getElementById('package-prompt');
-    if (pkgPrompt.style.display !== 'none') {
-      const pkgChosen = pkgPrompt.querySelector('.radio-opt.selected');
-      if (!pkgChosen) missing.push('package use choice');
-    }
-
-    // Check if service grid is visible but no service selected
-    const gridSection = document.getElementById('service-grid-section');
-    if (gridSection.style.display !== 'none') {
-      if (!selectedService) missing.push('service selection');
-    }
-
-    // Check if payment source section is visible but no option selected
-    const paySection = document.getElementById('payment-source-section');
-    if (paySection && paySection.style.display !== 'none') {
-      const payChosen = paySection.querySelector('.radio-opt.selected');
-      if (!payChosen) missing.push('payment/booking source');
-    }
-
-    let errEl = document.getElementById('service-error');
-    if (missing.length > 0) {
-      if (!errEl) {
-        errEl = document.createElement('div');
-        errEl.id = 'service-error';
-        errEl.className = 'alert alert-warn';
-        errEl.style.marginTop = '4px';
-        document.getElementById('svc-continue-btn').before(errEl);
-      }
-      errEl.textContent = 'Please complete: ' + missing.join(', ') + '.';
-      errEl.style.display = 'block';
-      return;
-    }
-    if (errEl) errEl.style.display = 'none';
-  }
-
-  // ── SEND DATA TO GOOGLE SHEETS (silent, non-blocking) ──
-  const currentScreenId = screenFlow[currentStep];
-  const sc = currentScenario;
-
-  if (currentScreenId === 'welcome') {
-    // New client: save registration
-    if (sc.isNew) {
-      const name = document.getElementById('inp-name').textContent.trim();
-      const phone = document.getElementById('inp-phone').textContent.trim();
-      const dob = document.getElementById('inp-dob').textContent.trim();
-      sendToSheets('new_client', { name, phone, dob, isNew: true, source: 'iPad Check-In' });
-    }
-  }
-
-  if (currentScreenId === 'register') {
-    const email = document.getElementById('reg-email')?.textContent?.trim() || '';
-    const heard = document.querySelector('#heard-chips .area-chip.selected')?.textContent?.trim() || '';
-    sendToSheets('new_client', {
-      name: document.getElementById('inp-name').textContent.trim(),
-      phone: document.getElementById('inp-phone').textContent.trim(),
-      dob: document.getElementById('inp-dob').textContent.trim(),
-      email, heardAboutUs: heard, source: 'iPad Check-In'
-    });
-  }
-
-  if (currentScreenId === 'service') {
-    const svc = selectedService;
-    if (svc) {
-      sendToSheets('visit', {
-        clientName: sc.name,
-        clientPhone: sc.phone,
-        serviceName: svc.name,
-        serviceCategory: svc.cat,
-        isNew: sc.isNew,
-        date: dateStr
-      });
-    }
-  }
-
-  if (currentScreenId === 'health') {
-    const healthData = collectHealthFormData();
-    sendToSheets('health_form', {
-      clientName: sc.name,
-      clientPhone: sc.phone,
-      date: dateStr,
-      service: selectedService?.name || '',
-      ...healthData
-    });
-  }
-
-  if (currentScreenId === 'intake') {
-    const intakeData = collectIntakeFormData();
-    const cat = selectedService?.cat || 'General';
-    sendToSheets('intake', {
-      clientName: sc.name,
-      clientPhone: sc.phone,
-      date: dateStr,
-      serviceCategory: cat,
-      service: selectedService?.name || '',
-      ...intakeData
-    });
-  }
-
-  if (currentScreenId === 'waiver' || currentScreenId === 'sign') {
-    sendToSheets('waiver', {
-      clientName: sc.name,
-      clientPhone: sc.phone,
-      date: dateStr,
-      service: selectedService?.name || '',
-      signaturePresent: true,
-      waiverVersion: '2024-v1'
-    });
-  }
-
-  currentStep++;
-  if (currentStep >= screenFlow.length) return;
-  const screenId = screenFlow[currentStep];
-  if (screenId === 'intake') populateIntakeForm();
-  updateStepBar();
-  showScreen(screenId);
-  updateTestPanel();
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+id).classList.add('active');
-}
-
+// ── STEP BAR ──
 function updateStepBar() {
   const bar = document.getElementById('stepBar');
-  const total = screenFlow.length - 1; // exclude thanks
+  const total = screenFlow.length - 1;
   bar.innerHTML = '';
   for (let i = 0; i < total; i++) {
     const dot = document.createElement('div');
@@ -1469,865 +290,278 @@ function updateStepBar() {
   }
 }
 
-function populateWelcome() {
-  const sc = currentScenario;
-  document.getElementById('inp-name').textContent = sc.name;
-  document.getElementById('inp-phone').textContent = sc.phone;
-  document.getElementById('inp-dob').textContent = sc.dob;
-  if (sc.isNew) {
-    document.getElementById('reg-name').textContent = sc.name;
-    document.getElementById('reg-phone').textContent = sc.phone;
-    document.getElementById('reg-dob').textContent = sc.dob;
-    document.getElementById('reg-email').textContent = sc.name.split(' ')[0].toLowerCase()+'@email.com';
-    document.getElementById('reg-email').className = 'fake-input filled';
-  }
-  // Couples: show second guest section
-  const g2sec = document.getElementById('welcome-guest2-section');
-  const primaryLabel = document.getElementById('welcome-primary-label');
-  if (sc.coupleMode && sc.guest2) {
-    primaryLabel.style.display = 'block';
-    g2sec.style.display = 'block';
-    const g2 = sc.guest2;
-    document.getElementById('inp-g2-name').textContent = g2.name;
-    document.getElementById('inp-g2-phone').textContent = g2.phone;
-    document.getElementById('inp-g2-dob').textContent = g2.dob;
-    const g2title = document.getElementById('g2-status-title');
-    const g2note = document.getElementById('g2-status-note');
-    if (g2.isNew) {
-      g2title.textContent = '✨ New client — will be saved as a new profile';
-      g2note.textContent = 'This is their first visit. A new client profile will be created. The couples session will appear in both profiles.';
-    } else {
-      g2title.textContent = '🔄 Returning client — will be matched to existing profile';
-      g2note.textContent = 'Profile found. Each person is saved separately. The couples session will appear in both histories.';
-    }
-    if (g2.note) {
-      g2note.textContent += ' Note: ' + g2.note;
-    }
-  } else {
-    primaryLabel.style.display = 'none';
-    g2sec.style.display = 'none';
-  }
+// ── NAVIGATION ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0,0);
 }
 
-function populateServiceScreen() {
-  const sc = currentScenario;
-  const svc = selectedService;
-  const sub = document.getElementById('svc-sub');
+async function nextScreen() {
+  const current = screenFlow[currentStep];
 
-  // package prompt
-  const pkgPrompt = document.getElementById('package-prompt');
-  const visitHist = document.getElementById('visit-history');
-  const paySection = document.getElementById('payment-source-section');
-  const gridSection = document.getElementById('service-grid-section');
-  const continueBtn = document.getElementById('svc-continue-btn');
-
-  pkgPrompt.style.display = 'none';
-  visitHist.style.display = 'none';
-  paySection.style.display = 'none';
-  gridSection.style.display = 'block';
-  continueBtn.style.display = 'none';
-
-  if (!sc.isNew && sc.hasPackage && sc.history && sc.history.type === 'package') {
-    // has package — show prompt
-    sub.textContent = 'Step '+(screenFlow.indexOf('service')+1)+' — Package on file';
-    pkgPrompt.style.display = 'block';
-    gridSection.style.display = 'none';
-    const h = sc.history;
-    document.getElementById('pkg-alert').innerHTML = '<div class="alert-title">📦 You have an active package</div>'+h.packageName+' — '+h.sessionsLeft+' session'+(h.sessionsLeft!==1?'s':'')+' remaining';
-    document.getElementById('pkg-name-disp').textContent = h.packageName;
-    document.getElementById('pkg-done-disp').textContent = h.sessionsDone+' sessions';
-    document.getElementById('pkg-left-disp').textContent = h.sessionsLeft+' remaining';
-    document.getElementById('pkg-date-disp').textContent = h.purchased;
-    continueBtn.textContent = 'Confirm & Continue →';
-    continueBtn.style.display = 'block';
-  } else if (!sc.isNew && sc.history && sc.history.type === 'visits') {
-    sub.textContent = 'Step '+(screenFlow.indexOf('service')+1)+' — Visit history';
-    visitHist.style.display = 'block';
-    document.getElementById('visit-hist-title').textContent = 'Your history at Bossa';
-    const h = sc.history;
-    document.getElementById('visit-hist-rows').innerHTML =
-      '<div class="history-row"><span class="history-key">Booking source</span><span class="history-val">'+h.source+'</span></div>'+
-      '<div class="history-row"><span class="history-key">Total visits</span><span class="history-val">'+h.visitCount+'</span></div>'+
-      '<div class="history-row"><span class="history-key">Services</span><span class="history-val">'+h.categories.join(', ')+'</span></div>';
-    paySection.style.display = 'block';
-    continueBtn.style.display = 'block';
-  } else if (sc.isNew) {
-    sub.textContent = 'Step '+(screenFlow.indexOf('service')+1)+' — Select your service';
-  } else {
-    sub.textContent = 'Step '+(screenFlow.indexOf('service')+1)+' — Select your service';
-    continueBtn.style.display = 'block';
-  }
-
-  // build category chips (Step 1)
-  const CATEGORIES = [
-    {key:'Lymphatic',       label:'Lymphatic',       icon:'💧'},
-    {key:'Body Treatments', label:'Body Treatments', icon:'✨'},
-    {key:'Massage',         label:'Massage',         icon:'🙌'},
-    {key:'Couples Massage', label:'Couples Massage', icon:'🌸'},
-    {key:'Facial',          label:'Facial',          icon:'✦'},
-    {key:'Sauna',           label:'Sauna',           icon:'🔥'},
-    {key:'Wax',             label:'Wax',             icon:'🌿'},
-  ];
-
-  const catGrid = document.getElementById('svcCatGrid');
-  catGrid.innerHTML = '';
-  // use pill row style instead of 2-col grid
-  catGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;';
-
-  const varSection = document.getElementById('svc-variants-section');
-  const varLabel   = document.getElementById('svc-variants-label');
-  const svcGrid    = document.getElementById('svcGrid');
-
-  // duration picker (Step 3) — inject once, reuse
-  let durPicker = document.getElementById('svc-duration-picker');
-  if (!durPicker) {
-    durPicker = document.createElement('div');
-    durPicker.id = 'svc-duration-picker';
-    durPicker.style.cssText = 'display:none;margin-top:14px;';
-    durPicker.innerHTML =
-      '<div class="section-label">Select duration</div>'+
-      '<div style="display:flex;gap:8px;">'+
-        '<div class="area-chip" id="dur-60" onclick="selectDuration(60)">60 min</div>'+
-        '<div class="area-chip" id="dur-90" onclick="selectDuration(90)">90 min</div>'+
-      '</div>';
-    varSection.appendChild(durPicker);
-  }
-
-  function showVariants(catKey) {
-    // clear duration picker
-    durPicker.style.display = 'none';
-    document.getElementById('dur-60').classList.remove('selected');
-    document.getElementById('dur-90').classList.remove('selected');
-    continueBtn.style.display = 'none';
-    svcGrid.innerHTML = '';
-
-    // WAX special flow: show area chips first, then check eligibility for Wax Club
-    if (catKey === 'Wax') {
-      varLabel.textContent = 'Select area(s) for waxing today';
-      const waxAreas = ['Brazilian','Bikini','Full Leg','Half Leg','Arms','Underarm','Eyebrow','Upper Lip','Full Face','Back'];
-      let waxHtml = '<div class="area-chips" style="margin-bottom:12px;">';
-      waxAreas.forEach((a,i) => {
-        waxHtml += `<div class="area-chip${i===0?' selected':''}">${a}</div>`;
-      });
-      waxHtml += '</div>';
-
-      // check eligibility
-      const eligible = sc.waxClub && sc.consistency && sc.consistency.waxClub;
-      if (eligible) {
-        const c = sc.consistency;
-        const lastSvcNote = c.lastService ? `<br><span style="font-size:.78rem;">Last session: <b>${c.lastService}</b>${c.lastArea ? ` — ${c.lastArea} area` : ''}. Wax Club is only valid for the <b>same service in the same area</b>.</span>` : '';
-        waxHtml += `<div class="alert alert-green" style="margin-bottom:12px;">
-          <div class="alert-title">🌿 You qualify for Wax Club — 50% Off!</div>
-          Last waxing: ${c.days} days ago (within 35-day window)<br>Next deadline: <b>${c.deadline}</b>${lastSvcNote}
-        </div>
-        <div class="section-label">Pricing for today</div>
-        <div class="radio-opts" style="margin-bottom:12px;">
-          <div class="radio-opt" onclick="selectWaxOption(this,'regular')" style="cursor:pointer;">
-            <div class="radio-dot"></div><span>Regular price</span>
-          </div>
-          <div class="radio-opt selected" onclick="selectWaxOption(this,'club')" style="cursor:pointer;">
-            <div class="radio-dot" style="border-color:var(--teal);background:var(--teal);"></div>
-            <span>🌿 Wax Club — 50% off <span style="font-size:.72rem;color:var(--muted);">(eligible today)</span></span>
-          </div>
-        </div>`;
-        // default to wax club service
-        selectedService = Object.assign({}, SERVICES.find(s=>s.id==='waxclub'), {_base: SERVICES.find(s=>s.id==='waxclub')});
-      } else {
-        // not eligible — only show regular wax
-        selectedService = Object.assign({}, SERVICES.find(s=>s.id==='wax'), {_base: SERVICES.find(s=>s.id==='wax')});
-      }
-      svcGrid.innerHTML = waxHtml;
-      // make area chips toggleable
-      svcGrid.querySelectorAll('.area-chip').forEach(chip => {
-        chip.addEventListener('click', () => chip.classList.toggle('selected'));
-      });
-      populateInfoScreen();
-      populateHealthForm();
-      varSection.style.display = 'block';
-      continueBtn.style.display = 'block';
+  // ── Validate ──
+  if (current === 'welcome') {
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    const dob = document.getElementById('inp-dob').value.trim();
+    if (!name || !phone || !dob) {
+      showErr('welcome-err');
       return;
     }
+    hideErr('welcome-err');
+    // For now all clients go through new client flow
+    // TODO: query Sheets to detect returning client
+    isNewClient = true;
+    buildScreenFlow();
+    updateStepBar();
+  }
 
-    const filtered = SERVICES.filter(s => s.cat === catKey && s.id !== 'waxclub');
-    varLabel.textContent = catKey + ' — select option';
-    filtered.forEach(s => {
-      const chip = document.createElement('div');
-      chip.className = 'svc-chip' + (s.id === svc.id ? ' selected' : '');
-      chip.innerHTML = '<span class="svc-icon">'+s.icon+'</span><div class="svc-name">'+s.name+'</div>';
-      chip.onclick = () => {
-        document.querySelectorAll('#svcGrid .svc-chip').forEach(c=>c.classList.remove('selected'));
-        chip.classList.add('selected');
-        selectedService = Object.assign({}, s, {_base: s});
-        // reset duration selection
-        document.getElementById('dur-60').classList.remove('selected');
-        document.getElementById('dur-90').classList.remove('selected');
-        populateInfoScreen();
-        populateHealthForm();
-        if (s.hasDuration) {
-          durPicker.style.display = 'block';
-          continueBtn.style.display = 'none'; // wait for duration
-        } else {
-          durPicker.style.display = 'none';
-          continueBtn.style.display = 'block';
-        }
-      };
-      svcGrid.appendChild(chip);
+  if (current === 'register') {
+    const email = document.getElementById('inp-email').value.trim();
+    const heard = document.querySelector('#heard-chips .chip.selected');
+    if (!email || !heard) {
+      showErr('register-err');
+      return;
+    }
+    hideErr('register-err');
+    // Send new client data
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    const dob = document.getElementById('inp-dob').value.trim();
+    const referral = document.getElementById('inp-referral')?.value?.trim() || '';
+    showSpinner();
+    await sendToSheets('new_client', {
+      name, phone, dob, email,
+      heardAboutUs: heard.textContent + (referral ? ' — ' + referral : ''),
+      marketingOptIn: optInMarketing,
+      source: 'iPad Check-In'
     });
-    varSection.style.display = 'block';
-    // if pre-selected service is in this cat, mark it
-    if (svc && svc.cat === catKey) {
-      if (svc.hasDuration) durPicker.style.display = 'block';
-      else continueBtn.style.display = 'block';
+    hideSpinner();
+  }
+
+  if (current === 'service') {
+    if (!selectedService) {
+      showErr('service-err');
+      return;
+    }
+    hideErr('service-err');
+    buildHealthForm();
+    updateHealthStep();
+  }
+
+  if (current === 'health') {
+    const answers = collectHealth();
+    const missing = document.querySelectorAll('#healthForm .h-opt.selected').length;
+    // basic check: all question groups must have at least one answer
+    const groups = document.querySelectorAll('#healthForm .health-q');
+    let ok = true;
+    groups.forEach(g => {
+      const opts = g.querySelectorAll('.h-opt.selected');
+      if (opts.length === 0) ok = false;
+    });
+    if (!ok) {
+      showErr('health-err');
+      return;
+    }
+    hideErr('health-err');
+    showSpinner();
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    await sendToSheets('health_form', {
+      clientName: name, clientPhone: phone,
+      service: selectedService.name,
+      date: new Date().toLocaleDateString('en-US'),
+      ...answers
+    });
+    await sendToSheets('visit', {
+      clientName: name, clientPhone: phone,
+      serviceName: selectedService.name,
+      serviceCategory: selectedService.cat,
+      isNew: isNewClient,
+      date: new Date().toLocaleDateString('en-US')
+    });
+    hideSpinner();
+    if (!isNewClient) {
+      // skip waiver, go to thanks
+      populateThanks();
     }
   }
 
-  function selectWaxOption(el, type) {
-    el.parentElement.querySelectorAll('.radio-opt').forEach(o => {
-      o.classList.remove('selected');
-      o.querySelector('.radio-dot').style.borderColor = '';
-      o.querySelector('.radio-dot').style.background = '';
+  if (current === 'waiver') {
+    if (!sigHasContent) {
+      showErr('waiver-err');
+      return;
+    }
+    hideErr('waiver-err');
+    showSpinner();
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    await sendToSheets('waiver', {
+      clientName: name, clientPhone: phone,
+      service: selectedService.name,
+      date: new Date().toLocaleDateString('en-US'),
+      signaturePresent: true, waiverVersion: '2024-v1'
     });
-    el.classList.add('selected');
-    el.querySelector('.radio-dot').style.borderColor = 'var(--teal)';
-    el.querySelector('.radio-dot').style.background = 'var(--teal)';
-    const svcId = type === 'club' ? 'waxclub' : 'wax';
-    const base = SERVICES.find(s=>s.id===svcId);
-    selectedService = Object.assign({}, base, {_base: base});
-    populateInfoScreen();
-    populateHealthForm();
+    hideSpinner();
+    populateThanks();
   }
 
-  CATEGORIES.forEach(cat => {
-    // only show categories that have at least 1 service
-    if (!SERVICES.some(s => s.cat === cat.key)) return;
-    const chip = document.createElement('div');
-    chip.className = 'svc-cat-chip' + (svc && svc.cat === cat.key ? ' selected' : '');
-    chip.innerHTML = '<span class="svc-cat-icon">'+cat.icon+'</span>'+cat.label;
-    chip.onclick = () => {
-      document.querySelectorAll('.svc-cat-chip').forEach(c=>c.classList.remove('selected'));
-      chip.classList.add('selected');
-      showVariants(cat.key);
+  currentStep++;
+  if (currentStep >= screenFlow.length) return;
+  showScreen(screenFlow[currentStep]);
+  updateStepBar();
+}
+
+// ── THANKS ──
+function populateThanks() {
+  const name = document.getElementById('inp-name').value.trim().split(' ')[0];
+  document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
+  document.getElementById('thanks-detail').innerHTML =
+    '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
+}
+
+// ── RESET ──
+function resetApp() {
+  currentStep = 0;
+  isNewClient = true;
+  selectedService = null;
+  optInMarketing = false;
+  sigHasContent = false;
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-phone').value = '';
+  document.getElementById('inp-dob').value = '';
+  document.getElementById('inp-email').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected','selected-gold'));
+  buildScreenFlow();
+  updateStepBar();
+  showScreen('welcome');
+}
+
+// ── CHIPS ──
+function selectChip(el, group) {
+  document.querySelectorAll('#heard-chips .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const isReferral = el.textContent === 'Referral';
+  document.getElementById('referral-field').style.display = isReferral ? 'block' : 'none';
+}
+
+function toggleOptIn(el) {
+  optInMarketing = !optInMarketing;
+  el.classList.toggle('selected-gold', optInMarketing);
+}
+
+// ── SERVICE GRID ──
+function buildServiceGrid() {
+  const grid = document.getElementById('svc-grid');
+  grid.innerHTML = '';
+  SERVICES.forEach(svc => {
+    const card = document.createElement('div');
+    card.className = 'svc-card';
+    card.innerHTML = '<div class="svc-card-name">' + svc.name + (svc.sub ? '<br><span style="font-size:.72rem;color:var(--muted);">'+svc.sub+'</span>' : '') + '</div><div class="svc-card-dur">' + svc.dur + '</div>';
+    card.onclick = () => {
+      document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedService = svc;
+      document.getElementById('svc-btn').style.display = 'block';
+      hideErr('service-err');
     };
-    catGrid.appendChild(chip);
+    grid.appendChild(card);
   });
-
-  // if scenario has a pre-selected service, auto-open its category
-  if (svc && svc.cat) {
-    showVariants(svc.cat);
-    // mark the matching cat chip
-    catGrid.querySelectorAll('.svc-cat-chip').forEach(c => {
-      if (c.textContent.trim() === svc.cat) c.classList.add('selected');
-    });
-  } else {
-    varSection.style.display = 'none';
-  }
 }
 
-function selectDuration(mins) {
-  document.getElementById('dur-60').classList.toggle('selected', mins===60);
-  document.getElementById('dur-90').classList.toggle('selected', mins===90);
-  // For lymphatic services with dual-duration area logic, swap areas based on chosen time
-  const base = selectedService._base || selectedService;
-  const areasKey = mins===60 ? (base.duration60areas || base.areas) : (base.duration90areas || base.areas);
-  selectedService = Object.assign({}, base, {_base: base, selectedDuration: mins, areas: areasKey});
-  // update health form areas for new areas value
-  populateHealthForm();
-  document.getElementById('svc-continue-btn').style.display = 'block';
-}
-
-function selectPkgUse(el, choice) {
-  document.querySelectorAll('#package-prompt .radio-opt').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');
-  el.querySelector('.radio-dot').style.borderColor = 'var(--teal)';
-  el.querySelector('.radio-dot').style.background = 'var(--teal)';
-  const continueBtn = document.getElementById('svc-continue-btn');
-  if (choice === 'no') {
-    document.getElementById('pkg-confirm').style.display = 'none';
-    document.getElementById('service-grid-section').style.display = 'block';
-    document.getElementById('payment-source-section').style.display = 'block';
-    continueBtn.textContent = 'Continue →';
-    continueBtn.style.display = 'block';
-  } else {
-    document.getElementById('pkg-confirm').style.display = 'block';
-    document.getElementById('service-grid-section').style.display = 'none';
-    document.getElementById('payment-source-section').style.display = 'none';
-    continueBtn.textContent = 'Confirm & Continue →';
-    continueBtn.style.display = 'block';
-  }
-}
-
-function selectPaymentOpt(el, showCoupon) {
-  document.querySelectorAll('#payment-opts .radio-opt').forEach(o => {
-    o.classList.remove('selected');
-    const dot = o.querySelector('.radio-dot');
-    dot.style.borderColor = '';
-    dot.style.background = '';
-  });
-  el.classList.add('selected');
-  el.querySelector('.radio-dot').style.borderColor = 'var(--teal)';
-  el.querySelector('.radio-dot').style.background = 'var(--teal)';
-  document.getElementById('coupon-field').style.display = showCoupon ? 'block' : 'none';
-}
-function showCouponField(el) { selectPaymentOpt(el, true); }
-
-function toggleDiscountChip(chip, type) {
-  document.querySelectorAll('#discount-chips .area-chip').forEach(c=>c.classList.remove('selected'));
-  chip.classList.add('selected');
-  const field = document.getElementById('discount-notes-field');
-  const label = document.getElementById('discount-notes-label');
-  if (type === 'none') {
-    field.style.display = 'none';
-  } else {
-    field.style.display = 'block';
-    const labels = {giftcard:'Gift card number or name', coupon:'Coupon code', discount:'Discount code', special:'Special price or arrangement'};
-    label.textContent = labels[type] || 'Please specify';
-  }
-}
-
-function selectHeardChip(chip, type) {
-  document.querySelectorAll('#heard-chips .area-chip').forEach(c => c.classList.remove('selected'));
-  document.getElementById('heard-referral-field').style.display = 'none';
-  document.getElementById('heard-other-field').style.display = 'none';
-  chip.classList.add('selected');
-  if (type === 'referral') document.getElementById('heard-referral-field').style.display = 'block';
-  if (type === 'other') document.getElementById('heard-other-field').style.display = 'block';
-}
-
-function populateInfoScreen() {
-  const sc = currentScenario;
-  const svc = selectedService;
-  document.getElementById('info-title').textContent = svc.name;
-  document.getElementById('info-what').textContent = svc.what || '';
-  document.getElementById('info-expect').textContent = svc.expect || '';
-  document.getElementById('info-before').textContent = svc.before || '';
-  document.getElementById('info-after').textContent = svc.after || '';
-  document.getElementById('info-contra').textContent = svc.contra || '';
-
-  // Return window — hide for Massage and Couples Massage categories
-  const isMassageOrCouples = (svc.cat === 'Massage' || svc.cat === 'Couples Massage');
-  const windowEl = document.getElementById('info-window');
-  if (isMassageOrCouples || !svc.window) {
-    windowEl.style.display = 'none';
-  } else {
-    windowEl.style.display = 'block';
-    document.getElementById('window-num').textContent = svc.window;
-    document.getElementById('window-label').textContent = svc.windowLabel || 'Return window';
-  }
-
-  // Marks section
-  const marksSection = document.getElementById('info-marks-section');
-  const marksText = document.getElementById('info-marks');
-  if (svc.marks) {
-    marksSection.style.display = 'block';
-    marksText.textContent = svc.marks;
-  } else {
-    marksSection.style.display = 'none';
-  }
-
-  // Recommendations section
-  const recSection = document.getElementById('info-recommend-section');
-  const recText = document.getElementById('info-recommend');
-  if (svc.recommend) {
-    recSection.style.display = 'block';
-    recText.textContent = svc.recommend;
-  } else {
-    recSection.style.display = 'none';
-  }
-
-  const noteBlock = document.getElementById('therapist-note-info');
-  if (sc.therapistNote) {
-    noteBlock.style.display = 'block';
-    document.getElementById('therapist-note-text').textContent = sc.therapistNote.text;
-    const dateEl = document.getElementById('therapist-note-date');
-    if (dateEl) dateEl.textContent = 'Note from ' + (sc.therapistNote.date || 'previous session');
-  } else {
-    noteBlock.style.display = 'none';
-  }
-
-  const consBlock = document.getElementById('prev-consent-block');
-  consBlock.style.display = sc.prevConsent ? 'block' : 'none';
-  const infoContinueBtn = document.getElementById('info-continue-btn');
-  if (sc.prevConsent) {
-    infoContinueBtn.textContent = 'I Confirm These Are Correct →';
-  } else {
-    infoContinueBtn.textContent = 'I\'ve read this and I\'m ready →';
-  }
-
-  const consAlert = document.getElementById('consistency-alert-info');
-  if (sc.consistency && !sc.consistency.waxClub) {
-    const c = sc.consistency;
-    const ok = c.ok;
-    consAlert.style.display = 'block';
-    consAlert.innerHTML = '<div class="alert '+(ok?'alert-green':'alert-warn')+'">'
-      +'<div class="alert-title">'+(ok?'✅ Great timing!':'⚠️ Consistency note')+'</div>'
-      +(ok ? c.label+' — within your '+c.window+' window.' : c.label+'. For best results, aim to return within '+c.window+'.')
-      +'</div>';
-  } else {
-    consAlert.style.display = 'none';
-  }
-}
-
-function populateHealthForm() {
-  const sc = currentScenario;
-  const svc = selectedService;
+// ── HEALTH FORM ──
+function buildHealthForm() {
   const form = document.getElementById('healthForm');
-  document.getElementById('health-sub').textContent = 'Step '+(screenFlow.indexOf('health')+1)+' — '+svc.name;
+  const questions = [
+    { q: 'Do you have any active infections or contagious conditions?', opts: ['No','Yes'] },
+    { q: 'Do you have a heart condition or pacemaker?', opts: ['No','Yes'] },
+    { q: 'Are you pregnant or possibly pregnant?', opts: ['No','Yes'] },
+    { q: 'Are you currently undergoing cancer treatment?', opts: ['No','Yes','Recently completed'] },
+    { q: 'Have you had surgery in the past 3 months?', opts: ['No','Yes'] },
+    { q: 'Do you have any allergies? (products, latex, fragrances)', opts: ['None','Yes — I will inform therapist'] },
+    { q: 'Are you taking any medications we should know about?', opts: ['None','Yes — I will inform therapist'] },
+  ];
+  form.innerHTML = questions.map((item,i) =>
+    `<div class="health-q">
+      <label>${item.q}</label>
+      <div class="health-opts">${item.opts.map(o =>
+        `<div class="h-opt" onclick="selectHOpt(this,${i})">${o}</div>`
+      ).join('')}</div>
+    </div>`
+  ).join('');
+}
 
-  let html = '';
+function selectHOpt(el, groupIdx) {
+  const group = document.querySelectorAll('.health-q')[groupIdx];
+  group.querySelectorAll('.h-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  hideErr('health-err');
+}
 
-  // area selection
-  const areaType = svc.areas;
-  if (areaType === 'exactly2') {
-    html += `<div class="section-label">Select exactly 2 areas <span style="color:var(--muted);font-size:.7rem;">(required)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i<2?' selected':''}">${a}</div>`).join('')}
-    </div>
-    <div class="area-limit">Select exactly 2 areas for this service.</div>`;
-  } else if (areaType === 'exactly1vacuum') {
-    html += `<div class="section-label">Select 1 area <span style="color:var(--muted);font-size:.7rem;">(required)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i===0?' selected':''}">${a}</div>`).join('')}
-    </div>
-    <div class="area-limit">Select 1 area — Glutes or Breasts (separate appointments).</div>`;
-  } else if (areaType === 'upto3cryo') {
-    html += `<div class="section-label">Select up to 3 areas <span style="color:var(--muted);font-size:.7rem;">(required)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i<2?' selected':''}">${a}</div>`).join('')}
-    </div>
-    <div class="area-limit">Up to 3 areas can be treated simultaneously.</div>`;
-  } else if (areaType === 'exactly1body') {
-    html += `<div class="section-label">Select 1 body area <span style="color:var(--muted);font-size:.7rem;">(Face always included)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i===0?' selected':''}">${a}</div>`).join('')}
-    </div>
-    <div class="area-limit">Facial drainage is always included. Select 1 additional body area to focus on.</div>`;
-  } else if (areaType === 'exactly1postsurg') {
-    html += `<div class="section-label">Select area to treat <span style="color:var(--muted);font-size:.7rem;">(1 area)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i===0?' selected':''}">${a}</div>`).join('')}
-    </div>
-    <div class="area-limit">Select the surgical area to focus on today.</div>`;
-  } else if (areaType === 'free') {
-    html += `<div class="section-label">Select area(s) for treatment <span style="color:var(--muted);font-size:.7rem;">(required)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i===0?' selected':''}">${a}</div>`).join('')}
-    </div>`;
-  } else if (areaType === 'focus') {
-    html += `<div class="section-label">Any area to focus on? <span style="color:var(--muted);font-size:.7rem;">(optional)</span></div>
-    <div class="area-chips">
-      ${svc.areaList.map((a,i)=>`<div class="area-chip${i===svc.areaList.length-1?' selected':''}">${a}</div>`).join('')}
-    </div>`;
-  } else if (areaType === 'waxnotes') {
-    html += `<div class="field"><label>Area(s) for waxing today <span style="color:var(--muted);">(optional notes)</span></label><div class="fake-input filled">Brazilian</div></div>`;
-  } else if (areaType === 'couples' || areaType === 'rioromance') {
-    // couples/rio romance shown below
-  }
-
-  html += '<hr class="divider">';
-
-  // couples standard dual form
-  if (sc.coupleMode === 'standard') {
-    const g1 = sc.name;
-    const g2 = (sc.guest2 && sc.guest2.name) ? sc.guest2.name : 'Guest 2';
-    html += `
-    <div class="couple-card">
-      <div class="couple-card-head">👤 Guest 1 — ${g1}</div>
-      <div class="couple-card-body">
-        <div class="section-label">Focus area (optional)</div>
-        <div class="area-chips" style="margin-bottom:12px;">
-          ${svc.areaList.map((a)=>`<div class="area-chip${a.includes('Lower')?' selected':''}">${a}</div>`).join('')}
-        </div>
-        <div class="check-group">
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No heart condition or pacemaker</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No recent surgery or injuries</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No pregnancy</span></div>
-        </div>
-        <div class="field" style="margin-top:10px;"><label>Preferred pressure</label><div class="fake-input filled">Firm</div></div>
-        <div class="field"><label>Notes for therapist (optional)</label><div class="fake-input filled">Focus on lower back</div></div>
-      </div>
-    </div>
-    <div class="couple-card">
-      <div class="couple-card-head">👤 Guest 2 — ${g2 || 'Guest 2'}</div>
-      <div class="couple-card-body">
-        <div class="section-label">Focus area (optional)</div>
-        <div class="area-chips" style="margin-bottom:12px;">
-          ${svc.areaList.map((a)=>`<div class="area-chip${a.includes('Shoulders')?' selected':''}">${a}</div>`).join('')}
-        </div>
-        <div class="check-group">
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No heart condition or pacemaker</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No recent surgery or injuries</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No pregnancy</span></div>
-        </div>
-        <div class="field" style="margin-top:10px;"><label>Preferred pressure</label><div class="fake-input filled">Medium</div></div>
-        <div class="field"><label>Notes for therapist (optional)</label><div class="fake-input empty">tap to enter</div></div>
-      </div>
-    </div>`;
-  } else if (sc.coupleMode === 'rioromance') {
-    // Rio Romance: each person independently chooses massage + add-on
-    const g1 = sc.name;
-    const g2 = (sc.guest2 && sc.guest2.name) ? sc.guest2.name : 'Guest 2';
-    const rrCard = (gName, defMassage, defAddon, defArea) => `
-    <div class="couple-card">
-      <div class="couple-card-head">💕 ${gName}</div>
-      <div class="couple-card-body">
-        <div class="section-label">Body Massage</div>
-        <div class="radio-opts" style="margin-bottom:12px;">
-          <div class="radio-opt ${defMassage==='swedish'?'selected':''}"><div class="radio-dot" ${defMassage==='swedish'?'style="border-color:var(--teal);background:var(--teal);"':''}></div><span>Swedish 60min</span></div>
-          <div class="radio-opt ${defMassage==='linfatica'?'selected':''}"><div class="radio-dot" ${defMassage==='linfatica'?'style="border-color:var(--teal);background:var(--teal);"':''}></div><span>Linfática Corporal 60min</span></div>
-        </div>
-        <div class="section-label">After massage — choose one</div>
-        <div class="radio-opts" style="margin-bottom:12px;">
-          <div class="radio-opt ${defAddon==='facial'?'selected':''}"><div class="radio-dot" ${defAddon==='facial'?'style="border-color:var(--teal);background:var(--teal);"':''}></div><span>Facial 30min <span style="font-size:.72rem;color:var(--muted);">(included)</span></span></div>
-          <div class="radio-opt ${defAddon==='massage'?'selected':''}"><div class="radio-dot" ${defAddon==='massage'?'style="border-color:var(--teal);background:var(--teal);"':''}></div><span>Extra massage 30min <span style="font-size:.72rem;color:var(--muted);">(= 90min body total)</span></span></div>
-        </div>
-        <div class="section-label">Focus area for massage (optional)</div>
-        <div class="area-chips" style="margin-bottom:12px;">
-          ${['Back','Lower Back','Shoulders','Arms','Legs / Thighs','Full Body (no preference)'].map(a=>`<div class="area-chip${a===defArea?' selected':''}">${a}</div>`).join('')}
-        </div>
-        <div class="alert alert-teal" style="margin-bottom:10px;font-size:.78rem;"><strong>🔥 Sauna 30min</strong> — fixed at the end for both guests</div>
-        <div class="check-group">
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No heart condition or pacemaker</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No recent surgery or injuries</span></div>
-          <div class="check-item"><div class="fake-check checked">✓</div><span>No pregnancy</span></div>
-        </div>
-        <div class="field" style="margin-top:8px;"><label>Preferred massage pressure</label><div class="fake-input filled">Medium</div></div>
-      </div>
-    </div>`;
-    html += rrCard(g1, 'swedish', 'facial', 'Back');
-    html += rrCard(g2||'Guest 2', 'linfatica', 'massage', 'Full Body (no preference)');
-  } else {
-    // standard health questions
-    html += `<div class="section-label">Health & Safety</div>
-    <div class="check-group">
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No active infections or contagious conditions</span></div>
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No heart condition or pacemaker</span></div>
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No pregnancy</span></div>
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No cancer treatment or chemotherapy</span></div>
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No recent surgery in the area to be treated</span></div>`;
-
-    if (['device','cavitation','lllt','vacuum','rf','ems','cryo'].includes(svc.cat?.toLowerCase()) || ['cavitation','lllt','vacuum','rf','ems','cryo'].includes(svc.id)) {
-      html += `<div class="check-item"><div class="fake-check checked">✓</div><span>No metal implants or rods in area to be treated</span></div>
-      <div class="check-item"><div class="fake-check checked">✓</div><span>No epilepsy or seizure disorder</span></div>`;
-    }
-
-    html += `</div>
-    <div class="field" style="margin-top:12px;"><label>Any allergies?</label><div class="fake-input ${sc.isNew?'empty':'filled'}">${sc.isNew?'tap to enter':'None'}</div></div>
-    <div class="field"><label>Any medications or health conditions we should know about?</label><div class="fake-input ${sc.isNew?'empty':'filled'}">${sc.isNew?'tap to enter':'None'}</div></div>`;
-
-    if (['swedish','deeptissue','hotstones','hotbamboo','couples'].includes(svc.id)) {
-      html += `<div class="field"><label>Current pain or tension areas?</label><div class="fake-input ${sc.isNew?'empty':'filled'}">${sc.isNew?'optional — tap to note':'Lower back'}</div></div>`;
-    }
-
-    // wax club confirm
-    if (sc.waxClub) {
-      html += `<div class="alert alert-green" style="margin-top:12px;">
-        <div class="alert-title">🌿 Wax Club Rate Applied</div>
-        28 days since last waxing. You qualify for <b>50% off</b> today!<br>
-        Next window deadline: <b>${sc.consistency.deadline}</b>
-      </div>`;
-      document.getElementById('wax-confirm-item').style.display = 'flex';
-    }
-  }
-
-  form.innerHTML = html;
-
-  // add area chip interactivity
-  form.querySelectorAll('.area-chip').forEach(chip => {
-    chip.addEventListener('click', () => chip.classList.toggle('selected'));
+function collectHealth() {
+  const result = {};
+  document.querySelectorAll('#healthForm .health-q').forEach(q => {
+    const label = q.querySelector('label').textContent;
+    const sel = q.querySelector('.h-opt.selected');
+    result[label.substring(0,50)] = sel ? sel.textContent : '';
   });
+  return result;
 }
 
-// tabs
-function showTab(id) {
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  event.target.classList.add('active');
-  if (id === 'staff') populateStaffView('new', document.querySelector('#staff-scenario-btns .staff-scenario-btn'));
+function updateHealthStep() {
+  const idx = screenFlow.indexOf('health') + 1;
+  document.getElementById('health-step').textContent = idx;
 }
 
-// ── COLLAPSIBLE NOTES ──
-function toggleNotesCollapse(headerEl) {
-  const body = headerEl.nextElementSibling;
-  const arrow = headerEl.querySelector('.notes-collapse-arrow');
-  const isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  arrow.classList.toggle('open', !isOpen);
-  arrow.textContent = isOpen ? '▼' : '▲';
+// ── SIGNATURE ──
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let lastX, lastY;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#1a2820';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+canvas.addEventListener('mousedown', e => { drawing=true; const p=getPos(e); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('mousemove', e => { if(!drawing) return; const p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; sigHasContent=true; });
+canvas.addEventListener('mouseup', () => drawing=false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=getPos(e); lastX=p.x; lastY=p.y; }, {passive:false});
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; sigHasContent=true; }, {passive:false});
+canvas.addEventListener('touchend', () => drawing=false);
+
+function clearSig() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasContent = false;
 }
 
-// ── INTAKE FORM ──
-function populateIntakeForm() {
-  const sc = currentScenario;
-  const svc = selectedService;
-  const form = document.getElementById('intakeForm');
-  const title = document.getElementById('intake-title');
-  const sub = document.getElementById('intake-sub');
+// ── UTILS ──
+function showErr(id) { document.getElementById(id).classList.add('show'); }
+function hideErr(id) { document.getElementById(id).classList.remove('show'); }
+function showSpinner() { document.getElementById('spinner').hidden = false; }
+function hideSpinner() { document.getElementById('spinner').hidden = true; }
 
-  const cat = svc.cat;
-  title.textContent = svc.name + ' — Service Form';
-  sub.textContent = 'Step ' + (screenFlow.indexOf('intake')+1) + ' — A few quick questions';
-
-  let html = '';
-
-  function q(label, hint, optsHtml, therapist) {
-    return `<div class="intake-q">
-      <label>${label}</label>
-      ${hint ? `<div class="intake-hint">${hint}</div>` : ''}
-      ${optsHtml}
-    </div>`;
-  }
-  function opts(list, multi, preselect) {
-    return `<div class="intake-opts">${list.map((o,i)=>`<div class="intake-opt${preselect===i?' selected':''}" onclick="toggleIntakeOpt(this,${multi?'true':'false'})">${o}</div>`).join('')}</div>`;
-  }
-  function textarea(placeholder) {
-    return `<div class="intake-textarea" style="width:100%;display:block;">${placeholder}</div>`;
-  }
-  function therapistSection(fields) {
-    return `<div class="therapist-section">
-      <div class="therapist-section-title">🔒 Therapist — to be filled after session</div>
-      ${fields}
-    </div>`;
-  }
-
-  // ── FACIAL ──
-  if (cat === 'Facial') {
-    html += q('What is your skin type?', null,
-      opts(['Oily','Dry','Combination','Normal','Sensitive'], false, 2));
-    html += q('What are your main skin concerns?', 'Select all that apply',
-      opts(['Acne / Breakouts','Rosacea','Hyperpigmentation','Fine Lines','Dullness','Sensitivity','Pores','Dark Circles'], true));
-    html += q('Do you currently use any of the following?', 'Select all that apply',
-      opts(['Retinol / Retinoids','AHAs / BHAs (acids)','Vitamin C Serum','Benzoyl Peroxide','None of these'], true, 4));
-    html += q('When was your last facial?',null,
-      opts(['Never','Less than 2 weeks ago','2–4 weeks ago','1–3 months ago','More than 3 months ago'], false, 4));
-    html += q('Have you had any of these in the last 4 weeks?', 'Select all that apply',
-      opts(['Chemical Peel','Laser Treatment','Microneedling','Botox / Fillers','None'], true, 4));
-    html += q('Any active breakouts, open wounds, or skin irritation today?', null,
-      opts(['No','Yes — mild','Yes — significant'], false, 0));
-    html += therapistSection(`
-      <div class="intake-q"><label>Therapist: Skin condition observed today</label>${textarea('Skin tone, texture, visible concerns…')}</div>
-      <div class="intake-q"><label>Products used today</label>${textarea('Products and SKUs applied…')}</div>
-      <div class="intake-q"><label>Treatment notes & follow-up plan</label>${textarea('What was done, client response, recommendations…')}</div>
-    `);
-  }
-
-  // ── SAUNA ──
-  else if (cat === 'Sauna') {
-    html += q('Do you have any of the following?', 'Select all that apply',
-      opts(['Heart condition or low blood pressure','Pacemaker','Fever or active infection','Heat sensitivity / intolerance','Epilepsy or seizure disorder','None of the above'], true, 5));
-    html += q('Are you pregnant or possibly pregnant?', null,
-      opts(['No','Yes','Prefer not to say'], false, 0));
-    html += q('Have you used a sauna before?', null,
-      opts(['Yes, regularly','Yes, a few times','No, first time'], false, 2));
-    html += q('How long do you typically stay in the sauna?', null,
-      opts(['Less than 10 min','10–15 min','15–20 min','More than 20 min','Not sure'], false, 1));
-    html += q('Any notes for your therapist? (optional)', 'Discomforts, preferences, questions',
-      textarea('Optional…'));
-    html += therapistSection(`
-      <div class="intake-q"><label>Therapist: Session notes</label>${textarea('Duration, temperature, client response, any observations…')}</div>
-    `);
-  }
-
-  // ── LYMPHATIC ──
-  else if (cat === 'Lymphatic') {
-    html += q('What is your main reason for today\'s session?', null,
-      opts(['Post-surgery recovery','Bloating / Fluid retention','Swelling in a specific area','General wellness & detox','Lymphedema management'], false, 3));
-    html += q('Have you had surgery in the last 6 months?', null,
-      opts(['No','Yes — abdominoplasty (tummy tuck)','Yes — liposuction','Yes — breast augmentation / reduction','Yes — other surgery'], false, 0));
-    html += q('Do you have any of the following?', 'Select all that apply',
-      opts(['Thyroid disorder','Kidney disease','Heart condition','Cancer (active or in treatment)','Lymphedema diagnosis','None of the above'], true, 5));
-    html += q('Are you pregnant or possibly pregnant?', null,
-      opts(['No','Yes','Prefer not to say'], false, 0));
-    html += q('Are you currently taking any medications that affect fluid retention?', 'e.g. diuretics, hormone therapy',
-      opts(['No','Yes — diuretics','Yes — hormones','Yes — other','Prefer not to say'], false, 0));
-    html += q('Any notes for your therapist? (optional)', null,
-      textarea('Optional — areas of concern, recent swelling, etc.'));
-    html += therapistSection(`
-      <div class="intake-q"><label>Therapist: Pre-session assessment</label>${textarea('Tissue feel, visible swelling, congestion areas…')}</div>
-      <div class="intake-q"><label>Technique & pressure used</label>${textarea('Technique, pressure level, drainage sequence…')}</div>
-      <div class="intake-q"><label>Client response & follow-up recommendations</label>${textarea('How client felt during/after, recommendations for next visit…')}</div>
-    `);
-  }
-
-  // ── BODY TREATMENTS (machines) ──
-  else if (cat === 'Body Treatments') {
-    html += q('Do you have any metal implants, rods, or plates in your body?', null,
-      opts(['No','Yes — in or near the area being treated','Yes — in another area'], false, 0));
-    html += q('Do you have a pacemaker or any implanted electronic device?', null,
-      opts(['No','Yes'], false, 0));
-    html += q('Do you have epilepsy or a seizure disorder?', null,
-      opts(['No','Yes'], false, 0));
-    html += q('Are you pregnant or possibly pregnant?', null,
-      opts(['No','Yes','Prefer not to say'], false, 0));
-    html += q('Have you had surgery or a significant injury in the area to be treated?', null,
-      opts(['No','Yes — healed (more than 6 months ago)','Yes — recent (less than 6 months)'], false, 0));
-    html += q('Do you have any skin conditions in the area to be treated?', 'e.g. open wounds, active infection, severe eczema',
-      opts(['No','Yes — mild / managed','Yes — active'], false, 0));
-    html += q('Have you had cancer or are you currently undergoing treatment?', null,
-      opts(['No','Yes — in remission (treatment ended)','Yes — currently in treatment'], false, 0));
-    html += q('Any notes for your therapist? (optional)', null,
-      textarea('Optional — areas of concern, sensitivity, questions…'));
-    html += therapistSection(`
-      <div class="intake-q"><label>Therapist: Equipment & settings used</label>${textarea('Device, intensity, mode, area, duration…')}</div>
-      <div class="intake-q"><label>Skin condition & contraindications confirmed</label>${textarea('Pre-treatment skin check, any findings…')}</div>
-      <div class="intake-q"><label>Session notes & client response</label>${textarea('Before/after measurements if taken, client feedback, follow-up plan…')}</div>
-    `);
-  }
-
-  else {
-    html = '<div class="alert alert-teal">No specific intake form for this service category.</div>';
-  }
-
-  form.innerHTML = html;
-}
-
-function toggleIntakeOpt(el, multi) {
-  if (multi) {
-    el.classList.toggle('selected');
-  } else {
-    el.closest('.intake-opts').querySelectorAll('.intake-opt').forEach(o=>o.classList.remove('selected'));
-    el.classList.add('selected');
-  }
-}
-
-// ── STAFF VIEW ──
-function populateStaffView(key, triggerBtn) {
-  // update button states
-  document.querySelectorAll('#staff-scenario-btns .staff-scenario-btn').forEach(b=>b.classList.remove('active'));
-  if (triggerBtn) triggerBtn.classList.add('active');
-
-  const sc = SCENARIOS[key];
-  const svc = SERVICES.find(s=>s.id===sc.serviceId) || SERVICES[0];
-  const container = document.getElementById('staff-content');
-
-  function row(key, val) {
-    return `<div class="staff-row"><span class="staff-key">${key}</span><span class="staff-val">${val}</span></div>`;
-  }
-  function tag(text, warn) {
-    return `<span class="staff-tag${warn?' staff-tag-warn':''}">${text}</span>`;
-  }
-  function noteCard(text, date, author) {
-    return `<div class="staff-note-card">
-      <div class="staff-note-date">${date}</div>
-      <div class="staff-note-text">${text}</div>
-      ${author ? `<div class="staff-note-author">— ${author}</div>` : ''}
-    </div>`;
-  }
-
-  let html = '';
-
-  // ── CLIENT INFO ──
-  html += `<div class="staff-card">
-    <div class="staff-card-head">
-      <div class="staff-card-title">${sc.name}</div>
-      <div class="staff-card-badge">${sc.isNew ? '✨ New Client' : '🔄 Returning'}</div>
-    </div>
-    <div class="staff-card-body">
-      <div class="staff-section-label">Client Details</div>
-      ${row('Phone', sc.phone)}
-      ${row('Date of Birth', sc.dob)}
-      ${row('Today\'s Service', svc.name)}
-      ${sc.coupleMode ? row('Session Type', sc.coupleMode === 'rioromance' ? '💕 Rio Romance Package' : '🌸 Couples Massage') : ''}
-      ${sc.waxClub ? row('Wax Club', tag('Active ✓', false)) : ''}
-      ${sc.hasPackage ? row('Package', tag(sc.history?.packageName || 'Package on file', false)) : ''}
-    </div>
-  </div>`;
-
-  // ── HISTORY ──
-  if (sc.history) {
-    html += `<div class="staff-card"><div class="staff-card-head"><div class="staff-card-title">Visit History</div><div class="staff-card-badge">On file</div></div><div class="staff-card-body">`;
-    if (sc.history.type === 'package') {
-      html += `<div class="staff-section-label">Package</div>
-        ${row('Package Name', sc.history.packageName || '—')}
-        ${row('Sessions Done', sc.history.sessionsDone)}
-        ${row('Sessions Left', sc.history.sessionsLeft)}
-        ${row('Purchased', sc.history.purchased)}
-        ${row('Amount Paid', sc.history.paid || '—')}`;
-    } else if (sc.history.type === 'visits') {
-      html += `<div class="staff-section-label">Visits</div>
-        ${row('Total Visits', sc.history.visitCount)}
-        ${row('Booking Source', sc.history.source || '—')}
-        ${row('Services Used', sc.history.categories?.join(', ') || '—')}`;
-    }
-    if (sc.consistency && !sc.consistency.waxClub) {
-      const c = sc.consistency;
-      html += `<div class="staff-section-label">Return Consistency</div>
-        ${row('Days Since Last', c.days + ' days')}
-        ${row('Return Window', c.window || '—')}
-        ${row('Status', c.ok ? tag('✅ Within window', false) : tag('⚠️ Overdue', true))}`;
-    }
-    if (sc.waxClub && sc.consistency) {
-      const c = sc.consistency;
-      html += `<div class="staff-section-label">Wax Club</div>
-        ${row('Days Since Last Wax', c.days + ' days')}
-        ${row('Last Service', c.lastService || '—')}
-        ${row('Last Area', c.lastArea || '—')}
-        ${row('Deadline for 50% Off', c.deadline || '—')}
-        ${row('Eligible Today', c.days <= 35 ? tag('✅ Yes', false) : tag('❌ No', true))}`;
-    }
-    html += '</div></div>';
-  } else {
-    html += `<div class="staff-card"><div class="staff-card-head"><div class="staff-card-title">Visit History</div><div class="staff-card-badge">No history</div></div><div class="staff-card-body"><div style="font-size:.82rem;color:var(--muted);padding:8px 0;">First visit — no history on file.</div></div></div>`;
-  }
-
-  // ── THERAPIST NOTES ──
-  html += `<div class="staff-card"><div class="staff-card-head"><div class="staff-card-title">Therapist Notes</div><div class="staff-card-badge">Internal only</div></div><div class="staff-card-body">`;
-  if (sc.therapistNote) {
-    html += `<div class="staff-section-label">Previous Notes</div>`;
-    html += noteCard(sc.therapistNote.text, sc.therapistNote.date, 'Therapist');
-  } else {
-    html += `<div style="font-size:.82rem;color:var(--muted);padding:8px 0;">No therapist notes on file yet.</div>`;
-  }
-  if (sc.waxClubNote) {
-    html += `<div class="staff-section-label">Wax Club Note</div>`;
-    html += noteCard(sc.waxClubNote, 'Auto-generated', null);
-  }
-  html += `<div class="staff-section-label" style="margin-top:18px;">Add Note for This Session</div>
-    <div class="intake-textarea" style="width:100%;display:block;min-height:80px;">Type therapist note here…</div>
-    <button style="margin-top:8px;padding:7px 18px;background:var(--teal);color:var(--cream);border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Save Note</button>`;
-  html += '</div></div>';
-
-  // ── COUPLES GUEST 2 ──
-  if (sc.guest2) {
-    const g2 = sc.guest2;
-    html += `<div class="staff-card"><div class="staff-card-head"><div class="staff-card-title">Guest 2 — ${g2.name}</div><div class="staff-card-badge">${g2.isNew ? '✨ New' : '🔄 Returning'}</div></div><div class="staff-card-body">
-      ${row('Phone', g2.phone)}
-      ${row('Date of Birth', g2.dob)}
-      ${row('Consent on File', g2.prevConsent ? tag('✅ Yes') : tag('⚠️ No — first visit', true))}
-      ${g2.note ? `<div class="staff-section-label">Notes</div>${noteCard(g2.note, 'On file', null)}` : ''}
-    </div></div>`;
-  }
-
-  // ── HEALTH FORM ANSWERS (simulated) ──
-  html += `<div class="staff-card"><div class="staff-card-head"><div class="staff-card-title">Health Form Answers</div><div class="staff-card-badge">Today's session</div></div><div class="staff-card-body">
-    <div class="staff-section-label">General Health</div>
-    ${row('Active infections / contagious conditions', tag('No ✓'))}
-    ${row('Heart condition or pacemaker', tag('No ✓'))}
-    ${row('Pregnancy', tag('No ✓'))}
-    ${row('Cancer or chemotherapy', tag('No ✓'))}
-    ${row('Recent surgery in area', tag('No ✓'))}
-    ${row('Allergies', sc.isNew ? tag('Not filled yet', true) : 'None')}
-    ${row('Medications / health conditions', sc.isNew ? tag('Not filled yet', true) : 'None')}
-    <div class="staff-section-label">Service-Specific Intake</div>
-    ${INTAKE_CATS.includes(svc.cat) ? `${row('Form Category', svc.cat)}${row('Status', tag('Filled at check-in ✓'))}` : `<div style="font-size:.82rem;color:var(--muted);">No service-specific intake for this category.</div>`}
-  </div></div>`;
-
-  container.innerHTML = html;
-}
-
-function showSheet(id, el) {
-  document.querySelectorAll('[id^="sheet-"]').forEach(s=>s.style.display='none');
-  document.getElementById('sheet-'+id).style.display='block';
-  document.querySelectorAll('.sheet-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// sign date
-document.getElementById('sign-date').textContent = dateStr;
-
-// init
-const initBtn = document.querySelectorAll('.s-btn')[0];
-loadScenario('new', initBtn);
+// ── INIT ──
+buildServiceGrid();
+buildScreenFlow();
+updateStepBar();
+showScreen('welcome');
 </script>
 
 </body></html>
