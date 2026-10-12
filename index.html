@@ -281,27 +281,27 @@ const SERVICES = [
   { id:'lymphatic-drainage',  name:'Lymphatic Drainage',              cat:'Lymphatic',       durs:['60 min'] },
   { id:'lymphatic-brazil',    name:'Brazilian Style Lymphatic',       cat:'Lymphatic',       durs:['60 min','90 min'] },
   { id:'lymphatic-body-face', name:'Body + Face Lymphatic',           cat:'Lymphatic',       durs:['60 min','90 min'] },
-  { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['30 min'] },
   { id:'lymphatic-post1',     name:'Post Surgery — 1 Area',          cat:'Lymphatic',       durs:['60 min'] },
   { id:'lymphatic-post-full', name:'Post Surgery — Full Body',       cat:'Lymphatic',       durs:['60 min'] },
   // BODY TREATMENTS
-  { id:'body-shape',          name:'Body Shape',                      cat:'Body Treatments', durs:['60 min'] },
-  { id:'wood-therapy',        name:'Wood Therapy',                    cat:'Body Treatments', durs:['60 min'] },
-  { id:'cavitation',          name:'Ultrasound Cavitation',           cat:'Body Treatments', durs:['45 min'] },
-  { id:'lllt',                name:'Lipo Laser',                      cat:'Body Treatments', durs:['30 min'] },
-  { id:'vacuum',              name:'Vacuum / BBL',                    cat:'Body Treatments', durs:['45 min'] },
-  { id:'rf',                  name:'Radio Frequency',                 cat:'Body Treatments', durs:['45 min'] },
-  { id:'ems',                 name:'Electro / EMS',                   cat:'Body Treatments', durs:['30 min'] },
-  { id:'cryo',                name:'Cryo Contour',                    cat:'Body Treatments', durs:['60 min'] },
-  { id:'body-wrap',           name:'Detox Seaweed Body Wrap',         cat:'Body Treatments', durs:['90 min'] },
+  { id:'body-shape',          name:'Body Shape',                      cat:'Body Treatments', durs:[] },
+  { id:'wood-therapy',        name:'Wood Therapy',                    cat:'Body Treatments', durs:[] },
+  { id:'cavitation',          name:'Ultrasound Cavitation',           cat:'Body Treatments', durs:[] },
+  { id:'lllt',                name:'Lipo Laser',                      cat:'Body Treatments', durs:[], areas:['Abdomen','Flanks','Arms','Thighs','Back'], maxAreas:2 },
+  { id:'vacuum',              name:'Vacuum / BBL',                    cat:'Body Treatments', durs:[], areas:['Glutes','Chest'], maxAreas:1 },
+  { id:'rf',                  name:'Radio Frequency',                 cat:'Body Treatments', durs:[], areas:['Face','Abdomen','Arms','Thighs','Flanks'] },
+  { id:'ems',                 name:'Electro / EMS',                   cat:'Body Treatments', durs:[], areas:['Abdomen','Arms','Glutes','Thighs','Back'], maxAreas:2 },
+  { id:'cryo',                name:'Cryo Contour',                    cat:'Body Treatments', durs:[], areas:['Abdomen','Flanks','Arms','Thighs','Back'], maxAreas:2 },
+  { id:'body-wrap',           name:'Body Wrap',                       cat:'Body Treatments', durs:[], wrapOptions:['Detox Seaweed','Slimming Black Pepper'] },
   // MASSAGE
   { id:'massage-swedish',     name:'Swedish Massage',                 cat:'Massage',         durs:['60 min','90 min'] },
   { id:'massage-deep',        name:'Deep Tissue Massage',             cat:'Massage',         durs:['60 min','90 min'] },
   { id:'massage-hot-stones',  name:'Hot Stones Massage',              cat:'Massage',         durs:['60 min','90 min'] },
   { id:'massage-hot-bamboo',  name:'Hot Bamboo Massage',              cat:'Massage',         durs:['60 min','90 min'] },
   { id:'massage-sports',      name:'Sports Massage',                  cat:'Massage',         durs:['60 min','90 min'] },
-  { id:'massage-prenatal',    name:'Pre Natal Massage',               cat:'Massage',         durs:['60 min'] },
-  { id:'massage-cupping',     name:'Cupping',                         cat:'Massage',         durs:['60 min'] },
+  { id:'massage-prenatal',    name:'Pre Natal Massage',               cat:'Massage',         durs:[] },
+  { id:'massage-cupping',     name:'Cupping',                         cat:'Massage',         durs:[] },
   // COUPLES
   { id:'couples-essencial',      name:'Couples Essencial',            cat:'Couples',         durs:['60 min'] },
   { id:'couples-relaxing',       name:'Couples Relaxing',             cat:'Couples',         durs:['90 min'] },
@@ -309,11 +309,11 @@ const SERVICES = [
   { id:'couples-love-rio',       name:'Love in Rio',                  cat:'Couples',         durs:['120 min'] },
   { id:'couples-rio-romance',    name:'Rio Romance',                  cat:'Couples',         durs:['180 min'] },
   // FACIAL
-  { id:'facial-dermaplaning', name:'Dermaplaning + Hydration',        cat:'Facial',          durs:['60 min'] },
-  { id:'facial-anti-age',     name:'Anti-Aging Facial',               cat:'Facial',          durs:['60 min'] },
-  { id:'facial-signature',    name:'Signature Facial',                cat:'Facial',          durs:['60 min'] },
-  { id:'facial-hydra',        name:'Hydrafacial',                     cat:'Facial',          durs:['60 min'] },
-  { id:'facial-extraction',   name:'Facial Extraction',               cat:'Facial',          durs:['60 min'] },
+  { id:'facial-dermaplaning', name:'Dermaplaning + Hydration',        cat:'Facial',          durs:[] },
+  { id:'facial-anti-age',     name:'Anti-Aging Facial',               cat:'Facial',          durs:[] },
+  { id:'facial-signature',    name:'Signature Facial',                cat:'Facial',          durs:[] },
+  { id:'facial-hydra',        name:'Hydrafacial',                     cat:'Facial',          durs:[] },
+  { id:'facial-extraction',   name:'Facial Extraction',               cat:'Facial',          durs:[] },
   { id:'facial-sculpt',       name:'Sculpt & Glow Combo',             cat:'Facial',          durs:['90 min'] },
   { id:'facial-bundle',       name:'Facial Bundle',                   cat:'Facial',          durs:['70 min'] },
   // SAUNA
@@ -588,9 +588,9 @@ const SVC_ICONS = {
   'lymphatic-drainage':  '🫧', 'lymphatic-brazil':    '💧', 'lymphatic-body-face': '🌊',
   'lymphatic-facial':    '🌿', 'lymphatic-post1':     '🩺', 'lymphatic-post-full': '🩻',
   'lymphatic-cav':       '⚡',
-  'body-shape-manual':   '✨', 'wood-therapy':        '🪵', 'cavitation':          '⚡',
-  'lllt':                '💡', 'vacuum':              '💨', 'vacuum-bbl':          '🍑',
-  'body-wrap':           '🧴',
+  'body-shape':          '✨', 'wood-therapy':        '🪵', 'cavitation':          '⚡',
+  'lllt':                '💡', 'vacuum':              '💨', 'rf':                  '〰️',
+  'ems':                 '⚡', 'cryo':                '❄️', 'body-wrap':           '🧴',
   'massage-swedish':     '🤲', 'massage-deep':        '💪', 'massage-hot-stones':  '🔥',
   'massage-hot-bamboo':  '🎋', 'massage-sports':      '🏃', 'massage-prenatal':    '🤰',
   'massage-cupping':     '🫙',
@@ -653,10 +653,90 @@ function buildServiceGrid() {
 
       const isFixed = svc.durs.length === 1;
       const isWax = svc.durs[0] === 'varies';
+      const noDuration = svc.durs.length === 0;
 
-      if (isWax) {
+      // Helper: insert a sub-options row after the card's grid row
+      function insertSubRow(el) {
+        const allCards = Array.from(grid.querySelectorAll('.svc-card'));
+        const idx = allCards.indexOf(card);
+        const rowEnd = (idx % 2 === 0) ? (allCards[idx + 1] || card) : card;
+        rowEnd.after(el);
+      }
+
+      // Wrap type sub-option (Body Wrap)
+      if (svc.wrapOptions) {
+        selectedDuration = '';
+        document.getElementById('svc-btn').style.display = 'none';
+        const subRow = document.createElement('div');
+        subRow.className = 'dur-row';
+        subRow.style.flexDirection = 'column';
+        subRow.style.alignItems = 'flex-start';
+        subRow.innerHTML = '<span class="dur-label" style="margin-bottom:8px;">Choose wrap type:</span>';
+        const opts = document.createElement('div');
+        opts.style.display = 'flex'; opts.style.gap = '8px'; opts.style.flexWrap = 'wrap';
+        svc.wrapOptions.forEach(opt => {
+          const chip = document.createElement('div');
+          chip.className = 'dur-chip';
+          chip.textContent = opt;
+          chip.onclick = (e) => {
+            e.stopPropagation();
+            opts.querySelectorAll('.dur-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            selectedDuration = opt;
+            document.getElementById('svc-btn').style.display = 'block';
+            hideErr('service-err');
+          };
+          opts.appendChild(chip);
+        });
+        subRow.appendChild(opts);
+        insertSubRow(subRow);
+        return;
+      }
+
+      // Area selection (cryo, lipo laser, vacuum, rf, ems)
+      if (svc.areas) {
+        selectedDuration = '';
+        document.getElementById('svc-btn').style.display = 'none';
+        const maxSel = svc.maxAreas || svc.areas.length;
+        const subRow = document.createElement('div');
+        subRow.className = 'dur-row';
+        subRow.style.flexDirection = 'column';
+        subRow.style.alignItems = 'flex-start';
+        const labelText = maxSel < svc.areas.length
+          ? 'Select area(s) — max ' + maxSel + ':'
+          : 'Select area(s):';
+        subRow.innerHTML = '<span class="dur-label" style="margin-bottom:8px;">' + labelText + '</span>';
+        const opts = document.createElement('div');
+        opts.style.display = 'flex'; opts.style.gap = '8px'; opts.style.flexWrap = 'wrap';
+        let selectedAreas = [];
+        svc.areas.forEach(area => {
+          const chip = document.createElement('div');
+          chip.className = 'dur-chip';
+          chip.textContent = area;
+          chip.onclick = (e) => {
+            e.stopPropagation();
+            if (chip.classList.contains('selected')) {
+              chip.classList.remove('selected');
+              selectedAreas = selectedAreas.filter(a => a !== area);
+            } else {
+              if (selectedAreas.length >= maxSel) return; // max reached
+              chip.classList.add('selected');
+              selectedAreas.push(area);
+            }
+            selectedDuration = selectedAreas.length > 0 ? selectedAreas.join(', ') : '';
+            document.getElementById('svc-btn').style.display = selectedAreas.length > 0 ? 'block' : 'none';
+            hideErr('service-err');
+          };
+          opts.appendChild(chip);
+        });
+        subRow.appendChild(opts);
+        insertSubRow(subRow);
+        return;
+      }
+
+      if (isWax || noDuration) {
         // No duration to pick — just confirm
-        selectedDuration = 'Varies';
+        selectedDuration = isWax ? 'Varies' : '';
         document.getElementById('svc-btn').style.display = 'block';
         return;
       }
