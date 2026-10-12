@@ -273,50 +273,67 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
-const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples Massage','Facial','Sauna','Wax'];
+const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples','Facial','Sauna','Wax'];
 
-// durs: multiple = client picks; single = fixed (auto-selected, no choice UI shown)
+// durs: multiple options = client picks · single = fixed (shown as badge, no choice)
 const SERVICES = [
   // LYMPHATIC
-  { id:'lymphatic-full',      name:'Lymphatic Drainage',              cat:'Lymphatic',       durs:['60 min','90 min'] },
+  { id:'lymphatic-drainage',  name:'Lymphatic Drainage',              cat:'Lymphatic',       durs:['60 min'] },
   { id:'lymphatic-brazil',    name:'Brazilian Style Lymphatic',       cat:'Lymphatic',       durs:['60 min','90 min'] },
-  { id:'lymphatic-body-face', name:'Body + Face Lymphatic',           cat:'Lymphatic',       durs:['60 min'] },
-  { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['45 min'] },
-  { id:'lymphatic-post1',     name:'Post-Surgery Lymphatic 1 Area',   cat:'Lymphatic',       durs:['60 min'] },
-  { id:'lymphatic-post-full', name:'Post-Surgery Lymphatic Full Body',cat:'Lymphatic',       durs:['90 min'] },
+  { id:'lymphatic-body-face', name:'Body + Face Lymphatic',           cat:'Lymphatic',       durs:['60 min','90 min'] },
+  { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-post1',     name:'Post Surgery — 1 Area',          cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-post-full', name:'Post Surgery — Full Body',       cat:'Lymphatic',       durs:['60 min'] },
   // BODY TREATMENTS
-  { id:'body-wrap',           name:'Body Wrap',                       cat:'Body Treatments', durs:['90 min'] },
-  { id:'body-shape',          name:'Brazilian Body Shape',            cat:'Body Treatments', durs:['60 min'] },
-  { id:'cryo',                name:'Cryo Contour',                    cat:'Body Treatments', durs:['45 min'] },
-  { id:'cavitation',          name:'Cavitation',                      cat:'Body Treatments', durs:['45 min'] },
+  { id:'body-shape',          name:'Body Shape',                      cat:'Body Treatments', durs:['60 min'] },
   { id:'wood-therapy',        name:'Wood Therapy',                    cat:'Body Treatments', durs:['60 min'] },
-  { id:'vacuum',              name:'Vacuum Therapy',                  cat:'Body Treatments', durs:['45 min'] },
-  { id:'vacuum-bbl',          name:'Vacuum BBL',                      cat:'Body Treatments', durs:['45 min'] },
-  { id:'lllt',                name:'LLLT Light Therapy',              cat:'Body Treatments', durs:['30 min'] },
+  { id:'cavitation',          name:'Ultrasound Cavitation',           cat:'Body Treatments', durs:['45 min'] },
+  { id:'lllt',                name:'Lipo Laser',                      cat:'Body Treatments', durs:['30 min'] },
+  { id:'vacuum',              name:'Vacuum / BBL',                    cat:'Body Treatments', durs:['45 min'] },
+  { id:'rf',                  name:'Radio Frequency',                 cat:'Body Treatments', durs:['45 min'] },
+  { id:'ems',                 name:'Electro / EMS',                   cat:'Body Treatments', durs:['30 min'] },
+  { id:'cryo',                name:'Cryo Contour',                    cat:'Body Treatments', durs:['60 min'] },
+  { id:'body-wrap',           name:'Detox Seaweed Body Wrap',         cat:'Body Treatments', durs:['90 min'] },
   // MASSAGE
   { id:'massage-swedish',     name:'Swedish Massage',                 cat:'Massage',         durs:['60 min','90 min'] },
   { id:'massage-deep',        name:'Deep Tissue Massage',             cat:'Massage',         durs:['60 min','90 min'] },
-  { id:'massage-prenatal',    name:'Prenatal Massage',                cat:'Massage',         durs:['60 min','90 min'] },
-  { id:'massage-sport',       name:'Sports Massage',                  cat:'Massage',         durs:['60 min','90 min'] },
-  // COUPLES MASSAGE
-  { id:'couples-swedish',     name:'Couples Swedish Massage',         cat:'Couples Massage', durs:['60 min','90 min'] },
-  { id:'couples-deep',        name:'Couples Deep Tissue',             cat:'Couples Massage', durs:['60 min','90 min'] },
-  { id:'couples-custom',      name:'Couples Custom Massage',          cat:'Couples Massage', durs:['60 min','90 min'] },
+  { id:'massage-hot-stones',  name:'Hot Stones Massage',              cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-hot-bamboo',  name:'Hot Bamboo Massage',              cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-sports',      name:'Sports Massage',                  cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-prenatal',    name:'Pre Natal Massage',               cat:'Massage',         durs:['60 min'] },
+  { id:'massage-cupping',     name:'Cupping',                         cat:'Massage',         durs:['60 min'] },
+  // COUPLES
+  { id:'couples-essencial',      name:'Couples Essencial',            cat:'Couples',         durs:['60 min'] },
+  { id:'couples-relaxing',       name:'Couples Relaxing',             cat:'Couples',         durs:['90 min'] },
+  { id:'couples-relaxing-sauna', name:'Couples Relaxing + Sauna',    cat:'Couples',         durs:['90 min'] },
+  { id:'couples-love-rio',       name:'Love in Rio',                  cat:'Couples',         durs:['120 min'] },
+  { id:'couples-rio-romance',    name:'Rio Romance',                  cat:'Couples',         durs:['180 min'] },
   // FACIAL
-  { id:'facial-classic',      name:'Classic Facial',                  cat:'Facial',          durs:['60 min','90 min'] },
-  { id:'facial-anti-age',     name:'Anti-Aging Facial',               cat:'Facial',          durs:['60 min','90 min'] },
-  { id:'facial-brightening',  name:'Brightening Facial',              cat:'Facial',          durs:['60 min'] },
-  { id:'facial-acne',         name:'Acne Treatment Facial',           cat:'Facial',          durs:['60 min'] },
-  { id:'facial-microderm',    name:'Microdermabrasion',               cat:'Facial',          durs:['60 min'] },
+  { id:'facial-dermaplaning', name:'Dermaplaning + Hydration',        cat:'Facial',          durs:['60 min'] },
+  { id:'facial-anti-age',     name:'Anti-Aging Facial',               cat:'Facial',          durs:['60 min'] },
+  { id:'facial-signature',    name:'Signature Facial',                cat:'Facial',          durs:['60 min'] },
+  { id:'facial-hydra',        name:'Hydrafacial',                     cat:'Facial',          durs:['60 min'] },
+  { id:'facial-extraction',   name:'Facial Extraction',               cat:'Facial',          durs:['60 min'] },
+  { id:'facial-sculpt',       name:'Sculpt & Glow Combo',             cat:'Facial',          durs:['90 min'] },
+  { id:'facial-bundle',       name:'Facial Bundle',                   cat:'Facial',          durs:['70 min'] },
   // SAUNA
-  { id:'sauna',               name:'Infrared Sauna',                  cat:'Sauna',           durs:['30 min','45 min','60 min'] },
-  // WAX
-  { id:'wax-braz',            name:'Brazilian Wax',                   cat:'Wax',             durs:['varies'] },
+  { id:'sauna-30',            name:'Sauna 30 min',                    cat:'Sauna',           durs:['30 min'] },
+  { id:'sauna-60',            name:'Sauna 60 min',                    cat:'Sauna',           durs:['60 min'] },
+  // WAX — women
+  { id:'wax-brazilian',       name:'Brazilian Wax',                   cat:'Wax',             durs:['varies'] },
   { id:'wax-bikini',          name:'Bikini Wax',                      cat:'Wax',             durs:['varies'] },
-  { id:'wax-legs',            name:'Leg Wax',                         cat:'Wax',             durs:['varies'] },
+  { id:'wax-full-leg',        name:'Full Leg Wax',                    cat:'Wax',             durs:['varies'] },
+  { id:'wax-half-leg',        name:'Half Leg Wax',                    cat:'Wax',             durs:['varies'] },
   { id:'wax-underarm',        name:'Underarm Wax',                    cat:'Wax',             durs:['varies'] },
-  { id:'wax-facial',          name:'Facial Waxing',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-full-face',       name:'Full Face Wax',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-eyebrows',        name:'Eyebrow Wax',                     cat:'Wax',             durs:['varies'] },
+  { id:'wax-upper-lip',       name:'Upper Lip Wax',                   cat:'Wax',             durs:['varies'] },
   { id:'wax-full-body',       name:'Full Body Wax',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-full-back',       name:'Full Back Wax',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-chest',           name:'Chest Wax',                       cat:'Wax',             durs:['varies'] },
+  { id:'wax-arms',            name:'Arms Wax',                        cat:'Wax',             durs:['varies'] },
+  { id:'wax-stomach',         name:'Stomach Wax',                     cat:'Wax',             durs:['varies'] },
+  { id:'wax-manzilian',       name:'Manzilian Shaving',               cat:'Wax',             durs:['varies'] },
 ];
 
 // ── STATE ──
@@ -562,25 +579,32 @@ const CAT_ICONS = {
   'Lymphatic':       '🫧',
   'Body Treatments': '✨',
   'Massage':         '🤲',
-  'Couples Massage': '💆',
+  'Couples':         '💆',
   'Facial':          '🌸',
   'Sauna':           '🌡',
   'Wax':             '🍃',
 };
 const SVC_ICONS = {
-  'lymphatic-full':      '🫧', 'lymphatic-brazil':    '💧', 'lymphatic-body-face':'🌊',
-  'lymphatic-facial':    '🌿', 'lymphatic-post1':     '🩺', 'lymphatic-post-full':'🩻',
-  'body-wrap':           '🧴', 'body-shape':          '✨', 'cryo':               '❄️',
-  'cavitation':          '⚡', 'wood-therapy':        '🪵', 'vacuum':             '💨',
-  'vacuum-bbl':          '🍑', 'lllt':                '💡',
-  'massage-swedish':     '🤲', 'massage-deep':        '💪', 'massage-prenatal':   '🤰',
-  'massage-sport':       '🏃',
-  'couples-swedish':     '💆', 'couples-deep':        '💑', 'couples-custom':     '❤️',
-  'facial-classic':      '🌸', 'facial-anti-age':     '⏳', 'facial-brightening': '☀️',
-  'facial-acne':         '🌱', 'facial-microderm':    '💎',
+  'lymphatic-drainage':  '🫧', 'lymphatic-brazil':    '💧', 'lymphatic-body-face': '🌊',
+  'lymphatic-facial':    '🌿', 'lymphatic-post1':     '🩺', 'lymphatic-post-full': '🩻',
+  'lymphatic-cav':       '⚡',
+  'body-shape-manual':   '✨', 'wood-therapy':        '🪵', 'cavitation':          '⚡',
+  'lllt':                '💡', 'vacuum':              '💨', 'vacuum-bbl':          '🍑',
+  'body-wrap':           '🧴',
+  'massage-swedish':     '🤲', 'massage-deep':        '💪', 'massage-hot-stones':  '🔥',
+  'massage-hot-bamboo':  '🎋', 'massage-sports':      '🏃', 'massage-prenatal':    '🤰',
+  'massage-cupping':     '🫙',
+  'couples-essencial':   '💑', 'couples-relaxing':    '🌹', 'couples-signature':   '💆',
+  'couples-love-rio':    '❤️', 'couples-rio-romance': '🌙',
+  'facial-dermaplaning': '✨', 'facial-anti-age':     '⏳', 'facial-signature':    '🌸',
+  'facial-hydra':        '💎', 'facial-extraction':   '🔬', 'facial-sculpt':       '🌟',
+  'facial-bundle':       '🎁',
   'sauna':               '🌡',
-  'wax-braz':            '🍃', 'wax-bikini':          '👙', 'wax-legs':           '✨',
-  'wax-underarm':        '💨', 'wax-facial':          '🌷', 'wax-full-body':      '🌿',
+  'wax-brazilian':       '🍃', 'wax-bikini':          '👙', 'wax-full-leg':        '✨',
+  'wax-half-leg':        '🌿', 'wax-underarm':        '💨', 'wax-full-face':       '🌷',
+  'wax-eyebrows':        '🦋', 'wax-upper-lip':       '💋', 'wax-full-body':       '🌺',
+  'wax-full-back':       '🍂', 'wax-chest':           '💪', 'wax-arms':            '🤲',
+  'wax-stomach':         '🌿', 'wax-manzilian':       '✦',
 };
 
 let selectedCategory = CATEGORIES[0];
