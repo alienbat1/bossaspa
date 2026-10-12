@@ -88,6 +88,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .btn-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;padding:0;margin-bottom:4px;letter-spacing:.04em;}
 .btn-back:active{color:var(--teal);}
 
+/* Info / Education screen */
+.info-block{margin-bottom:18px;}
+.info-heading{font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;}
+.info-text{font-size:.85rem;line-height:1.7;color:var(--ink);}
+.window-seal{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--teal);color:#fff;border-radius:var(--r);padding:14px 20px;margin:16px 0;text-align:center;}
+.window-seal-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;line-height:1;}
+.window-seal-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.85;margin-top:4px;}
+
 /* Health form */
 .health-q{margin-bottom:18px;}
 .health-q label{display:block;font-size:.88rem;font-weight:400;color:var(--ink);margin-bottom:8px;}
@@ -229,6 +237,42 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn" id="svc-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
   </div>
 
+  <!-- SCREEN 3b: SERVICE INFO / EDUCATION -->
+  <div class="screen" id="screen-info">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
+    <div class="screen-title" id="info-title">Service Information</div>
+    <div class="screen-sub" id="info-sub">What to know before your session</div>
+    <div class="info-block">
+      <div class="info-heading">What it is</div>
+      <div class="info-text" id="info-what"></div>
+    </div>
+    <div class="info-block">
+      <div class="info-heading">What to expect</div>
+      <div class="info-text" id="info-expect"></div>
+    </div>
+    <div class="window-seal" id="info-window">
+      <div class="window-seal-num" id="window-num"></div>
+      <div class="window-seal-label" id="window-label"></div>
+    </div>
+    <div class="info-block">
+      <div class="info-heading">Before your session</div>
+      <div class="info-text" id="info-before"></div>
+    </div>
+    <div class="info-block">
+      <div class="info-heading">After your session</div>
+      <div class="info-text" id="info-after"></div>
+    </div>
+    <div class="info-block" id="info-contra-block">
+      <div class="info-heading">Contraindications</div>
+      <div class="info-text" id="info-contra"></div>
+    </div>
+    <div class="info-block" id="info-marks-block" style="display:none;">
+      <div class="info-heading">Marks that may appear (normal)</div>
+      <div class="info-text" id="info-marks"></div>
+    </div>
+    <button class="btn" onclick="nextScreen()">I've read this — Continue →</button>
+  </div>
+
   <!-- SCREEN 4: HEALTH FORM -->
   <div class="screen" id="screen-health">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
@@ -364,6 +408,7 @@ function buildScreenFlow() {
   screenFlow = ['welcome'];
   if (isNewClient) screenFlow.push('register');
   screenFlow.push('service');
+  screenFlow.push('info');
   screenFlow.push('health');
   if (isNewClient) screenFlow.push('waiver');
   screenFlow.push('thanks');
@@ -414,6 +459,9 @@ function showScreen(id) {
     selectedDuration = null;
     document.getElementById('svc-btn').style.display = 'none';
     buildServiceScreen();
+  }
+  if (id === 'info') {
+    buildInfoScreen();
   }
 }
 
