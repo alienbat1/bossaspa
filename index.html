@@ -175,7 +175,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     </div>
     <div class="section-label">Marketing</div>
     <div class="chips">
-      <div class="chip" id="optin-chip" onclick="toggleOptIn(this)">📧 I'd like to receive offers & updates</div>
+      <div class="chip selected-gold" id="optin-chip" onclick="toggleOptIn(this)">📧 I'd like to receive offers & updates</div>
     </div>
     <div class="err-msg" id="register-err">Please fill in email and how you heard about us.</div>
     <button class="btn" onclick="nextScreen()">Continue →</button>
@@ -257,7 +257,8 @@ const SERVICES = [
 let currentStep = 0;
 let isNewClient = true; // determined after welcome
 let selectedService = null;
-let optInMarketing = false;
+let selectedDuration = null;
+let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
 
@@ -347,8 +348,11 @@ async function nextScreen() {
   }
 
   if (current === 'service') {
-    if (!selectedService) {
+    if (!selectedService || !selectedDuration) {
       showErr('service-err');
+      document.getElementById('service-err').textContent = !selectedService
+        ? 'Please select a service to continue.'
+        : 'Please select a duration to continue.';
       return;
     }
     hideErr('service-err');
@@ -376,13 +380,13 @@ async function nextScreen() {
     const phone = document.getElementById('inp-phone').value.trim();
     await sendToSheets('health_form', {
       clientName: name, clientPhone: phone,
-      service: selectedService.name,
+      service: selectedService.name, duration: selectedDuration,
       date: new Date().toLocaleDateString('en-US'),
       ...answers
     });
     await sendToSheets('visit', {
       clientName: name, clientPhone: phone,
-      serviceName: selectedService.name,
+      serviceName: selectedService.name, duration: selectedDuration,
       serviceCategory: selectedService.cat,
       isNew: isNewClient,
       date: new Date().toLocaleDateString('en-US')
@@ -425,6 +429,7 @@ function populateThanks() {
   document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
   document.getElementById('thanks-detail').innerHTML =
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Duration</span><span class="thanks-val">' + selectedDuration + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
 }
@@ -434,13 +439,15 @@ function resetApp() {
   currentStep = 0;
   isNewClient = true;
   selectedService = null;
-  optInMarketing = false;
+  selectedDuration = null;
+  optInMarketing = true;
   sigHasContent = false;
   document.getElementById('inp-name').value = '';
   document.getElementById('inp-phone').value = '';
   document.getElementById('inp-dob').value = '';
   document.getElementById('inp-email').value = '';
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected','selected-gold'));
+  document.getElementById('optin-chip').classList.add('selected-gold');
   buildScreenFlow();
   updateStepBar();
   showScreen('welcome');
@@ -466,13 +473,47 @@ function buildServiceGrid() {
   SERVICES.forEach(svc => {
     const card = document.createElement('div');
     card.className = 'svc-card';
-    card.innerHTML = '<div class="svc-card-name">' + svc.name + (svc.sub ? '<br><span style="font-size:.72rem;color:var(--muted);">'+svc.sub+'</span>' : '') + '</div><div class="svc-card-dur">' + svc.dur + '</div>';
+    card.innerHTML = '<div class="svc-card-name">' + svc.name + '</div>' +
+      (svc.sub ? '<div class="svc-card-sub">' + svc.sub + '</div>' : '');
     card.onclick = () => {
+      // remove all selected cards and duration row
       document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.dur-row').forEach(r => r.remove());
       card.classList.add('selected');
       selectedService = svc;
-      document.getElementById('svc-btn').style.display = 'block';
+      selectedDuration = svc.durs.length === 1 ? svc.durs[0] : null;
       hideErr('service-err');
+
+      // build duration row after this card
+      const durRow = document.createElement('div');
+      durRow.className = 'dur-row';
+      durRow.innerHTML = '<span class="dur-label">Duration:</span>';
+      svc.durs.forEach(d => {
+        const chip = document.createElement('div');
+        chip.className = 'dur-chip' + (svc.durs.length === 1 ? ' selected' : '');
+        chip.textContent = d;
+        chip.onclick = (e) => {
+          e.stopPropagation();
+          durRow.querySelectorAll('.dur-chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+          selectedDuration = d;
+          document.getElementById('svc-btn').style.display = 'block';
+          hideErr('service-err');
+        };
+        durRow.appendChild(chip);
+      });
+
+      // insert dur-row after the card's parent row or at end
+      // find card's position in grid and insert after its row-partner
+      const cards = Array.from(grid.children).filter(c => c.classList.contains('svc-card'));
+      const idx = cards.indexOf(card);
+      // insert after the even-indexed sibling (end of row)
+      const rowEnd = idx % 2 === 0 ? cards[idx + 1] || card : card;
+      rowEnd.after(durRow);
+
+      if (svc.durs.length === 1) {
+        document.getElementById('svc-btn').style.display = 'block';
+      }
     };
     grid.appendChild(card);
   });
