@@ -175,7 +175,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     </div>
     <div class="field">
       <label>Date of Birth *</label>
-      <input type="text" id="inp-dob2" placeholder="MM/DD/YYYY">
+      <input type="text" id="inp-dob2" placeholder="MM/DD/YYYY" maxlength="10" inputmode="numeric">
     </div>
     <div class="field">
       <label>Email Address *</label>
@@ -467,7 +467,7 @@ async function nextScreen() {
   }
 
   if (current === 'service') {
-    if (!selectedService || !selectedDuration) {
+    if (!selectedService || selectedDuration === null) {
       const msg = !selectedService ? 'Please select a service to continue.' : 'Please select a duration to continue.';
       document.getElementById('service-err').textContent = msg;
       showErr('service-err');
@@ -531,7 +531,7 @@ function populateThanks() {
   document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
   document.getElementById('thanks-detail').innerHTML =
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
-    '<div class="thanks-row"><span class="thanks-key">Duration</span><span class="thanks-val">' + selectedDuration + '</span></div>' +
+    (selectedDuration ? '<div class="thanks-row"><span class="thanks-key">Duration</span><span class="thanks-val">' + selectedDuration + '</span></div>' : '') +
     '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
 }
@@ -874,6 +874,14 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+// ── DOB AUTO-FORMAT ──
+document.getElementById('inp-dob2').addEventListener('input', function(e) {
+  let v = this.value.replace(/\D/g, '').substring(0, 8);
+  if (v.length >= 5) v = v.substring(0,2) + '/' + v.substring(2,4) + '/' + v.substring(4);
+  else if (v.length >= 3) v = v.substring(0,2) + '/' + v.substring(2);
+  this.value = v;
+});
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
