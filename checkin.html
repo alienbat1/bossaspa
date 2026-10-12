@@ -1,0 +1,567 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,sans-serif;background:#FAF6EF}[hidden]{display:none!important}</style></head><body>
+<title>Bossa Spa — Check-In</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap">
+
+<style>
+:root {
+  --teal:#2C4A43; --teal-mid:#3d6359; --gold:#C6A560;
+  --cream:#FAF6EF; --beige:#F2EDE1; --ink:#1a2820;
+  --muted:#6b7f79; --border:#d4cbbe; --error:#9b3a2a;
+  --r:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
+
+/* iPad frame */
+.ipad-frame{max-width:680px;margin:0 auto;background:var(--cream);min-height:100vh;display:flex;flex-direction:column;}
+.ipad-bar{background:var(--teal);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ipad-logo{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:#fff;font-weight:300;letter-spacing:.08em;}
+.ipad-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+
+/* Step bar */
+.step-bar{display:flex;gap:6px;padding:12px 20px;background:var(--beige);border-bottom:1px solid var(--border);}
+.step-dot{flex:1;height:3px;border-radius:2px;background:var(--border);}
+.step-dot.done{background:var(--gold);}
+.step-dot.active{background:var(--teal);}
+
+/* Screen */
+.screen{display:none;padding:24px 20px;flex:1;overflow-y:auto;}
+.screen.active{display:block;}
+.screen-title{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--teal);font-weight:300;margin-bottom:4px;}
+.screen-sub{font-size:.78rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
+
+/* Fields */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input, .field select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.95rem;font-weight:300;outline:none;-webkit-appearance:none;}
+.field input:focus, .field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.field input.error{border-color:var(--error);}
+.field input::placeholder{color:var(--muted);}
+
+/* Section label */
+.section-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;margin-top:20px;}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none;}
+.chip.selected{background:var(--teal);color:#fff;border-color:var(--teal);}
+.chip.selected-gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+
+/* Radio options */
+.radio-opts{display:flex;flex-direction:column;gap:8px;}
+.radio-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;font-size:.88rem;transition:all .15s;display:flex;align-items:center;gap:10px;}
+.radio-opt::before{content:'';width:16px;height:16px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;}
+.radio-opt.selected{border-color:var(--teal);background:#f0f5f4;}
+.radio-opt.selected::before{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px #fff;}
+
+/* Service grid */
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.svc-card{padding:14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;transition:all .15s;}
+.svc-card:active,.svc-card.selected{border-color:var(--teal);background:#f0f5f4;}
+.svc-card-name{font-size:.85rem;font-weight:500;color:var(--ink);margin-bottom:2px;}
+.svc-card-dur{font-size:.72rem;color:var(--muted);}
+
+/* Alert */
+.alert{border-radius:var(--r);padding:12px 14px;margin-bottom:16px;font-size:.85rem;line-height:1.5;}
+.alert-teal{background:#edf5f3;border:1px solid #b0cec9;color:var(--teal);}
+.alert-warn{background:#fff8e6;border:1px solid #e6c96a;color:#8a6200;}
+.alert-title{font-weight:500;margin-bottom:3px;}
+
+/* Button */
+.btn{width:100%;padding:15px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:300;letter-spacing:.08em;cursor:pointer;margin-top:20px;transition:background .2s;}
+.btn:active{background:var(--teal-mid);}
+.btn-outline{background:transparent;color:var(--teal);border:1.5px solid var(--teal);}
+
+/* Health form */
+.health-q{margin-bottom:18px;}
+.health-q label{display:block;font-size:.88rem;font-weight:400;color:var(--ink);margin-bottom:8px;}
+.health-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.h-opt{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:.82rem;cursor:pointer;transition:all .15s;}
+.h-opt.selected{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+/* Textarea */
+.field textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.88rem;font-weight:300;outline:none;resize:vertical;min-height:80px;}
+.field textarea:focus{border-color:var(--teal);}
+
+/* Waiver */
+.waiver-text{font-size:.78rem;line-height:1.8;color:var(--ink);background:var(--beige);border:1px solid var(--border);border-radius:var(--r);padding:16px;max-height:280px;overflow-y:auto;margin-bottom:16px;}
+.waiver-text h4{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--teal);margin-bottom:8px;}
+.waiver-text p{margin-bottom:10px;}
+
+/* Signature */
+#sigCanvas{width:100%;height:180px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;touch-action:none;}
+.sig-clear{font-size:.75rem;color:var(--muted);text-decoration:underline;cursor:pointer;display:block;text-align:right;margin-top:6px;}
+
+/* Thanks */
+.thanks-icon{font-size:3rem;text-align:center;margin:20px 0 10px;}
+.thanks-name{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--teal);text-align:center;margin-bottom:6px;}
+.thanks-sub{font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:24px;}
+.thanks-detail{background:var(--beige);border-radius:var(--r);padding:16px;font-size:.85rem;line-height:1.8;}
+.thanks-row{display:flex;justify-content:space-between;}
+.thanks-key{color:var(--muted);}
+.thanks-val{font-weight:500;color:var(--ink);}
+
+/* Error message */
+.err-msg{font-size:.8rem;color:var(--error);margin-top:8px;display:none;}
+.err-msg.show{display:block;}
+
+/* Spinner overlay */
+.spinner-overlay{position:fixed;inset:0;background:rgba(250,246,239,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-text{margin-top:14px;font-size:.85rem;color:var(--muted);}
+</style>
+
+<div class="ipad-frame">
+  <div class="ipad-bar">
+    <span class="ipad-logo">Bossa</span>
+    <span style="font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;">Beverly Hills</span>
+    <div class="ipad-dot"></div>
+  </div>
+
+  <div class="step-bar" id="stepBar"></div>
+
+  <!-- SCREEN 1: WELCOME -->
+  <div class="screen active" id="screen-welcome">
+    <div class="screen-title">Welcome</div>
+    <div class="screen-sub">Step 1 — Let's find your profile</div>
+    <div class="field">
+      <label>Full Name *</label>
+      <input type="text" id="inp-name" placeholder="Your full name" autocomplete="name" autocorrect="off">
+    </div>
+    <div class="field">
+      <label>Phone Number *</label>
+      <input type="tel" id="inp-phone" placeholder="(310) 555-0000" autocomplete="tel">
+    </div>
+    <div class="field">
+      <label>Date of Birth *</label>
+      <input type="text" id="inp-dob" placeholder="MM/DD/YYYY">
+    </div>
+    <div class="err-msg" id="welcome-err">Please fill in all fields to continue.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 2: REGISTER (new clients only) -->
+  <div class="screen" id="screen-register">
+    <div class="screen-title">Welcome to Bossa</div>
+    <div class="screen-sub">First visit — a few more details</div>
+    <div class="alert alert-teal">
+      <div class="alert-title">✨ First time here?</div>
+      We'd love to get to know you. Your info is saved securely and makes every future visit faster.
+    </div>
+    <div class="field">
+      <label>Email Address *</label>
+      <input type="email" id="inp-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="section-label">How did you hear about us? *</div>
+    <div class="chips" id="heard-chips">
+      <div class="chip" onclick="selectChip(this,'heard')">Google</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Instagram</div>
+      <div class="chip" onclick="selectChip(this,'heard')">TikTok</div>
+      <div class="chip" onclick="selectChip(this,'heard')">ClassPass</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Groupon</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Referral</div>
+      <div class="chip" onclick="selectChip(this,'heard')">Other</div>
+    </div>
+    <div class="field" id="referral-field" style="display:none;margin-top:12px;">
+      <label>Who referred you?</label>
+      <input type="text" id="inp-referral" placeholder="Name of person who referred you">
+    </div>
+    <div class="section-label">Marketing</div>
+    <div class="chips">
+      <div class="chip" id="optin-chip" onclick="toggleOptIn(this)">📧 I'd like to receive offers & updates</div>
+    </div>
+    <div class="err-msg" id="register-err">Please fill in email and how you heard about us.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 3: SERVICE SELECTION -->
+  <div class="screen" id="screen-service">
+    <div class="screen-title">Today's Service</div>
+    <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
+    <div class="svc-grid" id="svc-grid"></div>
+    <div class="err-msg" id="service-err">Please select a service to continue.</div>
+    <button class="btn" id="svc-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
+  </div>
+
+  <!-- SCREEN 4: HEALTH FORM -->
+  <div class="screen" id="screen-health">
+    <div class="screen-title">Health Check</div>
+    <div class="screen-sub">Step <span id="health-step">4</span> — Quick health questions</div>
+    <div id="healthForm"></div>
+    <div class="err-msg" id="health-err">Please answer all required questions.</div>
+    <button class="btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
+  <!-- SCREEN 5: WAIVER (new clients only) -->
+  <div class="screen" id="screen-waiver">
+    <div class="screen-title">Consent & Waiver</div>
+    <div class="screen-sub">Step <span id="waiver-step">5</span> — Please read and agree</div>
+    <div class="waiver-text">
+      <h4>Bossa Spa — Informed Consent & Liability Waiver</h4>
+      <p>I understand that the services provided at Bossa Spa are intended for relaxation, wellness, and aesthetic purposes only, and are not a substitute for medical treatment.</p>
+      <p>I confirm that I have disclosed all relevant health conditions, medications, and contraindications. I release Bossa Spa and its staff from any liability for adverse reactions resulting from undisclosed conditions.</p>
+      <p>I consent to receive the selected service and understand I may request to stop at any time. I agree not to hold Bossa Spa liable for any injury, loss, or damage arising from services received.</p>
+      <p>By signing below, I confirm I have read, understood, and agree to this waiver in full.</p>
+    </div>
+    <div class="field">
+      <label>Signature *</label>
+      <canvas id="sigCanvas"></canvas>
+      <span class="sig-clear" onclick="clearSig()">Clear signature</span>
+    </div>
+    <div class="err-msg" id="waiver-err">Please sign to continue.</div>
+    <button class="btn" onclick="nextScreen()">I Agree & Sign →</button>
+  </div>
+
+  <!-- SCREEN 6: THANK YOU -->
+  <div class="screen" id="screen-thanks">
+    <div class="thanks-icon">🌿</div>
+    <div class="thanks-name" id="thanks-name">Thank you!</div>
+    <div class="thanks-sub">Your check-in is complete. Please let our team know you're ready.</div>
+    <div class="thanks-detail" id="thanks-detail"></div>
+    <button class="btn btn-outline" onclick="resetApp()" style="margin-top:16px;">New Check-In</button>
+  </div>
+</div>
+
+<!-- Spinner -->
+<div class="spinner-overlay" id="spinner" hidden>
+  <div class="spinner"></div>
+  <div class="spinner-text">Saving your information…</div>
+</div>
+
+<script>
+// ── CONFIG ──
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
+
+const SERVICES = [
+  { id:'lymphatic-full', name:'Lymphatic Drainage', sub:'Full Body', cat:'Lymphatic', dur:'60 / 90 min' },
+  { id:'lymphatic-face', name:'Face & Body Lymphatic', sub:'', cat:'Lymphatic', dur:'60 min' },
+  { id:'facial', name:'Facial', sub:'', cat:'Facial', dur:'60 / 90 min' },
+  { id:'massage-swedish', name:'Swedish Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
+  { id:'massage-deep', name:'Deep Tissue Massage', sub:'', cat:'Massage', dur:'60 / 90 min' },
+  { id:'sauna', name:'Infrared Sauna', sub:'', cat:'Sauna', dur:'30 / 45 / 60 min' },
+  { id:'body-wrap', name:'Body Wrap', sub:'Seaweed / Detox', cat:'Body', dur:'90 min' },
+  { id:'waxing', name:'Waxing', sub:'', cat:'Waxing', dur:'varies' },
+  { id:'cryo', name:'Cryo Contour', sub:'', cat:'Body', dur:'45 min' },
+  { id:'cavitation', name:'Cavitation', sub:'', cat:'Body', dur:'45 min' },
+  { id:'couples', name:'Couples Massage', sub:'', cat:'Couples', dur:'60 / 90 min' },
+];
+
+// ── STATE ──
+let currentStep = 0;
+let isNewClient = true; // determined after welcome
+let selectedService = null;
+let optInMarketing = false;
+let sigHasContent = false;
+let screenFlow = [];
+
+function buildScreenFlow() {
+  screenFlow = ['welcome'];
+  if (isNewClient) screenFlow.push('register');
+  screenFlow.push('service');
+  screenFlow.push('health');
+  if (isNewClient) screenFlow.push('waiver');
+  screenFlow.push('thanks');
+}
+
+// ── SHEETS INTEGRATION ──
+async function sendToSheets(type, data) {
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type, timestamp: new Date().toISOString(), ...data })
+    });
+  } catch(e) {
+    console.warn('[Bossa] Sync error:', e.message);
+  }
+}
+
+// ── STEP BAR ──
+function updateStepBar() {
+  const bar = document.getElementById('stepBar');
+  const total = screenFlow.length - 1;
+  bar.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'step-dot' + (i < currentStep ? ' done' : i === currentStep ? ' active' : '');
+    bar.appendChild(dot);
+  }
+}
+
+// ── NAVIGATION ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+async function nextScreen() {
+  const current = screenFlow[currentStep];
+
+  // ── Validate ──
+  if (current === 'welcome') {
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    const dob = document.getElementById('inp-dob').value.trim();
+    if (!name || !phone || !dob) {
+      showErr('welcome-err');
+      return;
+    }
+    hideErr('welcome-err');
+    // For now all clients go through new client flow
+    // TODO: query Sheets to detect returning client
+    isNewClient = true;
+    buildScreenFlow();
+    updateStepBar();
+  }
+
+  if (current === 'register') {
+    const email = document.getElementById('inp-email').value.trim();
+    const heard = document.querySelector('#heard-chips .chip.selected');
+    if (!email || !heard) {
+      showErr('register-err');
+      return;
+    }
+    hideErr('register-err');
+    // Send new client data
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    const dob = document.getElementById('inp-dob').value.trim();
+    const referral = document.getElementById('inp-referral')?.value?.trim() || '';
+    showSpinner();
+    await sendToSheets('new_client', {
+      name, phone, dob, email,
+      heardAboutUs: heard.textContent + (referral ? ' — ' + referral : ''),
+      marketingOptIn: optInMarketing,
+      source: 'iPad Check-In'
+    });
+    hideSpinner();
+  }
+
+  if (current === 'service') {
+    if (!selectedService) {
+      showErr('service-err');
+      return;
+    }
+    hideErr('service-err');
+    buildHealthForm();
+    updateHealthStep();
+  }
+
+  if (current === 'health') {
+    const answers = collectHealth();
+    const missing = document.querySelectorAll('#healthForm .h-opt.selected').length;
+    // basic check: all question groups must have at least one answer
+    const groups = document.querySelectorAll('#healthForm .health-q');
+    let ok = true;
+    groups.forEach(g => {
+      const opts = g.querySelectorAll('.h-opt.selected');
+      if (opts.length === 0) ok = false;
+    });
+    if (!ok) {
+      showErr('health-err');
+      return;
+    }
+    hideErr('health-err');
+    showSpinner();
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    await sendToSheets('health_form', {
+      clientName: name, clientPhone: phone,
+      service: selectedService.name,
+      date: new Date().toLocaleDateString('en-US'),
+      ...answers
+    });
+    await sendToSheets('visit', {
+      clientName: name, clientPhone: phone,
+      serviceName: selectedService.name,
+      serviceCategory: selectedService.cat,
+      isNew: isNewClient,
+      date: new Date().toLocaleDateString('en-US')
+    });
+    hideSpinner();
+    if (!isNewClient) {
+      // skip waiver, go to thanks
+      populateThanks();
+    }
+  }
+
+  if (current === 'waiver') {
+    if (!sigHasContent) {
+      showErr('waiver-err');
+      return;
+    }
+    hideErr('waiver-err');
+    showSpinner();
+    const name = document.getElementById('inp-name').value.trim();
+    const phone = document.getElementById('inp-phone').value.trim();
+    await sendToSheets('waiver', {
+      clientName: name, clientPhone: phone,
+      service: selectedService.name,
+      date: new Date().toLocaleDateString('en-US'),
+      signaturePresent: true, waiverVersion: '2024-v1'
+    });
+    hideSpinner();
+    populateThanks();
+  }
+
+  currentStep++;
+  if (currentStep >= screenFlow.length) return;
+  showScreen(screenFlow[currentStep]);
+  updateStepBar();
+}
+
+// ── THANKS ──
+function populateThanks() {
+  const name = document.getElementById('inp-name').value.trim().split(' ')[0];
+  document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
+  document.getElementById('thanks-detail').innerHTML =
+    '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
+}
+
+// ── RESET ──
+function resetApp() {
+  currentStep = 0;
+  isNewClient = true;
+  selectedService = null;
+  optInMarketing = false;
+  sigHasContent = false;
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-phone').value = '';
+  document.getElementById('inp-dob').value = '';
+  document.getElementById('inp-email').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected','selected-gold'));
+  buildScreenFlow();
+  updateStepBar();
+  showScreen('welcome');
+}
+
+// ── CHIPS ──
+function selectChip(el, group) {
+  document.querySelectorAll('#heard-chips .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const isReferral = el.textContent === 'Referral';
+  document.getElementById('referral-field').style.display = isReferral ? 'block' : 'none';
+}
+
+function toggleOptIn(el) {
+  optInMarketing = !optInMarketing;
+  el.classList.toggle('selected-gold', optInMarketing);
+}
+
+// ── SERVICE GRID ──
+function buildServiceGrid() {
+  const grid = document.getElementById('svc-grid');
+  grid.innerHTML = '';
+  SERVICES.forEach(svc => {
+    const card = document.createElement('div');
+    card.className = 'svc-card';
+    card.innerHTML = '<div class="svc-card-name">' + svc.name + (svc.sub ? '<br><span style="font-size:.72rem;color:var(--muted);">'+svc.sub+'</span>' : '') + '</div><div class="svc-card-dur">' + svc.dur + '</div>';
+    card.onclick = () => {
+      document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedService = svc;
+      document.getElementById('svc-btn').style.display = 'block';
+      hideErr('service-err');
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ── HEALTH FORM ──
+function buildHealthForm() {
+  const form = document.getElementById('healthForm');
+  const questions = [
+    { q: 'Do you have any active infections or contagious conditions?', opts: ['No','Yes'] },
+    { q: 'Do you have a heart condition or pacemaker?', opts: ['No','Yes'] },
+    { q: 'Are you pregnant or possibly pregnant?', opts: ['No','Yes'] },
+    { q: 'Are you currently undergoing cancer treatment?', opts: ['No','Yes','Recently completed'] },
+    { q: 'Have you had surgery in the past 3 months?', opts: ['No','Yes'] },
+    { q: 'Do you have any allergies? (products, latex, fragrances)', opts: ['None','Yes — I will inform therapist'] },
+    { q: 'Are you taking any medications we should know about?', opts: ['None','Yes — I will inform therapist'] },
+  ];
+  form.innerHTML = questions.map((item,i) =>
+    `<div class="health-q">
+      <label>${item.q}</label>
+      <div class="health-opts">${item.opts.map(o =>
+        `<div class="h-opt" onclick="selectHOpt(this,${i})">${o}</div>`
+      ).join('')}</div>
+    </div>`
+  ).join('');
+}
+
+function selectHOpt(el, groupIdx) {
+  const group = document.querySelectorAll('.health-q')[groupIdx];
+  group.querySelectorAll('.h-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  hideErr('health-err');
+}
+
+function collectHealth() {
+  const result = {};
+  document.querySelectorAll('#healthForm .health-q').forEach(q => {
+    const label = q.querySelector('label').textContent;
+    const sel = q.querySelector('.h-opt.selected');
+    result[label.substring(0,50)] = sel ? sel.textContent : '';
+  });
+  return result;
+}
+
+function updateHealthStep() {
+  const idx = screenFlow.indexOf('health') + 1;
+  document.getElementById('health-step').textContent = idx;
+}
+
+// ── SIGNATURE ──
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let lastX, lastY;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#1a2820';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+canvas.addEventListener('mousedown', e => { drawing=true; const p=getPos(e); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('mousemove', e => { if(!drawing) return; const p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; sigHasContent=true; });
+canvas.addEventListener('mouseup', () => drawing=false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=getPos(e); lastX=p.x; lastY=p.y; }, {passive:false});
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; sigHasContent=true; }, {passive:false});
+canvas.addEventListener('touchend', () => drawing=false);
+
+function clearSig() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasContent = false;
+}
+
+// ── UTILS ──
+function showErr(id) { document.getElementById(id).classList.add('show'); }
+function hideErr(id) { document.getElementById(id).classList.remove('show'); }
+function showSpinner() { document.getElementById('spinner').hidden = false; }
+function hideSpinner() { document.getElementById('spinner').hidden = true; }
+
+// ── INIT ──
+buildServiceGrid();
+buildScreenFlow();
+updateStepBar();
+showScreen('welcome');
+</script>
+
+</body></html>
