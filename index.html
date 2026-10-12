@@ -481,6 +481,9 @@ function showScreen(id) {
   if (id === 'info') {
     buildInfoScreen();
   }
+  if (id === 'waiver') {
+    setTimeout(resizeCanvas, 50);
+  }
 }
 
 function getClientName() {
@@ -643,6 +646,7 @@ function populateThanks() {
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
     (selectedDuration ? '<div class="thanks-row"><span class="thanks-key">Duration</span><span class="thanks-val">' + selectedDuration + '</span></div>' : '') +
     '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
+    '<div class="thanks-row"><span class="thanks-key">Check-in time</span><span class="thanks-val">' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
 }
 
@@ -1225,14 +1229,16 @@ let lastX, lastY;
 
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * window.devicePixelRatio;
-  canvas.height = rect.height * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  if (rect.width === 0) return; // not visible yet
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
   ctx.strokeStyle = '#1a2820';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 }
-resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // ── DOB AUTO-FORMAT ──
