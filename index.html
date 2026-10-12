@@ -54,12 +54,19 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .radio-opt.selected{border-color:var(--teal);background:#f0f5f4;}
 .radio-opt.selected::before{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px #fff;}
 
+/* Category scroll */
+.cat-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px 0;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.cat-scroll::-webkit-scrollbar{display:none;}
+.cat-chip{padding:9px 16px;border:1.5px solid var(--border);border-radius:20px;background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.82rem;white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.cat-chip.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
 /* Service grid */
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.svc-card{padding:14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;transition:all .15s;}
+.svc-card{padding:14px 12px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:70px;}
 .svc-card:active,.svc-card.selected{border-color:var(--teal);background:#f0f5f4;}
-.svc-card-name{font-size:.85rem;font-weight:500;color:var(--ink);}
-.svc-card-sub{font-size:.72rem;color:var(--muted);}
+.svc-card-icon{font-size:1.4rem;margin-bottom:6px;line-height:1;}
+.svc-card-name{font-size:.82rem;font-weight:500;color:var(--ink);line-height:1.3;}
+.svc-card-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
 
 /* Duration selector */
 .dur-row{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;background:#f0f5f4;border:1.5px solid var(--teal);border-radius:var(--r);align-items:center;}
@@ -129,21 +136,19 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
   <!-- SCREEN 1: WELCOME -->
   <div class="screen active" id="screen-welcome">
-    <div class="screen-title">Welcome</div>
-    <div class="screen-sub">Step 1 — Let's find your profile</div>
-    <div class="field">
-      <label>Full Name *</label>
-      <input type="text" id="inp-name" placeholder="Your full name" autocomplete="name" autocorrect="off">
+    <div class="screen-title">Welcome to Bossa</div>
+    <div class="screen-sub">Step 1 — Have you been here before?</div>
+    <div class="radio-opts" style="margin-bottom:20px;">
+      <div class="radio-opt selected" id="opt-new" onclick="setClientType(true)">First time visiting Bossa Spa</div>
+      <div class="radio-opt" id="opt-returning" onclick="setClientType(false)">I've been here before</div>
     </div>
-    <div class="field">
-      <label>Phone Number *</label>
-      <input type="tel" id="inp-phone" placeholder="(310) 555-0000" autocomplete="tel">
+    <div id="returning-fields" style="display:none;">
+      <div class="field">
+        <label>Phone Number *</label>
+        <input type="tel" id="inp-phone" placeholder="(310) 555-0000" autocomplete="tel">
+      </div>
     </div>
-    <div class="field">
-      <label>Date of Birth *</label>
-      <input type="text" id="inp-dob" placeholder="MM/DD/YYYY">
-    </div>
-    <div class="err-msg" id="welcome-err">Please fill in all fields to continue.</div>
+    <div class="err-msg" id="welcome-err">Please enter your phone number to continue.</div>
     <button class="btn" onclick="nextScreen()">Continue →</button>
   </div>
 
@@ -154,6 +159,19 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <div class="alert alert-teal">
       <div class="alert-title">✨ First time here?</div>
       We'd love to get to know you. Your info is saved securely and makes every future visit faster.
+    </div>
+    <div class="section-label">Your Details</div>
+    <div class="field">
+      <label>Full Name *</label>
+      <input type="text" id="inp-name2" placeholder="Your full name" autocomplete="name" autocorrect="off">
+    </div>
+    <div class="field">
+      <label>Phone Number *</label>
+      <input type="tel" id="inp-phone2" placeholder="(310) 555-0000" autocomplete="tel">
+    </div>
+    <div class="field">
+      <label>Date of Birth *</label>
+      <input type="text" id="inp-dob2" placeholder="MM/DD/YYYY">
     </div>
     <div class="field">
       <label>Email Address *</label>
@@ -173,11 +191,26 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       <label>Who referred you?</label>
       <input type="text" id="inp-referral" placeholder="Name of person who referred you">
     </div>
-    <div class="section-label">Marketing</div>
-    <div class="chips">
-      <div class="chip selected-gold" id="optin-chip" onclick="toggleOptIn(this)">📧 I'd like to receive offers & updates</div>
+    <div class="section-label">Do you have a discount or gift card?</div>
+    <div class="chips" id="discount-chips">
+      <div class="chip selected" id="discount-none" onclick="selectDiscount(this,'none')">No discount</div>
+      <div class="chip" onclick="selectDiscount(this,'giftcard')">🎁 Gift Card</div>
+      <div class="chip" onclick="selectDiscount(this,'coupon')">🎟 Coupon Code</div>
+      <div class="chip" onclick="selectDiscount(this,'discount')">🏷 Discount Code</div>
+      <div class="chip" onclick="selectDiscount(this,'special')">⭐ Special Price</div>
     </div>
-    <div class="err-msg" id="register-err">Please fill in email and how you heard about us.</div>
+    <div class="field" id="discount-code-field" style="display:none;margin-top:12px;">
+      <label>Enter Code</label>
+      <input type="text" id="inp-discount-code" placeholder="Enter your code">
+    </div>
+    <div class="section-label" style="margin-top:16px;"></div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleOptIn()">
+      <div id="optin-toggle" style="width:42px;height:24px;border-radius:12px;background:var(--teal);flex-shrink:0;position:relative;transition:background .2s;">
+        <div id="optin-knob" style="position:absolute;top:3px;left:21px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;"></div>
+      </div>
+      <span style="font-size:.85rem;color:var(--ink);line-height:1.4;">I'd like to receive offers, promotions and updates from Bossa Spa</span>
+    </div>
+    <div class="err-msg" id="register-err">Please fill in all fields and select how you heard about us.</div>
     <button class="btn" onclick="nextScreen()">Continue →</button>
   </div>
 
@@ -185,6 +218,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
   <div class="screen" id="screen-service">
     <div class="screen-title">Today's Service</div>
     <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
+    <div class="cat-scroll" id="cat-scroll"></div>
     <div class="svc-grid" id="svc-grid"></div>
     <div class="err-msg" id="service-err">Please select a service to continue.</div>
     <button class="btn" id="svc-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
@@ -239,22 +273,55 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples Massage','Facial','Sauna','Wax'];
+
+// durs: multiple = client picks; single = fixed (auto-selected, no choice UI shown)
 const SERVICES = [
-  { id:'lymphatic-full', name:'Lymphatic Drainage', sub:'Full Body', cat:'Lymphatic', durs:['60 min','90 min'] },
-  { id:'lymphatic-face', name:'Face & Body Lymphatic', sub:'', cat:'Lymphatic', durs:['60 min'] },
-  { id:'facial', name:'Facial', sub:'', cat:'Facial', durs:['60 min','90 min'] },
-  { id:'massage-swedish', name:'Swedish Massage', sub:'', cat:'Massage', durs:['60 min','90 min'] },
-  { id:'massage-deep', name:'Deep Tissue Massage', sub:'', cat:'Massage', durs:['60 min','90 min'] },
-  { id:'sauna', name:'Infrared Sauna', sub:'', cat:'Sauna', durs:['30 min','45 min','60 min'] },
-  { id:'body-wrap', name:'Body Wrap', sub:'Seaweed / Detox', cat:'Body', durs:['90 min'] },
-  { id:'waxing', name:'Waxing', sub:'', cat:'Waxing', durs:['varies'] },
-  { id:'cryo', name:'Cryo Contour', sub:'', cat:'Body', durs:['45 min'] },
-  { id:'cavitation', name:'Cavitation', sub:'', cat:'Body', durs:['45 min'] },
-  { id:'couples', name:'Couples Massage', sub:'', cat:'Couples', durs:['60 min','90 min'] },
+  // LYMPHATIC
+  { id:'lymphatic-full',      name:'Lymphatic Drainage',              cat:'Lymphatic',       durs:['60 min','90 min'] },
+  { id:'lymphatic-brazil',    name:'Brazilian Style Lymphatic',       cat:'Lymphatic',       durs:['60 min','90 min'] },
+  { id:'lymphatic-body-face', name:'Body + Face Lymphatic',           cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['45 min'] },
+  { id:'lymphatic-post1',     name:'Post-Surgery Lymphatic 1 Area',   cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-post-full', name:'Post-Surgery Lymphatic Full Body',cat:'Lymphatic',       durs:['90 min'] },
+  // BODY TREATMENTS
+  { id:'body-wrap',           name:'Body Wrap',                       cat:'Body Treatments', durs:['90 min'] },
+  { id:'body-shape',          name:'Brazilian Body Shape',            cat:'Body Treatments', durs:['60 min'] },
+  { id:'cryo',                name:'Cryo Contour',                    cat:'Body Treatments', durs:['45 min'] },
+  { id:'cavitation',          name:'Cavitation',                      cat:'Body Treatments', durs:['45 min'] },
+  { id:'wood-therapy',        name:'Wood Therapy',                    cat:'Body Treatments', durs:['60 min'] },
+  { id:'vacuum',              name:'Vacuum Therapy',                  cat:'Body Treatments', durs:['45 min'] },
+  { id:'vacuum-bbl',          name:'Vacuum BBL',                      cat:'Body Treatments', durs:['45 min'] },
+  { id:'lllt',                name:'LLLT Light Therapy',              cat:'Body Treatments', durs:['30 min'] },
+  // MASSAGE
+  { id:'massage-swedish',     name:'Swedish Massage',                 cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-deep',        name:'Deep Tissue Massage',             cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-prenatal',    name:'Prenatal Massage',                cat:'Massage',         durs:['60 min','90 min'] },
+  { id:'massage-sport',       name:'Sports Massage',                  cat:'Massage',         durs:['60 min','90 min'] },
+  // COUPLES MASSAGE
+  { id:'couples-swedish',     name:'Couples Swedish Massage',         cat:'Couples Massage', durs:['60 min','90 min'] },
+  { id:'couples-deep',        name:'Couples Deep Tissue',             cat:'Couples Massage', durs:['60 min','90 min'] },
+  { id:'couples-custom',      name:'Couples Custom Massage',          cat:'Couples Massage', durs:['60 min','90 min'] },
+  // FACIAL
+  { id:'facial-classic',      name:'Classic Facial',                  cat:'Facial',          durs:['60 min','90 min'] },
+  { id:'facial-anti-age',     name:'Anti-Aging Facial',               cat:'Facial',          durs:['60 min','90 min'] },
+  { id:'facial-brightening',  name:'Brightening Facial',              cat:'Facial',          durs:['60 min'] },
+  { id:'facial-acne',         name:'Acne Treatment Facial',           cat:'Facial',          durs:['60 min'] },
+  { id:'facial-microderm',    name:'Microdermabrasion',               cat:'Facial',          durs:['60 min'] },
+  // SAUNA
+  { id:'sauna',               name:'Infrared Sauna',                  cat:'Sauna',           durs:['30 min','45 min','60 min'] },
+  // WAX
+  { id:'wax-braz',            name:'Brazilian Wax',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-bikini',          name:'Bikini Wax',                      cat:'Wax',             durs:['varies'] },
+  { id:'wax-legs',            name:'Leg Wax',                         cat:'Wax',             durs:['varies'] },
+  { id:'wax-underarm',        name:'Underarm Wax',                    cat:'Wax',             durs:['varies'] },
+  { id:'wax-facial',          name:'Facial Waxing',                   cat:'Wax',             durs:['varies'] },
+  { id:'wax-full-body',       name:'Full Body Wax',                   cat:'Wax',             durs:['varies'] },
 ];
 
 // ── STATE ──
 let currentStep = 0;
+let clientName = '';
 let isNewClient = true; // determined after welcome
 let selectedService = null;
 let selectedDuration = null;
@@ -297,11 +364,35 @@ function updateStepBar() {
   }
 }
 
+// ── CLIENT TYPE ──
+function setClientType(newClient) {
+  isNewClient = newClient;
+  document.getElementById('opt-new').classList.toggle('selected', newClient);
+  document.getElementById('opt-returning').classList.toggle('selected', !newClient);
+  document.getElementById('returning-fields').style.display = newClient ? 'none' : 'block';
+}
+
 // ── NAVIGATION ──
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + id).classList.add('active');
   window.scrollTo(0,0);
+  if (id === 'service') {
+    selectedCategory = CATEGORIES[0];
+    selectedService = null;
+    selectedDuration = null;
+    document.getElementById('svc-btn').style.display = 'none';
+    buildServiceScreen();
+  }
+}
+
+function getClientName() {
+  if (isNewClient) return document.getElementById('inp-name2').value.trim();
+  return clientName || 'Guest';
+}
+function getClientPhone() {
+  if (isNewClient) return document.getElementById('inp-phone2').value.trim();
+  return document.getElementById('inp-phone').value.trim();
 }
 
 async function nextScreen() {
@@ -309,38 +400,35 @@ async function nextScreen() {
 
   // ── Validate ──
   if (current === 'welcome') {
-    const name = document.getElementById('inp-name').value.trim();
-    const phone = document.getElementById('inp-phone').value.trim();
-    const dob = document.getElementById('inp-dob').value.trim();
-    if (!name || !phone || !dob) {
-      showErr('welcome-err');
-      return;
+    if (!isNewClient) {
+      const phone = document.getElementById('inp-phone').value.trim();
+      if (!phone) { showErr('welcome-err'); return; }
     }
     hideErr('welcome-err');
-    // For now all clients go through new client flow
-    // TODO: query Sheets to detect returning client
-    isNewClient = true;
     buildScreenFlow();
     updateStepBar();
   }
 
   if (current === 'register') {
+    const name = document.getElementById('inp-name2').value.trim();
+    const phone = document.getElementById('inp-phone2').value.trim();
+    const dob = document.getElementById('inp-dob2').value.trim();
     const email = document.getElementById('inp-email').value.trim();
     const heard = document.querySelector('#heard-chips .chip.selected');
-    if (!email || !heard) {
+    if (!name || !phone || !dob || !email || !heard) {
       showErr('register-err');
       return;
     }
     hideErr('register-err');
-    // Send new client data
-    const name = document.getElementById('inp-name').value.trim();
-    const phone = document.getElementById('inp-phone').value.trim();
-    const dob = document.getElementById('inp-dob').value.trim();
     const referral = document.getElementById('inp-referral')?.value?.trim() || '';
+    const discountChip = document.querySelector('#discount-chips .chip.selected');
+    const discountCode = document.getElementById('inp-discount-code')?.value?.trim() || '';
     showSpinner();
     await sendToSheets('new_client', {
       name, phone, dob, email,
       heardAboutUs: heard.textContent + (referral ? ' — ' + referral : ''),
+      discount: discountChip ? discountChip.textContent.trim() : 'No discount',
+      discountCode,
       marketingOptIn: optInMarketing,
       source: 'iPad Check-In'
     });
@@ -349,10 +437,9 @@ async function nextScreen() {
 
   if (current === 'service') {
     if (!selectedService || !selectedDuration) {
+      const msg = !selectedService ? 'Please select a service to continue.' : 'Please select a duration to continue.';
+      document.getElementById('service-err').textContent = msg;
       showErr('service-err');
-      document.getElementById('service-err').textContent = !selectedService
-        ? 'Please select a service to continue.'
-        : 'Please select a duration to continue.';
       return;
     }
     hideErr('service-err');
@@ -361,52 +448,36 @@ async function nextScreen() {
   }
 
   if (current === 'health') {
-    const answers = collectHealth();
-    const missing = document.querySelectorAll('#healthForm .h-opt.selected').length;
-    // basic check: all question groups must have at least one answer
     const groups = document.querySelectorAll('#healthForm .health-q');
     let ok = true;
-    groups.forEach(g => {
-      const opts = g.querySelectorAll('.h-opt.selected');
-      if (opts.length === 0) ok = false;
-    });
-    if (!ok) {
-      showErr('health-err');
-      return;
-    }
+    groups.forEach(g => { if (!g.querySelector('.h-opt.selected')) ok = false; });
+    if (!ok) { showErr('health-err'); return; }
     hideErr('health-err');
     showSpinner();
-    const name = document.getElementById('inp-name').value.trim();
-    const phone = document.getElementById('inp-phone').value.trim();
+    const name = getClientName();
+    const phone = getClientPhone();
+    const answers = collectHealth();
     await sendToSheets('health_form', {
       clientName: name, clientPhone: phone,
       service: selectedService.name, duration: selectedDuration,
-      date: new Date().toLocaleDateString('en-US'),
-      ...answers
+      date: new Date().toLocaleDateString('en-US'), ...answers
     });
     await sendToSheets('visit', {
       clientName: name, clientPhone: phone,
       serviceName: selectedService.name, duration: selectedDuration,
-      serviceCategory: selectedService.cat,
-      isNew: isNewClient,
+      serviceCategory: selectedService.cat, isNew: isNewClient,
       date: new Date().toLocaleDateString('en-US')
     });
     hideSpinner();
-    if (!isNewClient) {
-      // skip waiver, go to thanks
-      populateThanks();
-    }
+    if (!isNewClient) populateThanks();
   }
 
   if (current === 'waiver') {
-    if (!sigHasContent) {
-      showErr('waiver-err');
-      return;
-    }
+    if (!sigHasContent) { showErr('waiver-err'); return; }
     hideErr('waiver-err');
     showSpinner();
-    const name = document.getElementById('inp-name').value.trim();
-    const phone = document.getElementById('inp-phone').value.trim();
+    const name = getClientName();
+    const phone = getClientPhone();
     await sendToSheets('waiver', {
       clientName: name, clientPhone: phone,
       service: selectedService.name,
@@ -425,7 +496,7 @@ async function nextScreen() {
 
 // ── THANKS ──
 function populateThanks() {
-  const name = document.getElementById('inp-name').value.trim().split(' ')[0];
+  const name = getClientName().split(' ')[0];
   document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
   document.getElementById('thanks-detail').innerHTML =
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
@@ -442,12 +513,19 @@ function resetApp() {
   selectedDuration = null;
   optInMarketing = true;
   sigHasContent = false;
-  document.getElementById('inp-name').value = '';
-  document.getElementById('inp-phone').value = '';
-  document.getElementById('inp-dob').value = '';
-  document.getElementById('inp-email').value = '';
+  clientName = '';
+  ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected','selected-gold'));
-  document.getElementById('optin-chip').classList.add('selected-gold');
+  document.getElementById('discount-none').classList.add('selected');
+  document.getElementById('discount-code-field').style.display = 'none';
+  document.getElementById('referral-field').style.display = 'none';
+  document.getElementById('returning-fields').style.display = 'none';
+  setClientType(true);
+  updateOptInToggle();
+  selectedCategory = CATEGORIES[0];
+  buildServiceScreen();
   buildScreenFlow();
   updateStepBar();
   showScreen('welcome');
@@ -461,36 +539,128 @@ function selectChip(el, group) {
   document.getElementById('referral-field').style.display = isReferral ? 'block' : 'none';
 }
 
-function toggleOptIn(el) {
+function selectDiscount(el, type) {
+  document.querySelectorAll('#discount-chips .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('discount-code-field').style.display = type === 'none' ? 'none' : 'block';
+}
+
+function toggleOptIn() {
   optInMarketing = !optInMarketing;
-  el.classList.toggle('selected-gold', optInMarketing);
+  updateOptInToggle();
+}
+function updateOptInToggle() {
+  const knob = document.getElementById('optin-knob');
+  const track = document.getElementById('optin-toggle');
+  if (!knob || !track) return;
+  track.style.background = optInMarketing ? 'var(--teal)' : 'var(--border)';
+  knob.style.left = optInMarketing ? '21px' : '3px';
+}
+
+// ── CATEGORY ICONS ──
+const CAT_ICONS = {
+  'Lymphatic':       '🫧',
+  'Body Treatments': '✨',
+  'Massage':         '🤲',
+  'Couples Massage': '💆',
+  'Facial':          '🌸',
+  'Sauna':           '🌡',
+  'Wax':             '🍃',
+};
+const SVC_ICONS = {
+  'lymphatic-full':      '🫧', 'lymphatic-brazil':    '💧', 'lymphatic-body-face':'🌊',
+  'lymphatic-facial':    '🌿', 'lymphatic-post1':     '🩺', 'lymphatic-post-full':'🩻',
+  'body-wrap':           '🧴', 'body-shape':          '✨', 'cryo':               '❄️',
+  'cavitation':          '⚡', 'wood-therapy':        '🪵', 'vacuum':             '💨',
+  'vacuum-bbl':          '🍑', 'lllt':                '💡',
+  'massage-swedish':     '🤲', 'massage-deep':        '💪', 'massage-prenatal':   '🤰',
+  'massage-sport':       '🏃',
+  'couples-swedish':     '💆', 'couples-deep':        '💑', 'couples-custom':     '❤️',
+  'facial-classic':      '🌸', 'facial-anti-age':     '⏳', 'facial-brightening': '☀️',
+  'facial-acne':         '🌱', 'facial-microderm':    '💎',
+  'sauna':               '🌡',
+  'wax-braz':            '🍃', 'wax-bikini':          '👙', 'wax-legs':           '✨',
+  'wax-underarm':        '💨', 'wax-facial':          '🌷', 'wax-full-body':      '🌿',
+};
+
+let selectedCategory = CATEGORIES[0];
+
+// ── SERVICE SCREEN INIT ──
+function buildServiceScreen() {
+  // category chips
+  const scroll = document.getElementById('cat-scroll');
+  scroll.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip' + (cat === selectedCategory ? ' active' : '');
+    chip.textContent = cat;
+    chip.onclick = () => {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedService = null;
+      selectedDuration = null;
+      document.getElementById('svc-btn').style.display = 'none';
+      hideErr('service-err');
+      buildServiceGrid();
+    };
+    scroll.appendChild(chip);
+  });
+  buildServiceGrid();
 }
 
 // ── SERVICE GRID ──
 function buildServiceGrid() {
   const grid = document.getElementById('svc-grid');
   grid.innerHTML = '';
-  SERVICES.forEach(svc => {
+  const filtered = SERVICES.filter(s => s.cat === selectedCategory);
+  filtered.forEach(svc => {
     const card = document.createElement('div');
-    card.className = 'svc-card';
-    card.innerHTML = '<div class="svc-card-name">' + svc.name + '</div>' +
-      (svc.sub ? '<div class="svc-card-sub">' + svc.sub + '</div>' : '');
+    card.className = 'svc-card' + (selectedService && selectedService.id === svc.id ? ' selected' : '');
+    const icon = SVC_ICONS[svc.id] || CAT_ICONS[svc.cat] || '✦';
+    card.innerHTML = '<div class="svc-card-icon">' + icon + '</div>' +
+                     '<div class="svc-card-name">' + svc.name + '</div>';
     card.onclick = () => {
-      // remove all selected cards and duration row
       document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
       document.querySelectorAll('.dur-row').forEach(r => r.remove());
       card.classList.add('selected');
       selectedService = svc;
-      selectedDuration = svc.durs.length === 1 ? svc.durs[0] : null;
       hideErr('service-err');
 
-      // build duration row after this card
+      const isFixed = svc.durs.length === 1;
+      const isWax = svc.durs[0] === 'varies';
+
+      if (isWax) {
+        // No duration to pick — just confirm
+        selectedDuration = 'Varies';
+        document.getElementById('svc-btn').style.display = 'block';
+        return;
+      }
+
+      if (isFixed) {
+        selectedDuration = svc.durs[0];
+        // Show a read-only duration badge
+        const durRow = document.createElement('div');
+        durRow.className = 'dur-row';
+        durRow.innerHTML = '<span class="dur-label">Duration:</span>' +
+          '<div class="dur-chip selected">' + svc.durs[0] + '</div>';
+        const allCards = Array.from(grid.querySelectorAll('.svc-card'));
+        const idx = allCards.indexOf(card);
+        const rowEnd = (idx % 2 === 0) ? (allCards[idx + 1] || card) : card;
+        rowEnd.after(durRow);
+        document.getElementById('svc-btn').style.display = 'block';
+        return;
+      }
+
+      // Multiple durations — client picks
+      selectedDuration = null;
+      document.getElementById('svc-btn').style.display = 'none';
       const durRow = document.createElement('div');
       durRow.className = 'dur-row';
-      durRow.innerHTML = '<span class="dur-label">Duration:</span>';
+      durRow.innerHTML = '<span class="dur-label">Choose duration:</span>';
       svc.durs.forEach(d => {
         const chip = document.createElement('div');
-        chip.className = 'dur-chip' + (svc.durs.length === 1 ? ' selected' : '');
+        chip.className = 'dur-chip';
         chip.textContent = d;
         chip.onclick = (e) => {
           e.stopPropagation();
@@ -502,18 +672,10 @@ function buildServiceGrid() {
         };
         durRow.appendChild(chip);
       });
-
-      // insert dur-row after the card's parent row or at end
-      // find card's position in grid and insert after its row-partner
-      const cards = Array.from(grid.children).filter(c => c.classList.contains('svc-card'));
-      const idx = cards.indexOf(card);
-      // insert after the even-indexed sibling (end of row)
-      const rowEnd = idx % 2 === 0 ? cards[idx + 1] || card : card;
+      const allCards = Array.from(grid.querySelectorAll('.svc-card'));
+      const idx = allCards.indexOf(card);
+      const rowEnd = (idx % 2 === 0) ? (allCards[idx + 1] || card) : card;
       rowEnd.after(durRow);
-
-      if (svc.durs.length === 1) {
-        document.getElementById('svc-btn').style.display = 'block';
-      }
     };
     grid.appendChild(card);
   });
@@ -605,9 +767,11 @@ function showSpinner() { document.getElementById('spinner').hidden = false; }
 function hideSpinner() { document.getElementById('spinner').hidden = true; }
 
 // ── INIT ──
-buildServiceGrid();
+buildServiceScreen();
 buildScreenFlow();
 updateStepBar();
+updateOptInToggle();
+document.getElementById('discount-none').classList.add('selected');
 showScreen('welcome');
 </script>
 
