@@ -232,6 +232,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
   <!-- SCREEN 3: SERVICE SELECTION -->
   <div class="screen" id="screen-service">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
+    <div id="welcome-back-banner" style="display:none;background:#edf5f3;border:1px solid #b0cec9;border-radius:10px;padding:12px 16px;margin-bottom:18px;text-align:center;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;" id="welcome-back-name"></div>
+      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;">Is this you? Please confirm before continuing.</div>
+    </div>
     <div class="screen-title">Today's Service</div>
     <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
     <div class="cat-scroll" id="cat-scroll"></div>
@@ -513,6 +517,9 @@ async function nextScreen() {
         clientName = found.name || '';
         buildScreenFlow();
         updateStepBar();
+        // Show welcome back banner on service screen
+        document.getElementById('welcome-back-name').textContent = 'Welcome back, ' + clientName + '! 👋';
+        document.getElementById('welcome-back-banner').style.display = 'block';
       } else {
         // Not found — switch to new client registration
         document.getElementById('welcome-not-found').classList.add('show');
@@ -668,6 +675,7 @@ function resetApp() {
   document.getElementById('referral-field').style.display = 'none';
   document.getElementById('returning-fields').style.display = 'none';
   document.getElementById('welcome-not-found').classList.remove('show');
+  document.getElementById('welcome-back-banner').style.display = 'none';
   setClientType(true);
   updateOptInToggle();
   selectedCategory = CATEGORIES[0];
