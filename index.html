@@ -1298,7 +1298,7 @@ function buildHealthForm() {
     // Build a readable summary of previous answers
     const summaryLines = [];
     HEALTH_QUESTIONS.forEach((item, i) => {
-      const key = item.q.substring(0, 50);
+      const key = item.q;
       const ans = lastHealth[key];
       if (ans) summaryLines.push(`<strong>${item.q}</strong> → ${ans}`);
       const noteKey = key + ' — note';
@@ -1312,7 +1312,7 @@ function buildHealthForm() {
     const groups = document.querySelectorAll('#healthForm .health-q');
     groups.forEach((group, i) => {
       const item = HEALTH_QUESTIONS[i];
-      const key = item.q.substring(0, 50);
+      const key = item.q;
       const prevAns = lastHealth[key];
       if (prevAns) {
         const opts = group.querySelectorAll('.h-opt');
@@ -1366,10 +1366,9 @@ function collectHealth() {
     const label = q.querySelector('label').textContent;
     const sel = q.querySelector('.h-opt.selected');
     const note = q.querySelector('.health-note');
-    const key = label.substring(0,50);
-    result[key] = sel ? sel.textContent : '';
+    result[label] = sel ? sel.textContent : '';
     if (note && note.style.display !== 'none' && note.value.trim()) {
-      result[key + ' — note'] = note.value.trim();
+      result[label + ' — note'] = note.value.trim();
     }
   });
   return result;
