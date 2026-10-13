@@ -289,8 +289,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title">Health Check</div>
     <div class="screen-sub">Step <span id="health-step">4</span> — Quick health questions</div>
+    <div id="health-returning-banner" style="display:none;background:#edf5f3;border:1px solid #b0cec9;border-radius:var(--r);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:4px;">On file from your last visit</div>
+      <div style="font-size:.82rem;color:var(--ink);line-height:1.6;" id="health-returning-summary"></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:8px;">If anything has changed, update below. Otherwise confirm at the bottom.</div>
+    </div>
     <div id="healthForm"></div>
     <div class="err-msg" id="health-err">Please answer all required questions.</div>
+    <button class="btn" id="health-confirm-btn" style="display:none;background:var(--teal);margin-top:12px;" onclick="confirmHealthUnchanged()">✓ I confirm — nothing has changed</button>
     <button class="btn" onclick="nextScreen()">Continue →</button>
   </div>
 
@@ -344,7 +350,8 @@ const SERVICES = [
   { id:'lymphatic-brazil',    name:'Brazilian Style Lymphatic',       cat:'Lymphatic',       durs:['60 min','90 min'] },
   { id:'lymphatic-body-face', name:'Body + Face Lymphatic',           cat:'Lymphatic',       durs:['60 min','90 min'] },
   { id:'lymphatic-facial',    name:'Facial Lymphatic',                cat:'Lymphatic',       durs:['30 min'] },
-  { id:'lymphatic-post1',     name:'Post Surgery — 1 Area',          cat:'Lymphatic',       durs:['60 min'] },
+  { id:'lymphatic-cav',      name:'Lymphatic + Cavitation',          cat:'Lymphatic',       durs:[] },
+  { id:'lymphatic-post1',     name:'Post Surgery — 1 Area',          cat:'Lymphatic',       durs:['60 min'], areas:['Face','Abdomen','Arms','Legs','Back','Chest','Glutes'], maxAreas:1 },
   { id:'lymphatic-post-full', name:'Post Surgery — Full Body',       cat:'Lymphatic',       durs:['60 min'] },
   // BODY TREATMENTS
   { id:'body-shape',          name:'Body Shape',                      cat:'Body Treatments', durs:[] },
@@ -407,6 +414,8 @@ let selectedDuration = null;
 let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
+let lastHealth = null;       // previous health answers from lookup
+let healthConfirmed = false; // true when returning client taps "confirm unchanged"
 
 function prevScreen() {
   if (currentStep <= 0) return;
@@ -519,6 +528,7 @@ async function nextScreen() {
       if (found) {
         // Client exists — proceed as returning
         clientName = found.name || '';
+        lastHealth = found.lastHealth || null; // store previous health answers
         buildScreenFlow();
         updateStepBar();
         // Show welcome back banner on service screen
@@ -603,28 +613,51 @@ async function nextScreen() {
   }
 
   if (current === 'health') {
-    const groups = document.querySelectorAll('#healthForm .health-q');
-    let ok = true;
-    groups.forEach(g => { if (!g.querySelector('.h-opt.selected')) ok = false; });
-    if (!ok) { showErr('health-err'); return; }
-    hideErr('health-err');
-    showSpinner();
-    const name = getClientName();
-    const phone = getClientPhone();
-    const answers = collectHealth();
-    await sendToSheets('health_form', {
-      clientName: name, clientPhone: phone,
-      service: selectedService.name, duration: selectedDuration,
-      date: new Date().toLocaleDateString('en-US'), ...answers
-    });
-    await sendToSheets('visit', {
-      clientName: name, clientPhone: phone,
-      serviceName: selectedService.name, duration: selectedDuration,
-      serviceCategory: selectedService.cat, isNew: isNewClient,
-      date: new Date().toLocaleDateString('en-US')
-    });
-    hideSpinner();
-    if (!isNewClient) populateThanks();
+    // Returning client who confirmed no changes — use lastHealth data
+    if (healthConfirmed && lastHealth) {
+      hideErr('health-err');
+      showSpinner();
+      const name = getClientName();
+      const phone = getClientPhone();
+      await sendToSheets('health_form', {
+        clientName: name, clientPhone: phone,
+        service: selectedService.name, duration: selectedDuration,
+        date: new Date().toLocaleDateString('en-US'),
+        healthConfirmedUnchanged: true, ...lastHealth
+      });
+      await sendToSheets('visit', {
+        clientName: name, clientPhone: phone,
+        serviceName: selectedService.name, duration: selectedDuration,
+        serviceCategory: selectedService.cat, isNew: false,
+        date: new Date().toLocaleDateString('en-US')
+      });
+      hideSpinner();
+      populateThanks();
+    } else {
+      // New client or returning client who updated answers — validate all answered
+      const groups = document.querySelectorAll('#healthForm .health-q');
+      let ok = true;
+      groups.forEach(g => { if (!g.querySelector('.h-opt.selected')) ok = false; });
+      if (!ok) { showErr('health-err'); return; }
+      hideErr('health-err');
+      showSpinner();
+      const name = getClientName();
+      const phone = getClientPhone();
+      const answers = collectHealth();
+      await sendToSheets('health_form', {
+        clientName: name, clientPhone: phone,
+        service: selectedService.name, duration: selectedDuration,
+        date: new Date().toLocaleDateString('en-US'), ...answers
+      });
+      await sendToSheets('visit', {
+        clientName: name, clientPhone: phone,
+        serviceName: selectedService.name, duration: selectedDuration,
+        serviceCategory: selectedService.cat, isNew: isNewClient,
+        date: new Date().toLocaleDateString('en-US')
+      });
+      hideSpinner();
+      if (!isNewClient) populateThanks();
+    }
   }
 
   if (current === 'waiver') {
@@ -670,6 +703,8 @@ function resetApp() {
   optInMarketing = true;
   sigHasContent = false;
   clientName = '';
+  lastHealth = null;
+  healthConfirmed = false;
   ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -790,13 +825,13 @@ const SERVICE_INFO = {
     what:'A combination of Lymphatic Drainage and Brazilian Body Shape to help reduce fluid-related puffiness and sculpt the appearance of your body contours. The session begins with drainage, followed by Body Shape techniques selected according to your goals and your therapist\'s assessment.\n\n60 min: Two selected body areas. 90 min: Full body, excluding the face.',
     expect:'Rhythmic drainage movements followed by focused Body Shape work. Techniques and intensity are personalized to your needs, with pressure adjusted to your comfort. You may notice a sense of lightness, reduced puffiness, and temporarily more defined-looking contours. Results vary according to your body and the techniques selected.',
     window:'2 weeks', windowLabel:'Maximum gap between sessions',
-    consistency:'The vibration goes deeper — first-session bruising or fluid patches are more likely. That\'s the body processing what was mobilized; it fades within days. Within 2 weeks: sessions build on each other. Beyond 2 weeks: back to square one. Minimum 3-day gap between sessions.',
+    consistency:'Mild tenderness may occur after your first session. Schedule visits 4 days to 2 weeks apart, subject to your therapist\'s assessment, to monitor your response and adjust your plan. Longer gaps may require reassessment. Report bruising or persistent discomfort, and avoid booking within 2 days before an important event.',
     before:'Stay normally hydrated. Avoid a heavy meal immediately before your appointment. Include gentle movement and breaks from prolonged sitting.',
     after:'Follow your therapist\'s personalized aftercare instructions. Share any tenderness or changes in your health before your next visit.',
     contra:'Not recommended during pregnancy, active infections, or with a pacemaker. Post-surgical care requires a dedicated assessment. Treatment should never cause pain or bruising — tell your therapist at any time.'
   },
   'lymphatic-body-face': {
-    what:'A combination session pairing facial lymphatic drainage with body drainage. Ideal for clients who want to address both facial puffiness (under-eye bags, jaw tension) and body retention at the same time.',
+    what:'A combination session pairing facial lymphatic drainage with body drainage. Ideal for clients who want to address both facial puffiness (under-eye bags, jaw tension) and body retention at the same time.\n\n60 min: Two selected body areas + face. 90 min: Full body and face.',
     expect:'Your session begins with a gentle facial massage — slow upward strokes along the face, jaw, and neck to de-puff and lift. Your therapist then moves to the body area(s) you selected. You may notice your face looking more defined and your body feeling lighter by the end.',
     window:'2 weeks', windowLabel:'Maximum gap between sessions',
     consistency:'In the first session the body may react more — mild discomfort or temporary marks are possible. Within 2 weeks: the body is adapted and the treatment picks up where it left off. Beyond 2 weeks: it\'s essentially starting from zero.',
@@ -813,6 +848,29 @@ const SERVICE_INFO = {
     after:'Avoid heavy creams immediately after. Drink water.',
     contra:'Not recommended during active skin infection or open wounds on the face.',
     marks:'Mild warmth or pinkness on the skin is normal and fades quickly.'
+  },
+  'lymphatic-cav': {
+    what:'Lymphatic drainage and deep-tissue vibration that breaks down localized fat — in the same session. The vibration goes deeper than drainage alone, and the lymphatic work that follows helps the body eliminate what was mobilized.',
+    expect:'Begins with full lymphatic drainage. Then a gel-coated applicator targets the focus areas — abdomen, thighs, flanks. Sensation: gentle warmth and a subtle internal hum. No pain. First-session bruising or fluid patches are possible — that\'s the body processing what was mobilized; it fades within days.',
+    window:'2 weeks', windowLabel:'Maximum gap between sessions',
+    consistency:'The vibration goes deeper — first-session bruising or fluid patches are more likely. That\'s the body processing what was mobilized; it fades within days. Within 2 weeks: sessions build on each other. Beyond 2 weeks: back to square one. Minimum 3-day gap between sessions.',
+    before:'Don\'t fast — eat something light at least 1h before. Drink 2L of water daily, especially on session days. Avoid alcohol and excess sodium in the 48h that follow. Don\'t book within 2 days before an important event.',
+    after:'Light movement afterward helps the body eliminate. Drink 2L of water. Avoid alcohol and excess sodium for 48h.',
+    contra:'Not performed during pregnancy, with a pacemaker, or active tumor.'
+  },
+  'lymphatic-post1': {
+    what:'Specialized lymphatic drainage for the post-surgery recovery period. Extremely gentle, precise movements that respect the healing process and help the body eliminate excess fluid accumulated in the operated area.',
+    expect:'Much lighter than standard drainage. The therapist works around the operated area — never directly on it while healing is still active. Each session is adapted to your recovery stage.',
+    before:'Bring your surgeon\'s guidance to the first session. Wear your compression garment as directed. Report any signs of infection or active drain before each session. Stay hydrated — it accelerates fluid elimination.',
+    after:'Stay hydrated. Continue wearing your compression garment as directed.',
+    contra:'Does not replace medical follow-up. Not performed with active infection, fever, or open drain.'
+  },
+  'lymphatic-post-full': {
+    what:'Specialized lymphatic drainage for the post-surgery recovery period. Extremely gentle, precise movements that respect the healing process and help the body eliminate excess fluid accumulated throughout the body.',
+    expect:'Much lighter than standard drainage. The therapist works around the operated areas — never directly on them while healing is still active. Each session is adapted to your recovery stage.',
+    before:'Bring your surgeon\'s guidance to the first session. Wear your compression garment as directed. Report any signs of infection or active drain before each session. Stay hydrated — it accelerates fluid elimination.',
+    after:'Stay hydrated. Continue wearing your compression garment as directed.',
+    contra:'Does not replace medical follow-up. Not performed with active infection, fever, or open drain.'
   },
   'body-shape': {
     what:'Brazilian body sculpting — firm, intentional manual movements working directly on the body\'s contours: gliding, kneading, pinching, and percussion across the abdomen, hips, flanks, glutes, and thighs. No machines. Performed by hand from start to finish.',
@@ -1220,6 +1278,9 @@ const HEALTH_QUESTIONS = [
 
 function buildHealthForm() {
   const form = document.getElementById('healthForm');
+  healthConfirmed = false;
+
+  // Build the form questions
   form.innerHTML = HEALTH_QUESTIONS.map((item,i) =>
     `<div class="health-q" data-idx="${i}">
       <label>${item.q}</label>
@@ -1229,6 +1290,60 @@ function buildHealthForm() {
       ${item.note ? `<textarea class="health-note" placeholder="Please describe…" style="display:none;width:100%;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.85rem;font-weight:300;resize:vertical;min-height:64px;outline:none;color:var(--ink);background:#fff;" oninput="this.style.borderColor='var(--teal)'"></textarea>` : ''}
     </div>`
   ).join('');
+
+  // Returning client with previous health on file
+  const banner = document.getElementById('health-returning-banner');
+  const confirmBtn = document.getElementById('health-confirm-btn');
+  if (lastHealth && !isNewClient) {
+    // Build a readable summary of previous answers
+    const summaryLines = [];
+    HEALTH_QUESTIONS.forEach((item, i) => {
+      const key = item.q.substring(0, 50);
+      const ans = lastHealth[key];
+      if (ans) summaryLines.push(`<strong>${item.q}</strong> → ${ans}`);
+      const noteKey = key + ' — note';
+      if (lastHealth[noteKey]) summaryLines.push(`<em style="margin-left:8px;color:var(--muted)">↳ ${lastHealth[noteKey]}</em>`);
+    });
+    document.getElementById('health-returning-summary').innerHTML = summaryLines.join('<br>');
+    banner.style.display = 'block';
+    confirmBtn.style.display = 'block';
+
+    // Pre-select previous answers in the form
+    const groups = document.querySelectorAll('#healthForm .health-q');
+    groups.forEach((group, i) => {
+      const item = HEALTH_QUESTIONS[i];
+      const key = item.q.substring(0, 50);
+      const prevAns = lastHealth[key];
+      if (prevAns) {
+        const opts = group.querySelectorAll('.h-opt');
+        opts.forEach(opt => {
+          if (opt.textContent === prevAns) {
+            opt.classList.add('selected');
+            // Show note textarea if applicable
+            const note = group.querySelector('.health-note');
+            if (note) {
+              const isPositive = prevAns === 'Yes' || prevAns === 'Recently completed';
+              note.style.display = isPositive ? 'block' : 'none';
+              const noteKey = key + ' — note';
+              if (isPositive && lastHealth[noteKey]) note.value = lastHealth[noteKey];
+            }
+          }
+        });
+      }
+    });
+  } else {
+    banner.style.display = 'none';
+    confirmBtn.style.display = 'none';
+  }
+}
+
+function confirmHealthUnchanged() {
+  healthConfirmed = true;
+  const confirmBtn = document.getElementById('health-confirm-btn');
+  confirmBtn.textContent = '✓ Confirmed — no changes';
+  confirmBtn.style.background = '#6aab9c';
+  confirmBtn.disabled = true;
+  hideErr('health-err');
 }
 
 function selectHOpt(el, groupIdx) {
