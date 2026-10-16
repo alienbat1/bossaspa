@@ -289,9 +289,16 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
   <!-- SCREEN 3: SERVICE SELECTION -->
   <div class="screen" id="screen-service">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
-    <div id="welcome-back-banner" style="display:none;background:#edf5f3;border:1px solid #b0cec9;border-radius:10px;padding:12px 16px;margin-bottom:18px;text-align:center;">
+    <!-- Welcome back banner (returning clients without active package) -->
+    <div id="welcome-back-banner" style="display:none;background:#edf5f3;border:1px solid #b0cec9;border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:center;">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;" id="welcome-back-name"></div>
       <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;">Is this you? Please confirm before continuing.</div>
+    </div>
+    <!-- Expired / completed package notice (shown only when applicable) -->
+    <div id="pkg-expired-banner" style="display:none;background:#fff8e6;border:1.5px solid #e6c96a;border-radius:var(--r);padding:12px 16px;margin-bottom:16px;">
+      <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#8a6200;font-weight:600;margin-bottom:4px;" id="pkg-expired-title">📦 Package Update</div>
+      <div style="font-size:.84rem;color:#8a6200;line-height:1.5;" id="pkg-expired-msg"></div>
+      <div style="font-size:.78rem;color:#8a6200;margin-top:6px;opacity:.8;">To renew, please talk to one of our receptionists.</div>
     </div>
     <!-- Wax Club badge (shown only when applicable) -->
     <div id="wax-club-banner" style="display:none;background:#fff8e6;border:1.5px solid var(--gold);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;">
@@ -500,8 +507,9 @@ function buildScreenFlow() {
   // Only show if: has active package OR has actual visit history
   // (don't show if only inactive packages with no visits — nothing useful to display)
   const hasActiveNow = activePackage && activePackage.sessionsLeft > 0;
-  const hasVisitsNow = visitHistory && visitHistory.length > 0;
-  if (!isNewClient && (hasActiveNow || hasVisitsNow)) {
+  // Only show history/package screen if client has an ACTIVE package with sessions left
+  // (visits alone → skip straight to service screen; expired/completed packages shown on service screen)
+  if (!isNewClient && hasActiveNow) {
     screenFlow.push('package');
   }
   screenFlow.push('service');
@@ -572,6 +580,7 @@ function showScreen(id) {
     document.getElementById('svc-btn').style.display = 'none';
     document.getElementById('wax-club-banner').style.display = 'none';
     buildServiceScreen();
+    populateServiceBanner();
   }
   if (id === 'info') {
     buildInfoScreen();
@@ -1489,6 +1498,49 @@ function formatDate(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ── SERVICE SCREEN BANNER (returning clients without active package) ──
+function populateServiceBanner() {
+  const welcomeBanner  = document.getElementById('welcome-back-banner');
+  const expiredBanner  = document.getElementById('pkg-expired-banner');
+  const expiredTitle   = document.getElementById('pkg-expired-title');
+  const expiredMsg     = document.getElementById('pkg-expired-msg');
+
+  // Hide both by default
+  welcomeBanner.style.display = 'none';
+  expiredBanner.style.display = 'none';
+
+  if (isNewClient || !clientName) return;
+
+  // Show welcome banner with name
+  document.getElementById('welcome-back-name').textContent = 'Welcome back, ' + clientName + '! 👋';
+  welcomeBanner.style.display = 'block';
+
+  // Determine if there's an expired or completed inactive package to warn about
+  const hasActive = activePackage && activePackage.sessionsLeft > 0;
+  if (hasActive) return; // active package handled on package screen
+
+  // Check inactive packages for expired or completed
+  const expired   = inactivePackages.find(p => (p.status || '').toLowerCase() === 'expired');
+  const completed = inactivePackages.find(p => (p.status || '').toLowerCase() === 'completed' || (p.sessionsLeft !== undefined && p.sessionsLeft <= 0 && p.sessionsTotal > 0));
+
+  if (expired) {
+    expiredTitle.textContent = '📦 Your package has expired';
+    expiredMsg.textContent   = 'Your ' + (expired.name || 'package') + ' expired on ' + (expired.expiry || 'a previous date') + '.';
+    expiredBanner.style.display = 'block';
+  } else if (completed) {
+    expiredTitle.textContent = '🎉 Your package is complete!';
+    expiredMsg.textContent   = 'You\'ve used all sessions from your ' + (completed.name || 'package') + '. Great work!';
+    expiredBanner.style.display = 'block';
+  } else if (inactivePackages.length > 0) {
+    // Has inactive packages but status unclear
+    const pkg = inactivePackages[0];
+    const status = (pkg.status || 'inactive').toLowerCase();
+    expiredTitle.textContent = '📦 Package status';
+    expiredMsg.textContent   = 'Your ' + (pkg.name || 'package') + ' is currently ' + status + '.';
+    expiredBanner.style.display = 'block';
+  }
 }
 
 // ── WAX CLUB ──
