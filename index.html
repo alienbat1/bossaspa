@@ -229,6 +229,40 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn" onclick="nextScreen()">Continue →</button>
   </div>
 
+  <!-- SCREEN 2b: PACKAGE INFO (returning clients with active package) -->
+  <div class="screen" id="screen-package">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
+    <div class="screen-title">Your Package</div>
+    <div class="screen-sub">Active sessions on file</div>
+
+    <div style="background:#edf5f3;border:1.5px solid #b0cec9;border-radius:var(--r);padding:18px;margin-bottom:20px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);font-weight:400;margin-bottom:12px;" id="pkg-name-display"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="text-align:center;background:#fff;border-radius:8px;padding:12px 8px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-left-num"></div>
+          <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Sessions Left</div>
+        </div>
+        <div style="text-align:center;background:#fff;border-radius:8px;padding:12px 8px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-done-num"></div>
+          <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Sessions Done</div>
+        </div>
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);text-align:center;" id="pkg-validity-display"></div>
+    </div>
+
+    <div class="section-label">Would you like to use a session from your package today?</div>
+    <div class="radio-opts" id="pkg-use-opts">
+      <div class="radio-opt" id="pkg-yes" onclick="selectPkgUse(true)">
+        ✅ Yes — use one session today
+      </div>
+      <div class="radio-opt" id="pkg-no" onclick="selectPkgUse(false)">
+        💳 No — I'll pay separately today
+      </div>
+    </div>
+    <div class="err-msg" id="pkg-err">Please select an option to continue.</div>
+    <button class="btn" id="pkg-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
+  </div>
+
   <!-- SCREEN 3: SERVICE SELECTION -->
   <div class="screen" id="screen-service">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
@@ -341,6 +375,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+// Package state
+let activePackage = null;   // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration }
+let usePackageToday = null; // true / false — set on package screen
+
 const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples','Facial','Sauna','Wax'];
 
 // durs: multiple options = client picks · single = fixed (shown as badge, no choice)
@@ -427,6 +465,10 @@ function prevScreen() {
 function buildScreenFlow() {
   screenFlow = ['welcome'];
   if (isNewClient) screenFlow.push('register');
+  // Show package screen for returning clients with an active package
+  if (!isNewClient && activePackage && activePackage.sessionsLeft > 0) {
+    screenFlow.push('package');
+  }
   screenFlow.push('service');
   screenFlow.push('info');
   screenFlow.push('health');
@@ -529,8 +571,14 @@ async function nextScreen() {
         // Client exists — proceed as returning
         clientName = found.name || '';
         lastHealth = found.lastHealth || null; // store previous health answers
+        activePackage = found.activePackage || null; // store active package info
+        usePackageToday = null;
         buildScreenFlow();
         updateStepBar();
+        // Populate package screen if package exists
+        if (activePackage && activePackage.sessionsLeft > 0) {
+          populatePackageScreen();
+        }
         // Show welcome back banner on service screen
         document.getElementById('welcome-back-name').textContent = 'Welcome back, ' + clientName + '! 👋';
         document.getElementById('welcome-back-banner').style.display = 'block';
@@ -600,6 +648,14 @@ async function nextScreen() {
     hideSpinner();
   }
 
+  if (current === 'package') {
+    if (usePackageToday === null) {
+      document.getElementById('pkg-err').classList.add('show');
+      return;
+    }
+    document.getElementById('pkg-err').classList.remove('show');
+  }
+
   if (current === 'service') {
     if (!selectedService || selectedDuration === null) {
       const msg = !selectedService ? 'Please select a service to continue.' : 'Please select a duration to continue.';
@@ -631,6 +687,12 @@ async function nextScreen() {
         serviceCategory: selectedService.cat, isNew: false,
         date: new Date().toLocaleDateString('en-US')
       });
+      // Use package session if client opted in
+      if (usePackageToday && activePackage) {
+        await sendToSheets('use_package', {
+          phone: phone, pkgId: activePackage.pkgId
+        });
+      }
       hideSpinner();
       populateThanks();
     } else {
@@ -655,6 +717,12 @@ async function nextScreen() {
         serviceCategory: selectedService.cat, isNew: isNewClient,
         date: new Date().toLocaleDateString('en-US')
       });
+      // Use package session if client opted in
+      if (usePackageToday && activePackage) {
+        await sendToSheets('use_package', {
+          phone: phone, pkgId: activePackage.pkgId
+        });
+      }
       hideSpinner();
       if (!isNewClient) populateThanks();
     }
@@ -686,9 +754,15 @@ async function nextScreen() {
 function populateThanks() {
   const name = getClientName().split(' ')[0];
   document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
+  let pkgRow = '';
+  if (usePackageToday && activePackage) {
+    const remaining = Math.max(0, activePackage.sessionsLeft - 1);
+    pkgRow = '<div class="thanks-row"><span class="thanks-key">Package</span><span class="thanks-val">1 session used — ' + remaining + ' remaining</span></div>';
+  }
   document.getElementById('thanks-detail').innerHTML =
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
     (selectedDuration ? '<div class="thanks-row"><span class="thanks-key">Duration</span><span class="thanks-val">' + selectedDuration + '</span></div>' : '') +
+    pkgRow +
     '<div class="thanks-row"><span class="thanks-key">Date</span><span class="thanks-val">' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Check-in time</span><span class="thanks-val">' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) + '</span></div>' +
     '<div class="thanks-row"><span class="thanks-key">Status</span><span class="thanks-val">✅ Check-in complete</span></div>';
@@ -705,6 +779,8 @@ function resetApp() {
   clientName = '';
   lastHealth = null;
   healthConfirmed = false;
+  activePackage = null;
+  usePackageToday = null;
   ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -1263,6 +1339,33 @@ function buildServiceGrid() {
     };
     grid.appendChild(card);
   });
+}
+
+// ── PACKAGE SCREEN ──
+function populatePackageScreen() {
+  const pkg = activePackage;
+  if (!pkg) return;
+  document.getElementById('pkg-name-display').textContent = pkg.name || 'Package';
+  document.getElementById('pkg-left-num').textContent = pkg.sessionsLeft;
+  document.getElementById('pkg-done-num').textContent = pkg.sessionsDone;
+  // Show validity / duration info
+  let validityText = '';
+  if (pkg.duration) validityText = pkg.duration;
+  else if (pkg.expiry) validityText = 'Expires: ' + pkg.expiry;
+  document.getElementById('pkg-validity-display').textContent = validityText;
+  // Reset selection
+  usePackageToday = null;
+  document.getElementById('pkg-yes').classList.remove('selected');
+  document.getElementById('pkg-no').classList.remove('selected');
+  document.getElementById('pkg-btn').style.display = 'none';
+}
+
+function selectPkgUse(useIt) {
+  usePackageToday = useIt;
+  document.getElementById('pkg-yes').classList.toggle('selected', useIt);
+  document.getElementById('pkg-no').classList.toggle('selected', !useIt);
+  document.getElementById('pkg-btn').style.display = 'block';
+  document.getElementById('pkg-err').classList.remove('show');
 }
 
 // ── HEALTH FORM ──
