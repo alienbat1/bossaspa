@@ -721,7 +721,9 @@ async function nextScreen() {
 
   if (current === 'health') {
     // Returning client who confirmed no changes — use lastHealth data
-    if (healthConfirmed && lastHealth) {
+    const hasRealHealthData = lastHealth && !isNewClient &&
+      HEALTH_QUESTIONS.some(item => lastHealth[item.q] && lastHealth[item.q].trim() !== '');
+    if (healthConfirmed && hasRealHealthData) {
       hideErr('health-err');
       showSpinner();
       const name = getClientName();
@@ -1455,14 +1457,9 @@ function populatePackageScreen() {
   const pkgSection = document.getElementById('pkg-active-section');
   if (hasActive) {
     const pkg = activePackage;
-    // Extract category keyword from package name for the question
-    let pkgCategory = '';
-    if (/lymphatic/i.test(pkg.name)) pkgCategory = 'Lymphatic';
-    else if (/facial/i.test(pkg.name)) pkgCategory = 'Facial';
-    else if (/sauna/i.test(pkg.name)) pkgCategory = 'Sauna';
-    else if (/sculpt|body/i.test(pkg.name)) pkgCategory = 'Body';
-    else if (/massage/i.test(pkg.name)) pkgCategory = 'Massage';
-    else pkgCategory = pkg.name;
+    // Use the matched service name for the question (more precise than category keyword)
+    const matchedSvc = matchServiceFromPackage(pkg.name);
+    const svcLabel = matchedSvc ? matchedSvc.name : pkg.name;
 
     document.getElementById('pkg-name-display').textContent = pkg.name || 'Package';
     document.getElementById('pkg-left-num').textContent  = pkg.sessionsLeft;
@@ -1470,7 +1467,7 @@ function populatePackageScreen() {
     document.getElementById('pkg-total-num').textContent = pkg.sessionsTotal;
     document.getElementById('pkg-validity-display').textContent = pkg.duration || (pkg.expiry ? 'Expires: ' + pkg.expiry : '');
     document.getElementById('pkg-use-question').textContent =
-      'You have a ' + pkgCategory + ' package — would you like to use a session today?';
+      'You have a ' + svcLabel + ' package — would you like to use a session today?';
     pkgSection.style.display = 'block';
   } else {
     pkgSection.style.display = 'none';
@@ -1568,6 +1565,37 @@ function checkWaxClub(svc) {
   }
 }
 
+// ── Match package name → best-fit service ──
+function matchServiceFromPackage(pkgName) {
+  if (!pkgName) return null;
+  const p = pkgName.toLowerCase();
+
+  // 1. Try to find a service whose name is contained in the package name (or vice-versa)
+  //    e.g. "Lymphatic + Cavitation 10x" → matches service "Lymphatic + Cavitation"
+  const byName = SERVICES.find(s => {
+    const sn = s.name.toLowerCase();
+    return p.includes(sn) || sn.includes(p.replace(/\s*\d+x\s*$/,'').trim());
+  });
+  if (byName) return byName;
+
+  // 2. Keyword fallback → first service in the category
+  let matchCat = '';
+  if (/lymphatic\s*\+\s*cav|cavitation/i.test(pkgName)) {
+    // specific: linfática + cavitação → that exact service
+    const exact = SERVICES.find(s => s.id === 'lymphatic-cav');
+    if (exact) return exact;
+  }
+  if (/post.?surg/i.test(pkgName))     matchCat = 'Lymphatic'; // leave user to pick area
+  else if (/lymphatic/i.test(pkgName)) matchCat = 'Lymphatic';
+  else if (/facial/i.test(pkgName))    matchCat = 'Facial';
+  else if (/sauna/i.test(pkgName))     matchCat = 'Sauna';
+  else if (/sculpt|body.?sculpt/i.test(pkgName)) matchCat = 'Body Treatments';
+  else if (/massage/i.test(pkgName))   matchCat = 'Massage';
+
+  if (matchCat) return SERVICES.find(s => s.cat === matchCat) || null;
+  return null;
+}
+
 function selectPkgUse(useIt) {
   usePackageToday = useIt;
   document.getElementById('pkg-yes').classList.toggle('selected', useIt);
@@ -1575,25 +1603,12 @@ function selectPkgUse(useIt) {
   document.getElementById('pkg-err').classList.remove('show');
 
   if (useIt && activePackage) {
-    // Auto-select the service that matches the package category
-    let matchCat = '';
-    const pname = (activePackage.name || '').toLowerCase();
-    if (/lymphatic/.test(pname)) matchCat = 'Lymphatic';
-    else if (/facial/.test(pname)) matchCat = 'Facial';
-    else if (/sauna/.test(pname)) matchCat = 'Sauna';
-    else if (/sculpt|body/.test(pname)) matchCat = 'Body Treatments';
-    else if (/massage/.test(pname)) matchCat = 'Massage';
-
-    // Find first service in that category
-    if (matchCat) {
-      const match = SERVICES.find(s => s.cat === matchCat);
-      if (match) {
-        selectedService  = match;
-        selectedDuration = match.durs && match.durs.length === 1 ? match.durs[0] : null;
-      }
+    const match = matchServiceFromPackage(activePackage.name);
+    if (match) {
+      selectedService  = match;
+      selectedDuration = match.durs && match.durs.length === 1 ? match.durs[0] : (match.durs.length === 0 ? '' : null);
     }
   } else if (!useIt) {
-    // Clear any auto-selected service so they pick manually
     selectedService  = null;
     selectedDuration = null;
   }
@@ -1626,9 +1641,12 @@ function buildHealthForm() {
   ).join('');
 
   // Returning client with previous health on file
+  // Only show "confirm unchanged" if lastHealth has at least one actual answer from our form questions
   const banner = document.getElementById('health-returning-banner');
   const confirmBtn = document.getElementById('health-confirm-btn');
-  if (lastHealth && !isNewClient) {
+  const hasRealHealth = lastHealth && !isNewClient &&
+    HEALTH_QUESTIONS.some(item => lastHealth[item.q] && lastHealth[item.q].trim() !== '');
+  if (hasRealHealth) {
     // Build a readable summary of previous answers
     const summaryLines = [];
     HEALTH_QUESTIONS.forEach((item, i) => {
