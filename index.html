@@ -229,38 +229,78 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn" onclick="nextScreen()">Continue →</button>
   </div>
 
-  <!-- SCREEN 2b: PACKAGE INFO (returning clients with active package) -->
+  <!-- SCREEN 2b: RETURNING CLIENT HISTORY (package OR visits) -->
   <div class="screen" id="screen-package">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
-    <div class="screen-title">Your Package</div>
-    <div class="screen-sub">Active sessions on file</div>
 
-    <div style="background:#edf5f3;border:1.5px solid #b0cec9;border-radius:var(--r);padding:18px;margin-bottom:20px;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);font-weight:400;margin-bottom:12px;" id="pkg-name-display"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div style="text-align:center;background:#fff;border-radius:8px;padding:12px 8px;">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-left-num"></div>
-          <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Sessions Left</div>
+    <!-- ── SCENARIO 1: Active package ── -->
+    <div id="pkg-scenario-active" style="display:none;">
+      <div class="screen-title">Your Package</div>
+      <div class="screen-sub">Active sessions on file</div>
+
+      <!-- Active package card -->
+      <div style="background:#edf5f3;border:1.5px solid #b0cec9;border-radius:var(--r);padding:18px;margin-bottom:16px;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--teal);font-weight:400;margin-bottom:14px;" id="pkg-name-display"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="text-align:center;background:#fff;border-radius:8px;padding:10px 6px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-left-num"></div>
+            <div style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Left</div>
+          </div>
+          <div style="text-align:center;background:#fff;border-radius:8px;padding:10px 6px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-done-num"></div>
+            <div style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Done</div>
+          </div>
+          <div style="text-align:center;background:#fff;border-radius:8px;padding:10px 6px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-total-num"></div>
+            <div style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Total</div>
+          </div>
         </div>
-        <div style="text-align:center;background:#fff;border-radius:8px;padding:12px 8px;">
-          <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:600;line-height:1;" id="pkg-done-num"></div>
-          <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;">Sessions Done</div>
+        <div style="font-size:.78rem;color:var(--muted);text-align:center;" id="pkg-validity-display"></div>
+      </div>
+
+      <!-- Use package today -->
+      <div class="section-label">Would you like to use a session today?</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+        <div class="radio-opt" id="pkg-yes" onclick="selectPkgUse(true)">✅ Yes — use one session from my package</div>
+        <div class="radio-opt" id="pkg-no" onclick="selectPkgUse(false)">💳 No — I'll pay separately today</div>
+      </div>
+      <div class="err-msg" id="pkg-err">Please select an option to continue.</div>
+
+      <!-- Collapsible: previous packages -->
+      <div id="pkg-history-wrap" style="display:none;margin-bottom:4px;">
+        <button onclick="togglePkgHistory()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);">
+          <span id="pkg-history-label">Previous packages</span>
+          <span id="pkg-history-arrow" style="transition:transform .2s;">▸</span>
+        </button>
+        <div id="pkg-history-body" style="display:none;border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:12px 14px;background:#fff;">
+          <div id="pkg-history-list"></div>
         </div>
       </div>
-      <div style="font-size:.8rem;color:var(--muted);text-align:center;" id="pkg-validity-display"></div>
+
+      <button class="btn" id="pkg-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
     </div>
 
-    <div class="section-label">Would you like to use a session from your package today?</div>
-    <div class="radio-opts" id="pkg-use-opts">
-      <div class="radio-opt" id="pkg-yes" onclick="selectPkgUse(true)">
-        ✅ Yes — use one session today
+    <!-- ── SCENARIO 2: No active package — visit history ── -->
+    <div id="pkg-scenario-visits" style="display:none;">
+      <div class="screen-title">Welcome Back</div>
+      <div class="screen-sub">Your visit history</div>
+
+      <!-- Visit summary by category -->
+      <div id="visits-summary-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"></div>
+
+      <!-- Collapsible: all visits -->
+      <div id="visits-history-wrap" style="margin-bottom:16px;">
+        <button onclick="toggleVisitHistory()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);">
+          <span id="visits-history-label">See all visits</span>
+          <span id="visits-history-arrow" style="transition:transform .2s;">▸</span>
+        </button>
+        <div id="visits-history-body" style="display:none;border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:0;background:#fff;max-height:260px;overflow-y:auto;">
+          <div id="visits-history-list"></div>
+        </div>
       </div>
-      <div class="radio-opt" id="pkg-no" onclick="selectPkgUse(false)">
-        💳 No — I'll pay separately today
-      </div>
+
+      <button class="btn" onclick="nextScreen()">Continue →</button>
     </div>
-    <div class="err-msg" id="pkg-err">Please select an option to continue.</div>
-    <button class="btn" id="pkg-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
   </div>
 
   <!-- SCREEN 3: SERVICE SELECTION -->
@@ -270,6 +310,12 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;" id="welcome-back-name"></div>
       <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;">Is this you? Please confirm before continuing.</div>
     </div>
+    <!-- Wax Club badge (shown only when applicable) -->
+    <div id="wax-club-banner" style="display:none;background:#fff8e6;border:1.5px solid var(--gold);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;">
+      <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#8a6200;font-weight:600;margin-bottom:3px;">🌟 Wax Club Member</div>
+      <div style="font-size:.82rem;color:#8a6200;" id="wax-club-msg"></div>
+    </div>
+
     <div class="screen-title">Today's Service</div>
     <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
     <div class="cat-scroll" id="cat-scroll"></div>
@@ -375,9 +421,11 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
-// Package state
-let activePackage = null;   // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration }
-let usePackageToday = null; // true / false — set on package screen
+// Client history state
+let activePackage    = null;  // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration }
+let inactivePackages = [];    // [{ pkgId, name, status, expiry, purchased, sessionsTotal, sessDone, sessLeft, duration }]
+let visitHistory     = [];    // [{ date, service, duration, category, source }]
+let usePackageToday  = null;  // true / false — set on package screen
 
 const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples','Facial','Sauna','Wax'];
 
@@ -465,8 +513,10 @@ function prevScreen() {
 function buildScreenFlow() {
   screenFlow = ['welcome'];
   if (isNewClient) screenFlow.push('register');
-  // Show package screen for returning clients with an active package
-  if (!isNewClient && activePackage && activePackage.sessionsLeft > 0) {
+  // Show history/package screen for returning clients
+  // Scenario 1: has active package
+  // Scenario 2: no active package but has visit history
+  if (!isNewClient && (activePackage || (visitHistory && visitHistory.length > 0) || (inactivePackages && inactivePackages.length > 0))) {
     screenFlow.push('package');
   }
   screenFlow.push('service');
@@ -535,6 +585,7 @@ function showScreen(id) {
     selectedService = null;
     selectedDuration = null;
     document.getElementById('svc-btn').style.display = 'none';
+    document.getElementById('wax-club-banner').style.display = 'none';
     buildServiceScreen();
   }
   if (id === 'info') {
@@ -569,16 +620,16 @@ async function nextScreen() {
       hideSpinner();
       if (found) {
         // Client exists — proceed as returning
-        clientName = found.name || '';
-        lastHealth = found.lastHealth || null; // store previous health answers
-        activePackage = found.activePackage || null; // store active package info
-        usePackageToday = null;
+        clientName       = found.name || '';
+        lastHealth       = found.lastHealth || null;
+        activePackage    = found.activePackage || null;
+        inactivePackages = found.inactivePackages || [];
+        visitHistory     = found.visitHistory || [];
+        usePackageToday  = null;
         buildScreenFlow();
         updateStepBar();
-        // Populate package screen if package exists
-        if (activePackage && activePackage.sessionsLeft > 0) {
-          populatePackageScreen();
-        }
+        // Populate history/package screen
+        populatePackageScreen();
         // Show welcome back banner on service screen
         document.getElementById('welcome-back-name').textContent = 'Welcome back, ' + clientName + '! 👋';
         document.getElementById('welcome-back-banner').style.display = 'block';
@@ -779,8 +830,10 @@ function resetApp() {
   clientName = '';
   lastHealth = null;
   healthConfirmed = false;
-  activePackage = null;
-  usePackageToday = null;
+  activePackage    = null;
+  inactivePackages = [];
+  visitHistory     = [];
+  usePackageToday  = null;
   ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -1207,6 +1260,9 @@ function buildServiceGrid() {
       selectedService = svc;
       hideErr('service-err');
 
+      // ── WAX CLUB check ──
+      checkWaxClub(svc);
+
       const isFixed = svc.durs.length === 1;
       const isWax = svc.durs[0] === 'varies';
       const noDuration = svc.durs.length === 0;
@@ -1341,23 +1397,152 @@ function buildServiceGrid() {
   });
 }
 
-// ── PACKAGE SCREEN ──
+// ── PACKAGE / HISTORY SCREEN ──
 function populatePackageScreen() {
-  const pkg = activePackage;
-  if (!pkg) return;
-  document.getElementById('pkg-name-display').textContent = pkg.name || 'Package';
-  document.getElementById('pkg-left-num').textContent = pkg.sessionsLeft;
-  document.getElementById('pkg-done-num').textContent = pkg.sessionsDone;
-  // Show validity / duration info
-  let validityText = '';
-  if (pkg.duration) validityText = pkg.duration;
-  else if (pkg.expiry) validityText = 'Expires: ' + pkg.expiry;
-  document.getElementById('pkg-validity-display').textContent = validityText;
-  // Reset selection
-  usePackageToday = null;
-  document.getElementById('pkg-yes').classList.remove('selected');
-  document.getElementById('pkg-no').classList.remove('selected');
-  document.getElementById('pkg-btn').style.display = 'none';
+  const hasActive  = activePackage && activePackage.sessionsLeft > 0;
+  const hasVisits  = visitHistory && visitHistory.length > 0;
+  const hasPast    = inactivePackages && inactivePackages.length > 0;
+
+  document.getElementById('pkg-scenario-active').style.display = hasActive ? 'block' : 'none';
+  document.getElementById('pkg-scenario-visits').style.display = (!hasActive && (hasVisits || hasPast)) ? 'block' : 'none';
+
+  // ── SCENARIO 1: Active package ──
+  if (hasActive) {
+    const pkg = activePackage;
+    document.getElementById('pkg-name-display').textContent = pkg.name || 'Package';
+    document.getElementById('pkg-left-num').textContent  = pkg.sessionsLeft;
+    document.getElementById('pkg-done-num').textContent  = pkg.sessionsDone;
+    document.getElementById('pkg-total-num').textContent = pkg.sessionsTotal;
+    let validityText = pkg.duration || (pkg.expiry ? 'Expires: ' + pkg.expiry : '');
+    document.getElementById('pkg-validity-display').textContent = validityText;
+
+    // Reset use-today selection
+    usePackageToday = null;
+    document.getElementById('pkg-yes').classList.remove('selected');
+    document.getElementById('pkg-no').classList.remove('selected');
+    document.getElementById('pkg-btn').style.display = 'none';
+
+    // Collapsible: previous packages
+    if (hasPast) {
+      document.getElementById('pkg-history-wrap').style.display = 'block';
+      const count = inactivePackages.length;
+      document.getElementById('pkg-history-label').textContent =
+        count === 1 ? '1 previous package' : count + ' previous packages';
+      const list = document.getElementById('pkg-history-list');
+      list.innerHTML = inactivePackages.map(p => {
+        const closedReason = p.status.toLowerCase() === 'expired' && p.sessLeft > 0
+          ? '⏱ Expired — ' + p.sessLeft + ' session' + (p.sessLeft > 1 ? 's' : '') + ' unused'
+          : p.status.toLowerCase() === 'completed'
+            ? '✅ Completed — all sessions used'
+            : '⏱ Expired';
+        const purchDate = p.purchased ? formatDate(p.purchased) : '';
+        const endDate   = p.expiry    ? formatDate(p.expiry)    : '';
+        return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+          '<div style="font-size:.82rem;font-weight:500;color:var(--ink);">' + (p.name || '') + '</div>' +
+          '<div style="font-size:.75rem;color:var(--muted);margin-top:3px;">' +
+            (purchDate ? '📅 Purchased: ' + purchDate : '') +
+            (endDate   ? ' &nbsp;·&nbsp; Closed: ' + endDate : '') +
+          '</div>' +
+          '<div style="font-size:.75rem;color:var(--muted);margin-top:2px;">' + closedReason + '</div>' +
+        '</div>';
+      }).join('') + '<div style="height:4px;"></div>';
+    } else {
+      document.getElementById('pkg-history-wrap').style.display = 'none';
+    }
+  }
+
+  // ── SCENARIO 2: No active package — visits ──
+  if (!hasActive && (hasVisits || hasPast)) {
+    // Category summary cards
+    const catCounts = {};
+    visitHistory.forEach(v => {
+      const cat = v.category || 'Other';
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    });
+    const summaryEl = document.getElementById('visits-summary-cards');
+    const cats = Object.keys(catCounts);
+    if (cats.length === 0) {
+      summaryEl.innerHTML = '<div style="font-size:.85rem;color:var(--muted);grid-column:1/-1;">No recorded visits yet.</div>';
+    } else {
+      summaryEl.innerHTML = cats.map(cat => {
+        return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:10px 12px;text-align:center;">' +
+          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1.6rem;color:var(--teal);font-weight:600;line-height:1;">' + catCounts[cat] + '</div>' +
+          '<div style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;">' + cat + '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Collapsible: all visits
+    const totalVisits = visitHistory.length;
+    document.getElementById('visits-history-label').textContent =
+      totalVisits === 0 ? 'No visits on record' :
+      totalVisits === 1 ? 'See 1 previous visit' :
+      'See all ' + totalVisits + ' visits';
+
+    const vList = document.getElementById('visits-history-list');
+    if (totalVisits === 0) {
+      vList.innerHTML = '<div style="padding:12px 14px;font-size:.82rem;color:var(--muted);">No visits on record.</div>';
+    } else {
+      vList.innerHTML = visitHistory.map(v => {
+        const sourceTag = v.source ? '<span style="background:var(--beige);border-radius:10px;padding:2px 8px;font-size:.68rem;color:var(--muted);">' + v.source + '</span>' : '';
+        return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">' +
+          '<div>' +
+            '<div style="font-size:.82rem;color:var(--ink);font-weight:400;">' + (v.service || '') + (v.duration ? ' · ' + v.duration : '') + '</div>' +
+            '<div style="font-size:.72rem;color:var(--muted);margin-top:2px;">' + (v.date || '') + ' ' + sourceTag + '</div>' +
+          '</div>' +
+          '<div style="font-size:.7rem;color:var(--muted);">' + (v.category || '') + '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+}
+
+function togglePkgHistory() {
+  const body  = document.getElementById('pkg-history-body');
+  const arrow = document.getElementById('pkg-history-arrow');
+  const open  = body.style.display === 'none';
+  body.style.display  = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+function toggleVisitHistory() {
+  const body  = document.getElementById('visits-history-body');
+  const arrow = document.getElementById('visits-history-arrow');
+  const open  = body.style.display === 'none';
+  body.style.display  = open ? 'block' : 'none';
+  arrow.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ── WAX CLUB ──
+function checkWaxClub(svc) {
+  const banner = document.getElementById('wax-club-banner');
+  const msg    = document.getElementById('wax-club-msg');
+  banner.style.display = 'none';
+  msg.textContent = '';
+  if (!svc || svc.cat !== 'Wax') return;
+  if (!visitHistory || visitHistory.length === 0) return;
+
+  // Find most recent visit of the EXACT same service within 30 days
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const match = visitHistory.find(v => {
+    if (v.service !== svc.name) return false;
+    const d = new Date(v.date);
+    return !isNaN(d.getTime()) && d >= cutoff;
+  });
+
+  if (match) {
+    const days = Math.round((now - new Date(match.date)) / (1000 * 60 * 60 * 24));
+    msg.textContent = 'You visited ' + days + (days === 1 ? ' day' : ' days') + ' ago for ' + svc.name + '. Wax Club price applies! 💛';
+    banner.style.display = 'block';
+  }
 }
 
 function selectPkgUse(useIt) {
