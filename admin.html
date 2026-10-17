@@ -1,0 +1,271 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bossa Spa — Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap">
+<style>
+:root {
+  --teal:#2C4A43; --teal-mid:#3d6359; --gold:#C6A560;
+  --cream:#FAF6EF; --beige:#F2EDE1; --ink:#1a2820;
+  --muted:#6b7f79; --border:#d4cbbe; --error:#9b3a2a;
+  --r:10px;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
+[hidden]{display:none!important}
+
+.frame{max-width:680px;margin:0 auto;background:var(--cream);min-height:100vh;display:flex;flex-direction:column;}
+.top-bar{background:var(--teal);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:#fff;font-weight:300;letter-spacing:.08em;}
+.top-badge{font-size:.6rem;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.12);padding:4px 8px;border-radius:4px;}
+
+.content{padding:20px;flex:1;}
+
+/* Search */
+.search-wrap{display:flex;gap:8px;margin-bottom:20px;}
+.search-wrap input{flex:1;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.95rem;font-weight:300;outline:none;}
+.search-wrap input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.btn-search{padding:12px 20px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;white-space:nowrap;letter-spacing:.04em;}
+.btn-search:active{background:var(--teal-mid);}
+
+/* Status message */
+.status{font-size:.82rem;color:var(--muted);margin-bottom:14px;letter-spacing:.04em;}
+.status.err{color:var(--error);}
+.status.ok{color:#2a6b44;}
+
+/* Results list */
+.results-list{display:flex;flex-direction:column;gap:8px;}
+.client-row{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .15s;}
+.client-row:hover{border-color:var(--teal);}
+.client-row.selected{border-color:var(--teal);background:#f0f5f4;}
+.client-name{font-size:.95rem;font-weight:500;color:var(--ink);}
+.client-meta{font-size:.75rem;color:var(--muted);margin-top:3px;letter-spacing:.03em;}
+
+/* Edit panel */
+.edit-panel{background:#fff;border:1.5px solid var(--teal);border-radius:var(--r);padding:18px;margin-top:16px;}
+.edit-title{font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--teal);margin-bottom:4px;}
+.edit-sub{font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.95rem;font-weight:300;outline:none;}
+.field input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.field input[readonly]{background:var(--beige);color:var(--muted);cursor:default;}
+
+.btn-save{width:100%;padding:14px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:300;letter-spacing:.08em;cursor:pointer;margin-top:4px;transition:background .2s;}
+.btn-save:active{background:var(--teal-mid);}
+.btn-cancel{width:100%;padding:10px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;margin-top:8px;letter-spacing:.04em;}
+.btn-cancel:active{background:var(--beige);}
+
+.err-msg{font-size:.8rem;color:var(--error);margin-top:8px;display:none;}
+.err-msg.show{display:block;}
+
+/* Spinner */
+.spinner-overlay{position:fixed;inset:0;background:rgba(250,246,239,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-text{margin-top:14px;font-size:.85rem;color:var(--muted);}
+
+/* Empty state */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:2rem;margin-bottom:10px;}
+.empty-text{font-size:.85rem;line-height:1.6;}
+
+/* Section divider */
+.section-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top-bar">
+    <span class="logo">Bossa</span>
+    <span style="font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:.08em;text-transform:uppercase;">Beverly Hills</span>
+    <span class="top-badge">Admin</span>
+  </div>
+
+  <div class="content">
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--teal);font-weight:300;margin-bottom:4px;">Client Lookup</div>
+      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by name to find clients without a phone number and add their contact.</div>
+    </div>
+
+    <div class="search-wrap">
+      <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
+        onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn-search" onclick="doSearch()">Search</button>
+    </div>
+
+    <div class="status" id="status-msg" hidden></div>
+
+    <div id="results-area">
+      <div class="empty">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">Type a client name above and press Search.<br>Results show clients registered without a phone number.</div>
+      </div>
+    </div>
+
+    <div class="edit-panel" id="edit-panel" hidden>
+      <div class="edit-title" id="edit-client-name">—</div>
+      <div class="edit-sub">Add phone number to this client</div>
+
+      <div class="field">
+        <label>Email on file</label>
+        <input type="text" id="edit-email" readonly>
+      </div>
+      <div class="field">
+        <label>Notes on file</label>
+        <input type="text" id="edit-notes" readonly>
+      </div>
+      <div class="section-label" style="margin-top:16px;">New phone number</div>
+      <div class="field">
+        <label>Phone Number *</label>
+        <input type="tel" id="edit-phone" placeholder="(310) 555-0000" autocomplete="tel">
+      </div>
+      <div class="err-msg" id="edit-err">Please enter a valid 10-digit phone number.</div>
+      <button class="btn-save" onclick="savePhone()">Save Phone Number →</button>
+      <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="spinner-overlay" id="spinner" hidden>
+  <div class="spinner"></div>
+  <div class="spinner-text" id="spinner-text">Searching…</div>
+</div>
+
+<script>
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
+
+let selectedClient = null; // { rowIndex, name, email, notes, ... }
+
+function showSpinner(msg) {
+  document.getElementById('spinner-text').textContent = msg || 'Loading…';
+  document.getElementById('spinner').removeAttribute('hidden');
+}
+function hideSpinner() {
+  document.getElementById('spinner').setAttribute('hidden','');
+}
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+  el.removeAttribute('hidden');
+}
+function clearStatus() {
+  document.getElementById('status-msg').setAttribute('hidden','');
+}
+
+async function doSearch() {
+  const q = document.getElementById('inp-search').value.trim();
+  if (!q || q.length < 2) { setStatus('Please enter at least 2 characters.', 'err'); return; }
+  clearStatus();
+  cancelEdit();
+  showSpinner('Searching…');
+  try {
+    const url = WEBAPP_URL + '?action=search_no_phone&q=' + encodeURIComponent(q);
+    const res = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    hideSpinner();
+    renderResults(data.results || []);
+  } catch(e) {
+    hideSpinner();
+    setStatus('Connection error. Please try again.', 'err');
+    renderResults([]);
+  }
+}
+
+function renderResults(results) {
+  const area = document.getElementById('results-area');
+  if (!results.length) {
+    area.innerHTML = `<div class="empty"><div class="empty-icon">🌿</div><div class="empty-text">No clients found without a phone number matching that name.<br><span style="font-size:.78rem;opacity:.7;">Try a partial name or check spelling.</span></div></div>`;
+    return;
+  }
+  setStatus(results.length + ' client' + (results.length !== 1 ? 's' : '') + ' found — tap to select');
+  let html = `<div class="section-label">${results.length} result${results.length!==1?'s':''}</div><div class="results-list">`;
+  results.forEach((c, i) => {
+    const meta = [c.email, c.lastVisit ? 'Last visit: ' + c.lastVisit : null, c.notes].filter(Boolean).join(' · ');
+    html += `<div class="client-row" id="row-${i}" onclick="selectClient(${i}, ${JSON.stringify(c).replace(/"/g,'&quot;')})">
+      <div class="client-name">${escHtml(c.name)}</div>
+      ${meta ? `<div class="client-meta">${escHtml(meta)}</div>` : ''}
+    </div>`;
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function selectClient(i, c) {
+  document.querySelectorAll('.client-row').forEach(r => r.classList.remove('selected'));
+  const row = document.getElementById('row-' + i);
+  if (row) row.classList.add('selected');
+  selectedClient = c;
+  document.getElementById('edit-client-name').textContent = c.name;
+  document.getElementById('edit-email').value = c.email || '—';
+  document.getElementById('edit-notes').value = c.notes || '—';
+  document.getElementById('edit-phone').value = '';
+  document.getElementById('edit-err').classList.remove('show');
+  const panel = document.getElementById('edit-panel');
+  panel.removeAttribute('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function cancelEdit() {
+  selectedClient = null;
+  document.getElementById('edit-panel').setAttribute('hidden','');
+  document.querySelectorAll('.client-row').forEach(r => r.classList.remove('selected'));
+}
+
+async function savePhone() {
+  if (!selectedClient) return;
+  const rawPhone = document.getElementById('edit-phone').value.trim();
+  const phone = normalizePhone(rawPhone);
+  if (!phone || phone.length < 7) {
+    document.getElementById('edit-err').classList.add('show');
+    return;
+  }
+  document.getElementById('edit-err').classList.remove('show');
+  showSpinner('Saving…');
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'add_phone',
+        rowIndex: selectedClient.rowIndex,
+        clientId: selectedClient.clientId,
+        name: selectedClient.name,
+        phone: phone,
+        timestamp: new Date().toISOString()
+      })
+    });
+    hideSpinner();
+    // no-cors can't read response, assume success
+    setStatus('✓ Phone number saved for ' + selectedClient.name, 'ok');
+    cancelEdit();
+    // Remove from results list visually
+    const rows = document.querySelectorAll('.client-row');
+    rows.forEach(r => {
+      if (r.querySelector('.client-name')?.textContent === selectedClient.name) {
+        r.style.opacity = '.4';
+        r.style.pointerEvents = 'none';
+        r.querySelector('.client-name').textContent += ' ✓';
+      }
+    });
+  } catch(e) {
+    hideSpinner();
+    setStatus('Error saving. Please try again.', 'err');
+  }
+}
+
+function normalizePhone(raw) {
+  if (!raw) return '';
+  const s = raw.replace(/\D/g, '');
+  if (s.length === 11 && s.startsWith('1')) return s.slice(1);
+  if (s.length === 10) return s;
+  if (s.length > 10) return s.slice(-10);
+  return s.length >= 7 ? s : '';
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body></html>
