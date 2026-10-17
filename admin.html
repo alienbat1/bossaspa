@@ -89,6 +89,34 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .btn-merge:hover{opacity:.88;}
 .btn-merge:disabled{opacity:.4;cursor:default;}
 .btn-merge-cancel{width:100%;padding:9px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.8rem;cursor:pointer;margin-top:6px;letter-spacing:.04em;}
+
+/* Tab nav */
+.tab-nav{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px;}
+.tab-btn{flex:1;padding:12px 8px;background:none;border:none;font-family:'Jost',sans-serif;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s;}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500;}
+
+/* Package form */
+.pkg-form{display:flex;flex-direction:column;gap:0;}
+.pkg-lookup{display:flex;gap:8px;margin-bottom:16px;}
+.pkg-lookup input{flex:1;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.95rem;font-weight:300;outline:none;}
+.pkg-lookup input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.client-found-card{background:#f0f5f4;border:1.5px solid var(--teal);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.client-found-name{font-size:.95rem;font-weight:500;color:var(--teal);}
+.client-found-meta{font-size:.75rem;color:var(--muted);margin-top:2px;}
+.btn-clear-client{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:4px 8px;border-radius:6px;}
+.btn-clear-client:hover{background:var(--beige);}
+.field select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.9rem;font-weight:300;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7f79' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.field select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pkg-existing{margin-top:20px;}
+.pkg-existing-title{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.pkg-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
+.pkg-card-name{font-size:.88rem;font-weight:500;color:var(--ink);}
+.pkg-card-meta{font-size:.73rem;color:var(--muted);margin-top:3px;}
+.pkg-status{display:inline-block;font-size:.6rem;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;margin-left:6px;vertical-align:middle;}
+.pkg-status.active{background:#d4ede4;color:#2a6b44;}
+.pkg-status.completed{background:#e8e4f5;color:#4a3a7a;}
+.pkg-status.expired{background:#fde8e4;color:#9b3a2a;}
 </style>
 </head>
 <body>
@@ -100,49 +128,236 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
   </div>
 
   <div class="content">
-    <div style="margin-bottom:20px;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--teal);font-weight:300;margin-bottom:4px;">Client Lookup</div>
-      <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by name to find clients without a phone number and add their contact.</div>
+    <!-- Tab navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-btn-lookup" onclick="switchTab('lookup')">Client Lookup</button>
+      <button class="tab-btn" id="tab-btn-package" onclick="switchTab('package')">Add Package</button>
     </div>
 
-    <div class="search-wrap">
-      <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
-        onkeydown="if(event.key==='Enter')doSearch()">
-      <button class="btn-search" onclick="doSearch()">Search</button>
-    </div>
-
-    <div class="status" id="status-msg" hidden></div>
-
-    <div id="results-area">
-      <div class="empty">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-text">Type a client name above and press Search.<br>Results show clients registered without a phone number.</div>
+    <!-- ═══ TAB 1: CLIENT LOOKUP ═══ -->
+    <div id="tab-lookup">
+      <div style="margin-bottom:16px;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;margin-bottom:4px;">Add Phone Number</div>
+        <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by name to find clients without a phone number.</div>
       </div>
-    </div>
 
-    <div id="merge-area" hidden></div>
+      <div class="search-wrap">
+        <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
+          onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="btn-search" onclick="doSearch()">Search</button>
+      </div>
 
-    <div class="edit-panel" id="edit-panel" hidden>
-      <div class="edit-title" id="edit-client-name">—</div>
-      <div class="edit-sub">Add phone number to this client</div>
+      <div class="status" id="status-msg" hidden></div>
 
-      <div class="field">
-        <label>Email on file</label>
-        <input type="text" id="edit-email" readonly>
+      <div id="results-area">
+        <div class="empty">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-text">Type a client name above and press Search.<br>Results show clients registered without a phone number.</div>
+        </div>
       </div>
-      <div class="field">
-        <label>Notes on file</label>
-        <input type="text" id="edit-notes" readonly>
+
+      <div id="merge-area" hidden></div>
+
+      <div class="edit-panel" id="edit-panel" hidden>
+        <div class="edit-title" id="edit-client-name">—</div>
+        <div class="edit-sub">Add phone number to this client</div>
+
+        <div class="field">
+          <label>Email on file</label>
+          <input type="text" id="edit-email" readonly>
+        </div>
+        <div class="field">
+          <label>Notes on file</label>
+          <input type="text" id="edit-notes" readonly>
+        </div>
+        <div class="section-label" style="margin-top:16px;">New phone number</div>
+        <div class="field">
+          <label>Phone Number *</label>
+          <input type="tel" id="edit-phone" placeholder="(310) 555-0000" autocomplete="tel">
+        </div>
+        <div class="err-msg" id="edit-err">Please enter a valid 10-digit phone number.</div>
+        <button class="btn-save" onclick="savePhone()">Save Phone Number →</button>
+        <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
       </div>
-      <div class="section-label" style="margin-top:16px;">New phone number</div>
-      <div class="field">
-        <label>Phone Number *</label>
-        <input type="tel" id="edit-phone" placeholder="(310) 555-0000" autocomplete="tel">
+    </div><!-- /tab-lookup -->
+
+    <!-- ═══ TAB 2: ADD PACKAGE ═══ -->
+    <div id="tab-package" hidden>
+      <div style="margin-bottom:16px;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;margin-bottom:4px;">Add Package</div>
+        <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by phone number to find the client, then add a package.</div>
       </div>
-      <div class="err-msg" id="edit-err">Please enter a valid 10-digit phone number.</div>
-      <button class="btn-save" onclick="savePhone()">Save Phone Number →</button>
-      <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
-    </div>
+
+      <!-- Phone lookup -->
+      <div id="pkg-lookup-wrap">
+        <div class="pkg-lookup">
+          <input type="tel" id="pkg-phone-inp" placeholder="Client phone number…" autocomplete="tel"
+            onkeydown="if(event.key==='Enter')pkgLookup()">
+          <button class="btn-search" onclick="pkgLookup()">Find</button>
+        </div>
+        <div class="status" id="pkg-status" hidden></div>
+      </div>
+
+      <!-- Client found card -->
+      <div id="pkg-client-card" hidden>
+        <div class="client-found-card">
+          <div>
+            <div class="client-found-name" id="pkg-client-name">—</div>
+            <div class="client-found-meta" id="pkg-client-meta"></div>
+          </div>
+          <button class="btn-clear-client" onclick="pkgClearClient()">✕ Clear</button>
+        </div>
+
+        <!-- Existing packages -->
+        <div id="pkg-existing" hidden>
+          <div class="pkg-existing-title">Current packages</div>
+          <div id="pkg-existing-list"></div>
+        </div>
+
+        <!-- Package form -->
+        <div class="edit-panel" style="margin-top:16px;">
+          <div class="edit-sub" style="margin-bottom:16px;">New package details</div>
+
+          <div class="field">
+            <label>Package Name *</label>
+            <select id="pkg-name-sel" onchange="pkgNameChanged()">
+              <option value="">— select a package —</option>
+              <optgroup label="Lymphatic Drainage">
+                <option value="3 Sessions - Lymphatic Drainage" data-sessions="3">3 Sessions - Lymphatic Drainage</option>
+                <option value="5x Sessions - Lymphatic Drainage" data-sessions="5">5x Sessions - Lymphatic Drainage</option>
+                <option value="10x Sessions - Lymphatic Drainage" data-sessions="10">10x Sessions - Lymphatic Drainage</option>
+              </optgroup>
+              <optgroup label="Lymphatic + Cavitation">
+                <option value="5x Sessions - Lymphatic + Cavitation" data-sessions="5">5x Sessions - Lymphatic + Cavitation</option>
+                <option value="10x Sessions - Lymphatic + Cavitation" data-sessions="10">10x Sessions - Lymphatic + Cavitation</option>
+                <option value="20x Sessions - Lymphatic + Cavitation" data-sessions="20">20x Sessions - Lymphatic + Cavitation</option>
+              </optgroup>
+              <optgroup label="Lymphatic + Sauna">
+                <option value="5x Sessions - Lymphatic + Sauna" data-sessions="5">5x Sessions - Lymphatic + Sauna</option>
+                <option value="10x Sessions - Lymphatic + Sauna" data-sessions="10">10x Sessions - Lymphatic + Sauna</option>
+              </optgroup>
+              <optgroup label="Lymphatic + Cavitation + Sauna">
+                <option value="5x Sessions - Lymphatic + Cavitation + Sauna" data-sessions="5">5x Sessions - Lymphatic + Cavitation + Sauna</option>
+                <option value="10x Sessions - Lymphatic + Cavitation + Sauna" data-sessions="10">10x Sessions - Lymphatic + Cavitation + Sauna</option>
+              </optgroup>
+              <optgroup label="Brazilian Body Shape">
+                <option value="5x Sessions - Brazilian Body Shape (Manual)" data-sessions="5">5x Sessions - Brazilian Body Shape (Manual)</option>
+                <option value="10x Sessions - Brazilian Body Shape (Manual)" data-sessions="10">10x Sessions - Brazilian Body Shape (Manual)</option>
+                <option value="5x Sessions - Brazilian Body Shape (Tools)" data-sessions="5">5x Sessions - Brazilian Body Shape (Tools)</option>
+                <option value="10x Sessions - Brazilian Body Shape (Tools)" data-sessions="10">10x Sessions - Brazilian Body Shape (Tools)</option>
+                <option value="5x Sessions Brazilian Body Shape + Sauna (1 tool)" data-sessions="5">5x Sessions Brazilian Body Shape + Sauna (1 tool)</option>
+                <option value="10x Full Body BBS" data-sessions="10">10x Full Body BBS</option>
+                <option value="10x Full Body BBS + SAUNA" data-sessions="10">10x Full Body BBS + SAUNA</option>
+                <option value="10x Sessions - Brazilian Body Shape" data-sessions="10">10x Sessions - Brazilian Body Shape</option>
+              </optgroup>
+              <optgroup label="Facial">
+                <option value="5x Sessions - Facial Lymphatic" data-sessions="5">5x Sessions - Facial Lymphatic</option>
+                <option value="5x Sessions Facial Lymphatic + Body Lymphatic" data-sessions="5">5x Sessions Facial Lymphatic + Body Lymphatic</option>
+                <option value="3x Sessions - Full Body and Face Lymphatic" data-sessions="3">3x Sessions - Full Body and Face Lymphatic</option>
+                <option value="Face Lift + Body Lymphatic - 5 Sessions" data-sessions="5">Face Lift + Body Lymphatic - 5 Sessions</option>
+                <option value="Face Lift + Body Lymphatic - 10 Sessions" data-sessions="10">Face Lift + Body Lymphatic - 10 Sessions</option>
+                <option value="Facial Lymphatic and Lifting - 5 Sessions" data-sessions="5">Facial Lymphatic and Lifting - 5 Sessions</option>
+                <option value="Facial Lymphatic and Lifting - 10 Sessions" data-sessions="10">Facial Lymphatic and Lifting - 10 Sessions</option>
+              </optgroup>
+              <optgroup label="Body Sculpting &amp; Contouring">
+                <option value="5x Sessions - Body Sculpting (Modeladora)" data-sessions="5">5x Sessions - Body Sculpting (Modeladora)</option>
+                <option value="Body Shape + Facial Lymphatic - 5 Sessions" data-sessions="5">Body Shape + Facial Lymphatic - 5 Sessions</option>
+                <option value="Body Shape + Facial Lymphatic - 10 Sessions" data-sessions="10">Body Shape + Facial Lymphatic - 10 Sessions</option>
+                <option value="Contour Treatment - 10 Sessions" data-sessions="10">Contour Treatment - 10 Sessions</option>
+                <option value="Firmness &amp; Volume Treatment - 5 Sessions" data-sessions="5">Firmness &amp; Volume Treatment - 5 Sessions</option>
+                <option value="Firmness &amp; Volume Treatment - 10 Sessions" data-sessions="10">Firmness &amp; Volume Treatment - 10 Sessions</option>
+                <option value="Skin Firmness Treatment - 5 Sessions" data-sessions="5">Skin Firmness Treatment - 5 Sessions</option>
+                <option value="Skin Firmness Treatment - 10 Sessions" data-sessions="10">Skin Firmness Treatment - 10 Sessions</option>
+                <option value="Sculpt Treatment - 5 Sessions" data-sessions="5">Sculpt Treatment - 5 Sessions</option>
+                <option value="Sculpt Treatment - 10 Sessions" data-sessions="10">Sculpt Treatment - 10 Sessions</option>
+              </optgroup>
+              <optgroup label="Waxing">
+                <option value="4x Sessions - Waxing Full Body (Women)" data-sessions="4">4x Sessions - Waxing Full Body (Women)</option>
+                <option value="4x Sessions - Waxing Full Body (Men)" data-sessions="4">4x Sessions - Waxing Full Body (Men)</option>
+              </optgroup>
+              <optgroup label="Massage">
+                <option value="5x Sessions SWEDISH 90 MIN" data-sessions="5">5x Sessions SWEDISH 90 MIN</option>
+              </optgroup>
+              <optgroup label="Sauna">
+                <option value="Sauna - 10 Sessions" data-sessions="10">Sauna - 10 Sessions</option>
+                <option value="Sauna - 20 Sessions" data-sessions="20">Sauna - 20 Sessions</option>
+              </optgroup>
+              <optgroup label="Vacuum / BBL">
+                <option value="10x Sessions Vacuum BBL (One Area)" data-sessions="10">10x Sessions Vacuum BBL (One Area)</option>
+                <option value="BLL Vacuum - 3 Sessions" data-sessions="3">BLL Vacuum - 3 Sessions</option>
+                <option value="BLL Vacuum - 10 Sessions" data-sessions="10">BLL Vacuum - 10 Sessions</option>
+              </optgroup>
+              <optgroup label="Cryo &amp; Post-Surgery">
+                <option value="Cryo + Lymphatic Treatment - 6 Sessions (1 area)" data-sessions="6">Cryo + Lymphatic Treatment - 6 Sessions (1 area)</option>
+                <option value="Cryo + Lymphatic Treatment - 6 Sessions (up to 4 areas)" data-sessions="6">Cryo + Lymphatic Treatment - 6 Sessions (up to 4 areas)</option>
+                <option value="Post Surgery Body - 5 Sessions" data-sessions="5">Post Surgery Body - 5 Sessions</option>
+                <option value="Post Surgery Body - 10 Sessions" data-sessions="10">Post Surgery Body - 10 Sessions</option>
+                <option value="Post-Surgery Treatment - 10 Sessions" data-sessions="10">Post-Surgery Treatment - 10 Sessions</option>
+              </optgroup>
+              <optgroup label="Detox &amp; Combo">
+                <option value="Detox Combo + Sauna - 5 Sessions" data-sessions="5">Detox Combo + Sauna - 5 Sessions</option>
+                <option value="Detox Combo + Sauna - 10 Sessions" data-sessions="10">Detox Combo + Sauna - 10 Sessions</option>
+              </optgroup>
+              <optgroup label="Intro / Promo">
+                <option value="Lymphatic Package — First Time Package Offer" data-sessions="1">Lymphatic Package — First Time Package Offer</option>
+              </optgroup>
+              <option value="__other__">Other (custom)…</option>
+            </select>
+          </div>
+
+          <!-- Custom name (shown only for "Other") -->
+          <div class="field" id="pkg-custom-wrap" hidden>
+            <label>Custom Package Name *</label>
+            <input type="text" id="pkg-custom-name" placeholder="Enter package name…">
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label>Sessions Total *</label>
+              <input type="number" id="pkg-sessions-total" min="1" max="99" placeholder="e.g. 10">
+            </div>
+            <div class="field">
+              <label>Sessions Done</label>
+              <input type="number" id="pkg-sessions-done" min="0" max="99" placeholder="0" value="0">
+            </div>
+          </div>
+
+          <!-- 2 Free Sessions promo toggle -->
+          <div style="background:#fff8ed;border:1.5px solid var(--gold);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" id="pkg-free-sessions" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;">
+            <label for="pkg-free-sessions" style="font-size:.82rem;color:#7a5c1e;cursor:pointer;line-height:1.4;">
+              <strong>+2 Free Sessions</strong> promo<br>
+              <span style="font-size:.72rem;opacity:.8;">Add 2 bonus sessions (sessions total will increase by 2)</span>
+            </label>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label>Purchase Date *</label>
+              <input type="date" id="pkg-purchase-date">
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select id="pkg-status-sel">
+                <option value="Active">Active</option>
+                <option value="Completed">Completed</option>
+                <option value="Expired">Expired</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Notes (optional)</label>
+            <input type="text" id="pkg-notes" placeholder="Any notes about this package…">
+          </div>
+
+          <div class="err-msg" id="pkg-err">Please fill in all required fields.</div>
+          <button class="btn-save" onclick="savePkg()">Save Package →</button>
+          <div class="status" id="pkg-save-status" hidden style="margin-top:10px;"></div>
+        </div>
+      </div><!-- /pkg-client-card -->
+    </div><!-- /tab-package -->
+
   </div>
 </div>
 
@@ -350,6 +565,7 @@ async function doMerge() {
 function cancelEdit() {
   selectedClient = null;
   document.getElementById('edit-panel').setAttribute('hidden','');
+  document.getElementById('merge-area').setAttribute('hidden','');
   document.querySelectorAll('.client-row').forEach(r => r.classList.remove('selected'));
 }
 
@@ -407,6 +623,202 @@ function normalizePhone(raw) {
 
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════
+   TAB SWITCHING
+══════════════════════════════ */
+function switchTab(tab) {
+  document.getElementById('tab-lookup').toggleAttribute('hidden', tab !== 'lookup');
+  document.getElementById('tab-package').toggleAttribute('hidden', tab !== 'package');
+  document.getElementById('tab-btn-lookup').classList.toggle('active', tab === 'lookup');
+  document.getElementById('tab-btn-package').classList.toggle('active', tab === 'package');
+}
+
+/* ══════════════════════════════
+   PACKAGE TAB
+══════════════════════════════ */
+let pkgClient = null; // { name, phone, clientId }
+
+function pkgSetStatus(msg, type) {
+  const el = document.getElementById('pkg-status');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+  el.removeAttribute('hidden');
+}
+function pkgClearStatus() {
+  document.getElementById('pkg-status').setAttribute('hidden','');
+}
+
+async function pkgLookup() {
+  const rawPhone = document.getElementById('pkg-phone-inp').value.trim();
+  const phone = normalizePhone(rawPhone);
+  if (!phone || phone.length < 7) {
+    pkgSetStatus('Please enter a valid phone number.', 'err');
+    return;
+  }
+  pkgClearStatus();
+  showSpinner('Looking up client…');
+  try {
+    const url = WEBAPP_URL + '?action=lookup&phone=' + encodeURIComponent(phone);
+    const res = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    hideSpinner();
+    if (data.error || !data.name) {
+      pkgSetStatus('No client found with that phone number.', 'err');
+      return;
+    }
+    pkgClient = { name: data.name, phone: phone, clientId: data.clientId || '' };
+    document.getElementById('pkg-client-name').textContent = data.name;
+    document.getElementById('pkg-client-meta').textContent = 'Phone: ' + formatPhone(phone) + (data.email ? ' · ' + data.email : '');
+    document.getElementById('pkg-client-card').removeAttribute('hidden');
+    pkgClearStatus();
+
+    // Set today as default purchase date
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('pkg-purchase-date').value = today;
+
+    // Load existing packages
+    pkgLoadExisting(phone);
+  } catch(e) {
+    hideSpinner();
+    pkgSetStatus('Connection error. Please try again.', 'err');
+  }
+}
+
+async function pkgLoadExisting(phone) {
+  try {
+    const url = WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone);
+    const res = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    const pkgs = data.packages || [];
+    const existingEl = document.getElementById('pkg-existing');
+    const listEl = document.getElementById('pkg-existing-list');
+    if (pkgs.length === 0) {
+      existingEl.setAttribute('hidden','');
+      return;
+    }
+    existingEl.removeAttribute('hidden');
+    listEl.innerHTML = pkgs.map(p => {
+      const statusClass = (p.status || '').toLowerCase();
+      return `<div class="pkg-card">
+        <div class="pkg-card-name">${escHtml(p.packageName || p['Package Name'] || '—')}
+          <span class="pkg-status ${statusClass}">${escHtml(p.status || '')}</span>
+        </div>
+        <div class="pkg-card-meta">${p['Sessions Done']||0}/${p['Sessions Total']||'?'} sessions used · Purchased: ${p['Purchased Date']||'—'}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    // silently ignore — existing packages is optional
+  }
+}
+
+function pkgClearClient() {
+  pkgClient = null;
+  document.getElementById('pkg-client-card').setAttribute('hidden','');
+  document.getElementById('pkg-phone-inp').value = '';
+  document.getElementById('pkg-existing').setAttribute('hidden','');
+  document.getElementById('pkg-save-status').setAttribute('hidden','');
+  pkgClearStatus();
+}
+
+function pkgNameChanged() {
+  const sel = document.getElementById('pkg-name-sel');
+  const customWrap = document.getElementById('pkg-custom-wrap');
+  const isOther = sel.value === '__other__';
+  customWrap.toggleAttribute('hidden', !isOther);
+
+  // Auto-fill sessions from data-sessions attribute
+  const opt = sel.options[sel.selectedIndex];
+  const sessions = opt ? opt.getAttribute('data-sessions') : null;
+  if (sessions && !isOther) {
+    document.getElementById('pkg-sessions-total').value = sessions;
+    document.getElementById('pkg-sessions-done').value = '0';
+  } else if (isOther) {
+    document.getElementById('pkg-sessions-total').value = '';
+  }
+}
+
+async function savePkg() {
+  if (!pkgClient) return;
+
+  const sel = document.getElementById('pkg-name-sel');
+  const isOther = sel.value === '__other__';
+  const pkgName = isOther
+    ? document.getElementById('pkg-custom-name').value.trim()
+    : sel.value;
+
+  const sessionsInput = parseInt(document.getElementById('pkg-sessions-total').value) || 0;
+  const freeBonus = document.getElementById('pkg-free-sessions').checked ? 2 : 0;
+  const sessionsTotal = sessionsInput + freeBonus;
+  const sessionsDone = parseInt(document.getElementById('pkg-sessions-done').value) || 0;
+  const purchaseDate = document.getElementById('pkg-purchase-date').value;
+  const status = document.getElementById('pkg-status-sel').value;
+  const notes = document.getElementById('pkg-notes').value.trim();
+
+  const errEl = document.getElementById('pkg-err');
+  if (!pkgName || !sessionsInput || !purchaseDate) {
+    errEl.textContent = !pkgName ? 'Please select or enter a package name.' :
+                        !sessionsInput ? 'Please enter sessions total.' :
+                        'Please select a purchase date.';
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+
+  showSpinner('Saving package…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'package_import',
+        clientName: pkgClient.name,
+        clientPhone: pkgClient.phone,
+        clientId: pkgClient.clientId,
+        packageName: pkgName + (freeBonus ? ' (+2 Free Sessions Promo)' : ''),
+        sessionsTotal: sessionsTotal,
+        sessionsDone: sessionsDone,
+        sessionsLeft: sessionsTotal - sessionsDone,
+        purchasedDate: purchaseDate,
+        status: status,
+        notes: notes,
+        timestamp: new Date().toISOString()
+      })
+    });
+    hideSpinner();
+    const saveStatus = document.getElementById('pkg-save-status');
+    saveStatus.textContent = '✓ Package saved for ' + pkgClient.name + (freeBonus ? ' (+2 free sessions added)' : '');
+    saveStatus.className = 'status ok';
+    saveStatus.removeAttribute('hidden');
+
+    // Reset form but keep client
+    sel.value = '';
+    document.getElementById('pkg-custom-name').value = '';
+    document.getElementById('pkg-custom-wrap').setAttribute('hidden','');
+    document.getElementById('pkg-sessions-total').value = '';
+    document.getElementById('pkg-sessions-done').value = '0';
+    document.getElementById('pkg-free-sessions').checked = false;
+    document.getElementById('pkg-notes').value = '';
+    document.getElementById('pkg-purchase-date').value = new Date().toISOString().slice(0,10);
+
+    // Refresh existing packages list
+    pkgLoadExisting(pkgClient.phone);
+  } catch(e) {
+    hideSpinner();
+    const saveStatus = document.getElementById('pkg-save-status');
+    saveStatus.textContent = 'Error saving package. Please try again.';
+    saveStatus.className = 'status err';
+    saveStatus.removeAttribute('hidden');
+  }
+}
+
+function formatPhone(p) {
+  if (!p) return '';
+  const s = p.replace(/\D/g,'');
+  if (s.length === 10) return '(' + s.slice(0,3) + ') ' + s.slice(3,6) + '-' + s.slice(6);
+  return p;
 }
 </script>
 </body></html>
