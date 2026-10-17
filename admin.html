@@ -1642,7 +1642,11 @@ function acRenderProfile(c, visits, packages, forms) {
   html += `</div>`;
 
   // Visits
-  html += `<div class="cp-section"><div class="cp-section-title">Visits (${visits.length} total)</div>`;
+  html += `<div class="cp-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="cp-section-title" style="margin-bottom:0;">Visits (${visits.length} total)</div>
+      <button onclick="acShowAddVisit()" style="font-size:.72rem;background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add Visit</button>
+    </div>`;
   if (!visits.length) {
     html += `<div style="font-size:.8rem;color:var(--muted);padding:8px 0;">No visits recorded.</div>`;
   } else {
@@ -1779,6 +1783,90 @@ async function acSaveField(field, c) {
     if (row) row.style.opacity = '1';
     alert('Could not save. Please try again.');
   }
+}
+
+// ── Add Visit modal ──────────────────────────────────────────────────────────
+const AC_SERVICES = [
+  'Brazilian Style Lymphatic','Facial Lymphatic','Lymphatic Drainage','Lymphatic Drainage+ Cavitation',
+  'Facial Lymphatic & Body Post Surgery','Deep Tissue Massage (60min)','Deep Tissue Massage (90min)',
+  'Swedish Massage (60min)','Post Surgery Full Body Lymphatic','Dermaplaning Facial +Facial Hydro',
+  'Dermaplaning Facial','Brazilian Body Shape','Individual Sauna Session','ClassPass Hydrafacial',
+  'ClassPass Brazilian-style Lymphatic','ClassPass Deep Tissue 60min','ClassPass Facial Lymphatic + Ra',
+  'ClassPass Lymphatic + Cavitation','Other'
+];
+const AC_THERAPISTS = ['Maria Marin','Bruna Oliveira','Oksana Feldshtein','Other'];
+
+function acShowAddVisit() {
+  const today = new Date().toISOString().slice(0,10);
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
+  const therapistOpts = AC_THERAPISTS.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-visit-modal" onclick="if(event.target.id==='ac-visit-modal')document.getElementById('ac-visit-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);margin-bottom:16px;">Add Visit</div>
+      <div class="field"><label>Date</label>
+        <input type="date" id="av-date" value="${today}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+      </div>
+      <div class="field"><label>Service</label>
+        <select id="av-service" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${serviceOpts}
+        </select>
+      </div>
+      <div class="field"><label>Therapist</label>
+        <select id="av-therapist" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${therapistOpts}
+        </select>
+      </div>
+      <div class="field"><label>Notes (optional)</label>
+        <textarea id="av-notes" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div class="field"><label>Next Recommendation (optional)</label>
+        <input type="text" id="av-next" placeholder="e.g. Return in 2 weeks" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="acSaveVisit()" style="flex:1;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Save Visit</button>
+        <button onclick="document.getElementById('ac-visit-modal').remove()" style="padding:11px 16px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function acSaveVisit() {
+  const c = acProfileClient;
+  if (!c) return;
+  const date      = document.getElementById('av-date').value;
+  const service   = document.getElementById('av-service').value;
+  const therapist = document.getElementById('av-therapist').value;
+  const notes     = document.getElementById('av-notes').value.trim();
+  const next      = document.getElementById('av-next').value.trim();
+
+  if (!date || !service) { alert('Date and service are required.'); return; }
+
+  document.getElementById('ac-visit-modal').remove();
+  showSpinner('Saving visit…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'add_visit_manual',
+        clientName: c.name,
+        clientPhone: c.phone || '',
+        clientId: c.clientId || '',
+        date,
+        service,
+        therapist,
+        notes,
+        next
+      })
+    });
+  } catch(e) {}
+  hideSpinner();
+  // Refresh profile to show new visit
+  await acOpenProfile(c);
 }
 
 function acEditPkg(p) {
