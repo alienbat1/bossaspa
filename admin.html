@@ -71,6 +71,24 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
 /* Section divider */
 .section-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:4px;}
+
+/* Merge banner */
+.merge-banner{background:#fff8ed;border:1.5px solid var(--gold);border-radius:var(--r);padding:14px 16px;margin-top:10px;}
+.merge-title{font-size:.78rem;font-weight:500;color:#7a5c1e;letter-spacing:.04em;margin-bottom:6px;}
+.merge-note{font-size:.73rem;color:#9a7535;line-height:1.5;margin-bottom:12px;}
+.merge-clients{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.merge-option{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.merge-option:hover{border-color:var(--gold);}
+.merge-option.keep{border-color:var(--teal);background:#f0f5f4;}
+.merge-option-name{font-size:.88rem;font-weight:500;color:var(--ink);}
+.merge-option-meta{font-size:.72rem;color:var(--muted);margin-top:2px;}
+.merge-badge{display:inline-block;font-size:.6rem;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;letter-spacing:.06em;text-transform:uppercase;}
+.badge-keep{background:#d4ede4;color:#2a6b44;}
+.badge-delete{background:#fde8e4;color:#9b3a2a;}
+.btn-merge{width:100%;padding:12px;background:var(--gold);color:#fff;border:none;border-radius:var(--r);font-family:'Cormorant Garamond',serif;font-size:1rem;letter-spacing:.06em;cursor:pointer;transition:opacity .2s;}
+.btn-merge:hover{opacity:.88;}
+.btn-merge:disabled{opacity:.4;cursor:default;}
+.btn-merge-cancel{width:100%;padding:9px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.8rem;cursor:pointer;margin-top:6px;letter-spacing:.04em;}
 </style>
 </head>
 <body>
@@ -101,6 +119,8 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div class="empty-text">Type a client name above and press Search.<br>Results show clients registered without a phone number.</div>
       </div>
     </div>
+
+    <div id="merge-area" hidden></div>
 
     <div class="edit-panel" id="edit-panel" hidden>
       <div class="edit-title" id="edit-client-name">—</div>
@@ -135,6 +155,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
 let selectedClient = null; // { rowIndex, name, email, notes, ... }
+let allResults = []; // keep full result set for merge detection
 
 function showSpinner(msg) {
   document.getElementById('spinner-text').textContent = msg || 'Loading…';
@@ -164,7 +185,8 @@ async function doSearch() {
     const res = await fetch(url, { mode: 'cors' });
     const data = await res.json();
     hideSpinner();
-    renderResults(data.results || []);
+    allResults = data.results || [];
+    renderResults(allResults);
   } catch(e) {
     hideSpinner();
     setStatus('Connection error. Please try again.', 'err');
@@ -174,21 +196,33 @@ async function doSearch() {
 
 function renderResults(results) {
   const area = document.getElementById('results-area');
+  document.getElementById('merge-area').setAttribute('hidden','');
   if (!results.length) {
     area.innerHTML = `<div class="empty"><div class="empty-icon">🌿</div><div class="empty-text">No clients found without a phone number matching that name.<br><span style="font-size:.78rem;opacity:.7;">Try a partial name or check spelling.</span></div></div>`;
     return;
   }
+
+  // Detect duplicate names
+  const nameCounts = {};
+  results.forEach(c => { nameCounts[c.name.toLowerCase()] = (nameCounts[c.name.toLowerCase()] || 0) + 1; });
+
   setStatus(results.length + ' client' + (results.length !== 1 ? 's' : '') + ' found — tap to select');
   let html = `<div class="section-label">${results.length} result${results.length!==1?'s':''}</div><div class="results-list">`;
   results.forEach((c, i) => {
+    const isDupe = nameCounts[c.name.toLowerCase()] > 1;
     const meta = [c.email, c.lastVisit ? 'Last visit: ' + c.lastVisit : null, c.notes].filter(Boolean).join(' · ');
     html += `<div class="client-row" id="row-${i}" onclick="selectClient(${i}, ${JSON.stringify(c).replace(/"/g,'&quot;')})">
-      <div class="client-name">${escHtml(c.name)}</div>
+      <div class="client-name">${escHtml(c.name)}${isDupe ? ' <span style="font-size:.65rem;background:#fde8e4;color:#9b3a2a;padding:2px 6px;border-radius:4px;letter-spacing:.06em;vertical-align:middle;">DUPLICATE</span>' : ''}</div>
       ${meta ? `<div class="client-meta">${escHtml(meta)}</div>` : ''}
     </div>`;
   });
   html += '</div>';
   area.innerHTML = html;
+}
+
+// Find all clients with same name (for merge)
+function getDuplicates(name) {
+  return allResults.filter(c => c.name.toLowerCase() === name.toLowerCase());
 }
 
 function selectClient(i, c) {
@@ -201,9 +235,116 @@ function selectClient(i, c) {
   document.getElementById('edit-notes').value = c.notes || '—';
   document.getElementById('edit-phone').value = '';
   document.getElementById('edit-err').classList.remove('show');
+
+  // Check for duplicates — show merge banner if found
+  const dupes = getDuplicates(c.name);
+  const mergeArea = document.getElementById('merge-area');
+  if (dupes.length > 1) {
+    renderMergeBanner(dupes, c);
+    mergeArea.removeAttribute('hidden');
+  } else {
+    mergeArea.setAttribute('hidden','');
+  }
+
   const panel = document.getElementById('edit-panel');
   panel.removeAttribute('hidden');
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderMergeBanner(dupes, selected) {
+  // Score each: more info = higher score (email > notes > lastVisit)
+  function score(c) {
+    return (c.email ? 10 : 0) + (c.notes && c.notes !== 'Sem telefone - verificar' ? 5 : 0) + (c.lastVisit ? 3 : 0);
+  }
+  const sorted = [...dupes].sort((a,b) => score(b) - score(a));
+  const keepSuggestion = sorted[0]; // highest score = suggested to keep
+
+  let html = `<div class="merge-banner">
+    <div class="merge-title">⚠️ Duplicate clients found</div>
+    <div class="merge-note">Found ${dupes.length} entries with the same name. Select which record to <strong>keep</strong> — the other(s) will be deleted from the sheet.</div>
+    <div class="merge-clients" id="merge-options">`;
+
+  sorted.forEach((c, i) => {
+    const isKeep = i === 0;
+    const meta = [c.email || 'no email', c.lastVisit ? 'last visit: ' + c.lastVisit : null, c.notes && c.notes !== 'Sem telefone - verificar' ? c.notes : null].filter(Boolean).join(' · ');
+    html += `<div class="merge-option ${isKeep ? 'keep' : ''}" id="merge-opt-${c.rowIndex}" onclick="selectMergeKeep(${c.rowIndex})">
+      <div class="merge-option-name">${escHtml(c.name)}
+        <span class="merge-badge ${isKeep ? 'badge-keep' : 'badge-delete'}" id="merge-badge-${c.rowIndex}">${isKeep ? 'KEEP' : 'DELETE'}</span>
+      </div>
+      <div class="merge-option-meta">Row ${c.rowIndex} · ${escHtml(meta)}</div>
+    </div>`;
+  });
+
+  html += `</div>
+    <button class="btn-merge" id="btn-do-merge" onclick="doMerge()">Merge — keep selected record →</button>
+    <button class="btn-merge-cancel" onclick="document.getElementById('merge-area').setAttribute('hidden','')">Skip merge</button>
+  </div>`;
+
+  const area = document.getElementById('merge-area');
+  area.innerHTML = html;
+  area._keepRowIndex = keepSuggestion.rowIndex;
+  area._allDupes = dupes;
+}
+
+function selectMergeKeep(rowIndex) {
+  const area = document.getElementById('merge-area');
+  area._keepRowIndex = rowIndex;
+  area._allDupes.forEach(c => {
+    const opt = document.getElementById('merge-opt-' + c.rowIndex);
+    const badge = document.getElementById('merge-badge-' + c.rowIndex);
+    if (c.rowIndex === rowIndex) {
+      opt.classList.add('keep');
+      badge.className = 'merge-badge badge-keep';
+      badge.textContent = 'KEEP';
+    } else {
+      opt.classList.remove('keep');
+      badge.className = 'merge-badge badge-delete';
+      badge.textContent = 'DELETE';
+    }
+  });
+}
+
+async function doMerge() {
+  const area = document.getElementById('merge-area');
+  const keepRowIndex = area._keepRowIndex;
+  const dupes = area._allDupes;
+  const toDelete = dupes.filter(c => c.rowIndex !== keepRowIndex);
+
+  document.getElementById('btn-do-merge').disabled = true;
+  showSpinner('Merging…');
+
+  // Delete duplicate rows one by one (highest rowIndex first to avoid row shifting)
+  const sorted = toDelete.sort((a,b) => b.rowIndex - a.rowIndex);
+  let allOk = true;
+  for (const c of sorted) {
+    try {
+      await fetch(WEBAPP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'delete_client_row', rowIndex: c.rowIndex, clientId: c.clientId, name: c.name })
+      });
+    } catch(e) { allOk = false; }
+  }
+
+  hideSpinner();
+  area.setAttribute('hidden','');
+
+  // Update selectedClient to the kept one and remove deleted from allResults
+  const kept = dupes.find(c => c.rowIndex === keepRowIndex);
+  allResults = allResults.filter(c => !toDelete.some(d => d.rowIndex === c.rowIndex));
+
+  setStatus(allOk
+    ? `✓ Merged — kept row ${keepRowIndex}, deleted ${toDelete.length} duplicate(s)`
+    : 'Merge partially completed — check the sheet', allOk ? 'ok' : 'err');
+
+  // Re-render results without deleted rows, select the kept one
+  renderResults(allResults);
+  if (kept) {
+    // find new index
+    const newIdx = allResults.findIndex(c => c.rowIndex === keepRowIndex);
+    if (newIdx >= 0) selectClient(newIdx, kept);
+  }
 }
 
 function cancelEdit() {
