@@ -130,6 +130,73 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .visit-card-note{font-size:.8rem;color:var(--ink);margin-top:5px;line-height:1.5;opacity:.85;}
 .visit-card-next{font-size:.72rem;color:var(--muted);margin-top:4px;font-style:italic;}
 
+/* All Clients tab */
+.ac-search-wrap{display:flex;gap:8px;margin-bottom:14px;}
+.ac-search-wrap input{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.9rem;font-weight:300;outline:none;}
+.ac-search-wrap input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.ac-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.ac-filter-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-family:'Jost',sans-serif;font-size:.72rem;color:var(--muted);cursor:pointer;letter-spacing:.04em;transition:all .15s;}
+.ac-filter-btn.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+.ac-row{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:13px 15px;cursor:pointer;transition:border-color .15s;margin-bottom:7px;}
+.ac-row:hover{border-color:var(--teal);}
+.ac-row-name{font-size:.92rem;font-weight:500;color:var(--ink);}
+.ac-row-meta{font-size:.72rem;color:var(--muted);margin-top:2px;line-height:1.4;}
+.ac-tag{display:inline-block;font-size:.58rem;padding:2px 6px;border-radius:4px;letter-spacing:.05em;text-transform:uppercase;font-weight:500;margin-left:5px;vertical-align:middle;}
+.ac-tag-pkg{background:#d4ede4;color:#2a6b44;}
+.ac-tag-nophone{background:#fde8e4;color:#9b3a2a;}
+.ac-tag-new{background:#fff3d0;color:#7a5c1e;}
+.ac-pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px;margin-bottom:4px;}
+.ac-page-info{font-size:.72rem;color:var(--muted);}
+.ac-page-btns{display:flex;gap:6px;}
+.ac-page-btn{padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--teal);cursor:pointer;}
+.ac-page-btn:disabled{color:var(--muted);cursor:default;opacity:.5;}
+.ac-page-btn:not(:disabled):hover{border-color:var(--teal);background:#f0f5f4;}
+
+/* Client profile panel */
+.cp-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;}
+.cp-avatar{width:46px;height:46px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:300;flex-shrink:0;}
+.cp-name{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--teal);font-weight:300;}
+.cp-meta{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.5;}
+.btn-back{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;letter-spacing:.04em;padding:0;margin-bottom:16px;}
+.btn-back:hover{color:var(--teal);}
+
+.cp-section{margin-bottom:20px;}
+.cp-section-title{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.cp-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cp-info-item label{display:block;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.cp-info-item span{font-size:.85rem;color:var(--ink);}
+.cp-info-item.full{grid-column:1/-1;}
+
+.cp-pkg-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:7px;}
+.cp-pkg-name{font-size:.85rem;font-weight:500;color:var(--ink);}
+.cp-pkg-meta{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.45;}
+.cp-pkg-edit{font-size:.68rem;color:var(--teal);cursor:pointer;text-decoration:underline;margin-left:8px;font-style:italic;}
+
+.cp-visit-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:10px 13px;margin-bottom:6px;}
+.cp-visit-date{font-size:.78rem;font-weight:500;color:var(--teal);}
+.cp-visit-service{font-size:.72rem;color:var(--gold);font-weight:500;margin-top:1px;}
+.cp-visit-note{font-size:.78rem;color:var(--ink);margin-top:4px;line-height:1.5;opacity:.85;}
+.cp-visit-next{font-size:.7rem;color:var(--muted);margin-top:3px;font-style:italic;}
+.cp-visit-therapist{font-size:.68rem;color:var(--muted);margin-top:2px;}
+
+.cp-form-card{background:#f9f5ee;border:1.5px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:7px;}
+.cp-form-q{font-size:.75rem;font-weight:500;color:var(--muted);letter-spacing:.03em;}
+.cp-form-a{font-size:.85rem;color:var(--ink);margin-top:3px;line-height:1.45;}
+
+.cp-visits-more{text-align:center;padding:10px;font-size:.75rem;color:var(--teal);cursor:pointer;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;width:100%;font-family:'Jost',sans-serif;}
+.cp-visits-more:hover{background:#f0f5f4;}
+
+/* Editable field inline */
+.cp-editable-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--beige);}
+.cp-editable-row:last-child{border-bottom:none;}
+.cp-editable-label{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);width:100px;flex-shrink:0;}
+.cp-editable-val{flex:1;font-size:.85rem;color:var(--ink);}
+.cp-edit-btn{font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--teal);border-radius:4px;padding:2px 7px;background:none;font-family:'Jost',sans-serif;white-space:nowrap;}
+.cp-edit-inline{display:flex;gap:6px;flex:1;}
+.cp-edit-inline input{flex:1;padding:5px 9px;border:1.5px solid var(--teal);border-radius:6px;background:#fff;color:var(--ink);font-family:'Jost',sans-serif;font-size:.85rem;outline:none;}
+.cp-edit-inline button{padding:4px 10px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.72rem;cursor:pointer;}
+.cp-edit-inline .btn-discard{background:transparent;color:var(--muted);border:1px solid var(--border);}
+
 /* Follow-up dashboard */
 .fu-section{margin-bottom:0;}
 .fu-section-header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r) var(--r) 0 0;border-bottom:none;}
@@ -183,6 +250,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       <button class="tab-btn" id="tab-btn-package" onclick="switchTab('package')">Add Package</button>
       <button class="tab-btn" id="tab-btn-notes" onclick="switchTab('notes')">Visit Notes</button>
       <button class="tab-btn" id="tab-btn-followup" onclick="switchTab('followup')">Follow-Up</button>
+      <button class="tab-btn" id="tab-btn-allclients" onclick="switchTab('allclients')">All Clients</button>
     </div>
 
     <!-- ═══ TAB 1: CLIENT LOOKUP ═══ -->
@@ -566,6 +634,54 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
     </div><!-- /tab-followup -->
 
+    <!-- ═══ TAB 5: ALL CLIENTS ═══ -->
+    <div id="tab-allclients" hidden>
+
+      <!-- LIST VIEW -->
+      <div id="ac-list-view">
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--teal);font-weight:300;margin-bottom:4px;">All Clients</div>
+          <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search and review all client records, visits, packages and forms.</div>
+        </div>
+
+        <div class="ac-search-wrap">
+          <input type="text" id="ac-search-inp" placeholder="Search by name, phone or email…"
+            autocomplete="off" autocorrect="off"
+            oninput="acFilterClients()"
+            onkeydown="if(event.key==='Enter')acFilterClients()">
+          <button class="btn-search" onclick="acLoadClients()">↻</button>
+        </div>
+
+        <div class="ac-filters">
+          <button class="ac-filter-btn active" id="acf-all" onclick="acSetFilter('all',this)">All</button>
+          <button class="ac-filter-btn" id="acf-pkg" onclick="acSetFilter('pkg',this)">Has Package</button>
+          <button class="ac-filter-btn" id="acf-nophone" onclick="acSetFilter('nophone',this)">No Phone</button>
+          <button class="ac-filter-btn" id="acf-new" onclick="acSetFilter('new',this)">New (30d)</button>
+        </div>
+
+        <div class="status" id="ac-status" hidden></div>
+
+        <div id="ac-rows"></div>
+
+        <div class="ac-pagination" id="ac-pagination" hidden>
+          <span class="ac-page-info" id="ac-page-info"></span>
+          <div class="ac-page-btns">
+            <button class="ac-page-btn" id="ac-prev-btn" onclick="acChangePage(-1)" disabled>← Prev</button>
+            <button class="ac-page-btn" id="ac-next-btn" onclick="acChangePage(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLIENT PROFILE VIEW -->
+      <div id="ac-profile-view" hidden>
+        <button class="btn-back" onclick="acShowList()">← Back to list</button>
+        <div id="ac-profile-content">
+          <div class="empty"><div class="spinner" style="margin:0 auto;"></div></div>
+        </div>
+      </div>
+
+    </div><!-- /tab-allclients -->
+
   </div>
 </div>
 
@@ -836,12 +952,17 @@ function escHtml(str) {
 /* ══════════════════════════════
    TAB SWITCHING
 ══════════════════════════════ */
+let acClientsLoaded = false;
 function switchTab(tab) {
-  ['lookup','package','notes','followup'].forEach(t => {
+  ['lookup','package','notes','followup','allclients'].forEach(t => {
     document.getElementById('tab-' + t).toggleAttribute('hidden', tab !== t);
     document.getElementById('tab-btn-' + t).classList.toggle('active', tab === t);
   });
   if (tab === 'followup' && !followUpLoaded) loadFollowUp();
+  if (tab === 'allclients' && !acClientsLoaded) {
+    acClientsLoaded = true;
+    acLoadClients();
+  }
 }
 
 /* ══════════════════════════════
@@ -1301,6 +1422,429 @@ async function loadFollowUp() {
     ['fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
+  }
+}
+
+/* ══════════════════════════════
+   ALL CLIENTS TAB
+══════════════════════════════ */
+let acAllClients = [];    // full list loaded from backend
+let acFiltered   = [];    // after search + filter
+let acPage       = 0;
+const AC_PAGE_SIZE = 30;
+let acActiveFilter = 'all';
+let acProfileClient = null; // current open profile data
+
+/* ── Load all clients ── */
+async function acLoadClients() {
+  const statusEl = document.getElementById('ac-status');
+  statusEl.textContent = 'Loading all clients…';
+  statusEl.className = 'status';
+  statusEl.removeAttribute('hidden');
+  document.getElementById('ac-rows').innerHTML = '';
+  document.getElementById('ac-pagination').setAttribute('hidden','');
+  try {
+    const url = WEBAPP_URL + '?action=get_all_clients';
+    const res = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    acAllClients = data.clients || [];
+    statusEl.setAttribute('hidden','');
+    acPage = 0;
+    acFilterClients();
+  } catch(e) {
+    statusEl.textContent = 'Could not load clients. Check your connection.';
+    statusEl.className = 'status err';
+  }
+}
+
+/* ── Filter + render list ── */
+function acFilterClients() {
+  const q = (document.getElementById('ac-search-inp').value || '').trim().toLowerCase();
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today - 30*24*60*60*1000).toISOString().slice(0,10);
+
+  acFiltered = acAllClients.filter(c => {
+    // text search
+    if (q) {
+      const haystack = [c.name, c.phone, c.email].join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    // filter
+    if (acActiveFilter === 'pkg')     return c.hasPackage;
+    if (acActiveFilter === 'nophone') return !c.phone;
+    if (acActiveFilter === 'new')     return c.firstVisit && c.firstVisit >= thirtyDaysAgo;
+    return true;
+  });
+
+  acPage = 0;
+  acRenderPage();
+}
+
+function acSetFilter(f, btn) {
+  acActiveFilter = f;
+  document.querySelectorAll('.ac-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  acFilterClients();
+}
+
+function acChangePage(dir) {
+  const maxPage = Math.max(0, Math.ceil(acFiltered.length / AC_PAGE_SIZE) - 1);
+  acPage = Math.min(maxPage, Math.max(0, acPage + dir));
+  acRenderPage();
+}
+
+function acRenderPage() {
+  const start = acPage * AC_PAGE_SIZE;
+  const end   = Math.min(start + AC_PAGE_SIZE, acFiltered.length);
+  const slice = acFiltered.slice(start, end);
+  const rowsEl = document.getElementById('ac-rows');
+  const pagEl  = document.getElementById('ac-pagination');
+  const statusEl = document.getElementById('ac-status');
+
+  if (!acAllClients.length) {
+    rowsEl.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">No clients loaded yet. Press ↻ to load.</div></div>`;
+    pagEl.setAttribute('hidden','');
+    return;
+  }
+  if (!acFiltered.length) {
+    rowsEl.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No clients match your search.</div></div>`;
+    pagEl.setAttribute('hidden','');
+    return;
+  }
+
+  statusEl.setAttribute('hidden','');
+  rowsEl.innerHTML = slice.map(c => {
+    const meta = [
+      c.phone ? formatPhone(c.phone) : null,
+      c.email,
+      c.lastVisit ? 'Last visit: ' + c.lastVisit : null,
+      c.totalVisits != null ? c.totalVisits + ' visit' + (c.totalVisits!==1?'s':'') : null
+    ].filter(Boolean).join(' · ');
+    const tags = [
+      c.hasPackage ? `<span class="ac-tag ac-tag-pkg">Package</span>` : '',
+      !c.phone     ? `<span class="ac-tag ac-tag-nophone">No phone</span>` : '',
+    ].join('');
+    return `<div class="ac-row" onclick="acOpenProfile(${JSON.stringify(c).replace(/"/g,'&quot;')})">
+      <div class="ac-row-name">${escHtml(c.name)}${tags}</div>
+      ${meta ? `<div class="ac-row-meta">${escHtml(meta)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const total = acFiltered.length;
+  const maxPage = Math.ceil(total / AC_PAGE_SIZE) - 1;
+  document.getElementById('ac-page-info').textContent =
+    `${start+1}–${end} of ${total} client${total!==1?'s':''}`;
+  document.getElementById('ac-prev-btn').disabled = acPage <= 0;
+  document.getElementById('ac-next-btn').disabled = acPage >= maxPage;
+  pagEl.removeAttribute('hidden');
+}
+
+/* ── Open client profile ── */
+async function acOpenProfile(c) {
+  acProfileClient = c;
+  document.getElementById('ac-list-view').setAttribute('hidden','');
+  document.getElementById('ac-profile-view').removeAttribute('hidden');
+  const contentEl = document.getElementById('ac-profile-content');
+  contentEl.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto;"></div><div class="spinner-text" style="margin-top:12px;">Loading profile…</div></div>`;
+
+  // Fetch full profile: visits, packages, forms
+  let visits = [], packages = [], forms = [];
+  try {
+    const phone = c.phone || '';
+    if (phone) {
+      const [vRes, pRes] = await Promise.all([
+        fetch(WEBAPP_URL + '?action=get_visits&phone=' + encodeURIComponent(phone) + '&limit=200', { mode:'cors' }),
+        fetch(WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone), { mode:'cors' })
+      ]);
+      const vData = await vRes.json();
+      const pData = await pRes.json();
+      visits   = vData.visits   || [];
+      packages = pData.packages || [];
+    } else {
+      // No phone — try by clientId
+      if (c.clientId) {
+        const vRes = await fetch(WEBAPP_URL + '?action=get_visits_by_id&clientId=' + encodeURIComponent(c.clientId) + '&limit=200', { mode:'cors' });
+        const vData = await vRes.json();
+        visits = vData.visits || [];
+      }
+    }
+    // Forms (intake)
+    try {
+      const fRes = await fetch(WEBAPP_URL + '?action=get_forms&clientId=' + encodeURIComponent(c.clientId || '') + '&email=' + encodeURIComponent(c.email || ''), { mode:'cors' });
+      const fData = await fRes.json();
+      forms = fData.forms || [];
+    } catch(e) {}
+  } catch(e) {}
+
+  acRenderProfile(c, visits, packages, forms);
+}
+
+function acShowList() {
+  document.getElementById('ac-profile-view').setAttribute('hidden','');
+  document.getElementById('ac-list-view').removeAttribute('hidden');
+}
+
+let acVisitsShowing = 5;
+function acRenderProfile(c, visits, packages, forms) {
+  acVisitsShowing = 5;
+  const initials = (c.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const phone = c.phone || '';
+
+  let html = `
+  <div class="cp-header">
+    <div class="cp-avatar">${escHtml(initials)}</div>
+    <div>
+      <div class="cp-name">${escHtml(c.name||'—')}</div>
+      <div class="cp-meta">
+        ${phone ? `📞 ${formatPhone(phone)}<br>` : '<span style="color:#9b3a2a;font-size:.7rem;">No phone on file</span><br>'}
+        ${c.email ? `✉️ ${escHtml(c.email)}<br>` : ''}
+        ${c.clientId ? `ID: ${escHtml(c.clientId)}` : ''}
+      </div>
+    </div>
+  </div>
+
+  <!-- Editable contact fields -->
+  <div class="cp-section">
+    <div class="cp-section-title">Contact Info</div>
+    ${acEditableRow('Phone', formatPhone(phone)||'—', 'phone', c)}
+    ${acEditableRow('Email', c.email||'—', 'email', c)}
+    ${acEditableRow('Notes', c.notes||'—', 'notes', c)}
+  </div>`;
+
+  // Packages
+  html += `<div class="cp-section"><div class="cp-section-title">Packages (${packages.length})</div>`;
+  if (!packages.length) {
+    html += `<div style="font-size:.8rem;color:var(--muted);padding:8px 0;">No packages on file.</div>`;
+  } else {
+    packages.forEach(p => {
+      const name   = p.packageName || p['Package Name'] || '—';
+      const done   = p['Sessions Done'] ?? p.sessionsDone ?? '?';
+      const total  = p['Sessions Total'] ?? p.sessionsTotal ?? '?';
+      const left   = p['Sessions Left'] ?? p.sessionsLeft ?? '?';
+      const status = p.status || p['Status'] || '';
+      const pur    = p['Purchased Date'] || p.purchasedDate || '';
+      const last   = p['Last Used Date'] || p.lastUsedDate || '';
+      const pkgId  = p.packageId || p['Package ID'] || '';
+      const statusClass = status.toLowerCase();
+      html += `<div class="cp-pkg-card">
+        <div class="cp-pkg-name">${escHtml(name)} <span class="pkg-status ${statusClass}">${escHtml(status)}</span></div>
+        <div class="cp-pkg-meta">
+          ${done}/${total} sessions used · ${left} left<br>
+          Purchased: ${escHtml(pur)} ${last ? '· Last used: ' + escHtml(last) : ''}
+          ${p.notes ? `<br><em>${escHtml(p.notes)}</em>` : ''}
+        </div>
+        <div style="margin-top:6px;display:flex;gap:8px;">
+          <button onclick="acEditPkg(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;font-family:'Jost',sans-serif;">Edit status/sessions</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  // Visits
+  html += `<div class="cp-section"><div class="cp-section-title">Visits (${visits.length} total)</div>`;
+  if (!visits.length) {
+    html += `<div style="font-size:.8rem;color:var(--muted);padding:8px 0;">No visits recorded.</div>`;
+  } else {
+    html += `<div id="cp-visits-list">` + acRenderVisitCards(visits, acVisitsShowing) + `</div>`;
+    if (visits.length > acVisitsShowing) {
+      html += `<button class="cp-visits-more" id="cp-more-btn" onclick="acShowMoreVisits(${JSON.stringify(visits).replace(/"/g,'&quot;')})">Show more (${visits.length - acVisitsShowing} remaining)</button>`;
+    }
+  }
+  html += `</div>`;
+
+  // Intake forms
+  if (forms.length) {
+    html += `<div class="cp-section"><div class="cp-section-title">Intake Forms (${forms.length})</div>`;
+    forms.forEach(f => {
+      const date = f.date || f['Date'] || '';
+      const qa = f.answers || [];
+      html += `<div class="cp-form-card">
+        ${date ? `<div style="font-size:.7rem;color:var(--muted);margin-bottom:8px;">${escHtml(date)}</div>` : ''}`;
+      if (qa.length) {
+        qa.forEach(item => {
+          html += `<div style="margin-bottom:8px;"><div class="cp-form-q">${escHtml(item.q||item.question||'')}</div>
+            <div class="cp-form-a">${escHtml(item.a||item.answer||'—')}</div></div>`;
+        });
+      } else if (f.rawText) {
+        html += `<div style="font-size:.82rem;white-space:pre-wrap;color:var(--ink);">${escHtml(f.rawText)}</div>`;
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('ac-profile-content').innerHTML = html;
+}
+
+function acRenderVisitCards(visits, limit) {
+  return visits.slice(0, limit).map(v => {
+    const date      = v.date || v['Visit Date'] || v['Date'] || '—';
+    const service   = v.service || v['Service'] || '';
+    const category  = v.category || v['Category'] || '';
+    const notes     = v.notes || v['Notes'] || '';
+    const next      = v.next || v['Next Recommendation'] || '';
+    const therapist = v.therapist || v['Therapist'] || '';
+    const source    = v['Booking Source'] || '';
+    return `<div class="cp-visit-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="cp-visit-date">${escHtml(date)}</div>
+        ${source ? `<span style="font-size:.62rem;color:var(--muted);">${escHtml(source)}</span>` : ''}
+      </div>
+      ${service   ? `<div class="cp-visit-service">${escHtml(service)}${category&&category!==service?' · '+escHtml(category):''}</div>` : ''}
+      ${notes     ? `<div class="cp-visit-note">${escHtml(notes)}</div>` : ''}
+      ${next      ? `<div class="cp-visit-next">→ ${escHtml(next)}</div>` : ''}
+      ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function acShowMoreVisits(visits) {
+  acVisitsShowing = visits.length;
+  document.getElementById('cp-visits-list').innerHTML = acRenderVisitCards(visits, acVisitsShowing);
+  const btn = document.getElementById('cp-more-btn');
+  if (btn) btn.remove();
+}
+
+function acEditableRow(label, val, field, c) {
+  const rowId = 'cp-row-' + field;
+  const valId = 'cp-val-' + field;
+  const editId = 'cp-edit-' + field;
+  return `<div class="cp-editable-row" id="${rowId}">
+    <span class="cp-editable-label">${label}</span>
+    <span class="cp-editable-val" id="${valId}">${escHtml(val)}</span>
+    <button class="cp-edit-btn" onclick="acStartEdit('${field}',${JSON.stringify(c).replace(/"/g,'&quot;')},${JSON.stringify(val).replace(/"/g,'&quot;')})">Edit</button>
+  </div>`;
+}
+
+function acStartEdit(field, c, currentVal) {
+  const rowId  = 'cp-row-' + field;
+  const valId  = 'cp-val-' + field;
+  const row    = document.getElementById(rowId);
+  const valEl  = document.getElementById(valId);
+  if (!row) return;
+
+  const displayVal = currentVal === '—' ? '' : currentVal;
+  row.innerHTML = `
+    <span class="cp-editable-label">${field==='phone'?'Phone':field==='email'?'Email':'Notes'}</span>
+    <div class="cp-edit-inline">
+      <input type="${field==='phone'?'tel':field==='email'?'email':'text'}" id="cp-inp-${field}" value="${escHtml(displayVal)}" placeholder="${field==='phone'?'(310) 555-0000':field==='email'?'email@example.com':'Notes…'}">
+      <button onclick="acSaveField('${field}',${JSON.stringify(c).replace(/"/g,'&quot;')})">Save</button>
+      <button class="btn-discard" onclick="acCancelEdit('${field}',${JSON.stringify(c).replace(/"/g,'&quot;')},${JSON.stringify(currentVal).replace(/"/g,'&quot;')})">✕</button>
+    </div>`;
+}
+
+function acCancelEdit(field, c, originalVal) {
+  const rowId = 'cp-row-' + field;
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.outerHTML = acEditableRow(field==='phone'?'Phone':field==='email'?'Email':'Notes', originalVal, field, c);
+}
+
+async function acSaveField(field, c) {
+  const inp = document.getElementById('cp-inp-' + field);
+  if (!inp) return;
+  let newVal = inp.value.trim();
+  if (field === 'phone') newVal = normalizePhone(newVal);
+
+  const rowId = 'cp-row-' + field;
+  const row = document.getElementById(rowId);
+  if (row) row.style.opacity = '.5';
+
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'update_client_field',
+        clientId: c.clientId,
+        rowIndex: c.rowIndex,
+        name: c.name,
+        field: field,
+        value: newVal
+      })
+    });
+    // Update local cache
+    const idx = acAllClients.findIndex(x => x.rowIndex === c.rowIndex);
+    if (idx >= 0) acAllClients[idx][field] = newVal;
+    const updated = Object.assign({}, c, { [field]: newVal });
+    acProfileClient = updated;
+    // Re-render just this row
+    if (row) {
+      const displayVal = field === 'phone' ? (newVal ? formatPhone(newVal) : '—') : (newVal || '—');
+      row.outerHTML = acEditableRow(field==='phone'?'Phone':field==='email'?'Email':'Notes', displayVal, field, updated);
+    }
+  } catch(e) {
+    if (row) row.style.opacity = '1';
+    alert('Could not save. Please try again.');
+  }
+}
+
+function acEditPkg(p) {
+  const pkgId = p.packageId || p['Package ID'] || '';
+  const name  = p.packageName || p['Package Name'] || '';
+  const done  = p['Sessions Done'] ?? p.sessionsDone ?? 0;
+  const total = p['Sessions Total'] ?? p.sessionsTotal ?? 0;
+  const left  = p['Sessions Left'] ?? p.sessionsLeft ?? 0;
+  const status = p.status || p['Status'] || 'Active';
+
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-pkg-modal" onclick="if(event.target.id==='ac-pkg-modal')document.getElementById('ac-pkg-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);margin-bottom:4px;">Edit Package</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:16px;">${escHtml(name)}</div>
+      <div class="field"><label>Status</label>
+        <select id="mpkg-status" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          <option value="Active" ${status==='Active'?'selected':''}>Active</option>
+          <option value="Completed" ${status==='Completed'?'selected':''}>Completed</option>
+          <option value="Expired" ${status==='Expired'?'selected':''}>Expired</option>
+        </select>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Sessions Total</label><input type="number" id="mpkg-total" value="${total}" min="1" max="99" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;"></div>
+        <div class="field"><label>Sessions Done</label><input type="number" id="mpkg-done" value="${done}" min="0" max="99" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="acSavePkgEdit(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="flex:1;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Save Changes</button>
+        <button onclick="document.getElementById('ac-pkg-modal').remove()" style="padding:11px 16px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function acSavePkgEdit(p) {
+  const newStatus = document.getElementById('mpkg-status').value;
+  const newTotal  = parseInt(document.getElementById('mpkg-total').value) || 0;
+  const newDone   = parseInt(document.getElementById('mpkg-done').value) || 0;
+  const newLeft   = Math.max(0, newTotal - newDone);
+  const pkgId     = p.packageId || p['Package ID'] || '';
+  const phone     = acProfileClient ? acProfileClient.phone : '';
+
+  document.getElementById('ac-pkg-modal').remove();
+  showSpinner('Saving package…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'update_package',
+        packageId: pkgId,
+        clientPhone: phone,
+        status: newStatus,
+        sessionsTotal: newTotal,
+        sessionsDone: newDone,
+        sessionsLeft: newLeft
+      })
+    });
+    hideSpinner();
+    // Reload profile
+    if (acProfileClient) acOpenProfile(acProfileClient);
+  } catch(e) {
+    hideSpinner();
+    alert('Could not save package. Please try again.');
   }
 }
 
