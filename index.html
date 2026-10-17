@@ -1860,6 +1860,24 @@ function hideSpinner() {
   el.hidden = true;
 }
 
+// ── LOAD SAVED SERVICES FROM ADMIN ──
+(function() {
+  try {
+    const raw = localStorage.getItem('bossaspa_services_v1');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved.services && saved.services.length) {
+        // Replace SERVICES array in place
+        SERVICES.length = 0;
+        saved.services.forEach(s => SERVICES.push(s));
+      }
+      if (saved.serviceInfo) {
+        Object.assign(SERVICE_INFO, saved.serviceInfo);
+      }
+    }
+  } catch(e) {}
+})();
+
 // ── INIT ──
 buildServiceScreen();
 buildScreenFlow();
