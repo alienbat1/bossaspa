@@ -504,13 +504,13 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
       <div class="status" id="fu-status" hidden></div>
 
-      <!-- SECTION 1: Recent visits (last 8 days) -->
+      <!-- SECTION 1: Recent Visits — today's 7-day window -->
       <div class="fu-section">
         <div class="fu-section-header fu-green">
           <span class="fu-icon">🌿</span>
           <div class="fu-header-text">
-            <div class="fu-section-title">Recent Visits — Send Follow-Up</div>
-            <div class="fu-section-sub">Visited in the last 8 days · Check in, ask how they felt, offer to rebook</div>
+            <div class="fu-section-title">Recent Visits — Follow-Up Today</div>
+            <div class="fu-section-sub">Visited exactly in the last 7 days · Contact today or they leave this list</div>
           </div>
           <div class="fu-badge fu-badge-green" id="fu-recent-count">—</div>
         </div>
@@ -519,13 +519,13 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         </div>
       </div>
 
-      <!-- SECTION 2: Package alerts -->
+      <!-- SECTION 2: Package alerts (max 25) -->
       <div class="fu-section" style="margin-top:18px;">
         <div class="fu-section-header fu-gold">
           <span class="fu-icon">📦</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a5c1e;">Package Alerts</div>
-            <div class="fu-section-sub" style="color:#9a7535;">Expiring within 50 days · Already expired without renewal</div>
+            <div class="fu-section-sub" style="color:#9a7535;">Expiring within 50 days or expired · Up to 25 per day, most urgent first</div>
           </div>
           <div class="fu-badge fu-badge-gold" id="fu-pkg-count">—</div>
         </div>
@@ -534,13 +534,28 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         </div>
       </div>
 
-      <!-- SECTION 3: Inactive 6+ months -->
+      <!-- SECTION 3: No Visit 3–6 months (max 25) -->
+      <div class="fu-section" style="margin-top:18px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5ede0,#f0e0cc);border-radius:var(--r) var(--r) 0 0;">
+          <span class="fu-icon">⏳</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#7a4a1e;">No Visit in 3–6 Months</div>
+            <div class="fu-section-sub" style="color:#9a6535;">Starting to drift · Warm check-in before they go cold · Up to 25 per day</div>
+          </div>
+          <div class="fu-badge" style="background:#c07840;color:#fff;" id="fu-warm-count">—</div>
+        </div>
+        <div id="fu-warm-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: Inactive 6+ months (max 25) -->
       <div class="fu-section" style="margin-top:18px;margin-bottom:32px;">
         <div class="fu-section-header fu-red">
           <span class="fu-icon">💤</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a2a1e;">No Visit in 6+ Months</div>
-            <div class="fu-section-sub" style="color:#9b3a2a;">Haven't been back in a long time · Time to reconnect</div>
+            <div class="fu-section-sub" style="color:#9b3a2a;">Long gone · Reconnect campaign · Up to 25 per day</div>
           </div>
           <div class="fu-badge fu-badge-red" id="fu-inactive-count">—</div>
         </div>
@@ -1164,10 +1179,10 @@ async function loadFollowUp() {
   statusEl.setAttribute('hidden','');
 
   // Set loading state in all lists
-  ['fu-recent-list','fu-pkg-list','fu-inactive-list'].forEach(id => {
+  ['fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="fu-empty">Loading…</div>';
   });
-  ['fu-recent-count','fu-pkg-count','fu-inactive-count'].forEach(id => {
+  ['fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count'].forEach(id => {
     document.getElementById(id).textContent = '…';
   });
 
@@ -1178,108 +1193,103 @@ async function loadFollowUp() {
     hideSpinner();
     followUpLoaded = true;
 
-    const recent   = data.recent   || [];  // visited last 8 days
-    const packages = data.packages || [];  // expiring/expired
-    const inactive = data.inactive || [];  // no visit 6+ months
+    const recent   = data.recent   || [];  // visited in last 7 days (today's window only)
+    const packages = data.packages || [];  // expiring/expired, max 25
+    const warm     = data.warm     || [];  // no visit 3–6 months, max 25
+    const inactive = data.inactive || [];  // no visit 6+ months, max 25
 
-    // — SECTION 1: Recent visits —
+    // helper: build a standard fu-row
+    function fuRow(c, i, prefix, tagHtml, category, detail) {
+      const phone = normalizePhone(c.phone || '');
+      const note  = c.therapistNote || c.notes || '';
+      const rowId = `fu-row-${prefix}-${i}`;
+      const nameEsc = escHtml(c.name || c['Client Name'] || '—');
+      const detailEsc = escHtml(detail || '');
+      return `<div class="fu-row" id="${rowId}">
+        <div class="fu-row-main">
+          <div class="fu-row-name">${nameEsc}</div>
+          <div class="fu-row-meta">${c._meta || ''}</div>
+          ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
+          ${phone ? `<div class="fu-actions" style="margin-top:7px;">
+            <a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
+            <a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>
+          </div>` : ''}
+        </div>
+        <div class="fu-row-right">
+          ${tagHtml}
+          <button class="fu-btn-contacted" style="margin-top:8px;"
+            onclick="markContacted('${rowId}','${nameEsc}','${phone}','${category}','${detailEsc}')">✓ Contacted</button>
+        </div>
+      </div>`;
+    }
+
+    // — SECTION 1: Recent Visits (today's 7-day window, no limit) —
     document.getElementById('fu-recent-count').textContent = recent.length;
     const recentList = document.getElementById('fu-recent-list');
     if (!recent.length) {
-      recentList.innerHTML = '<div class="fu-empty">No recent visits in the last 8 days.</div>';
+      recentList.innerHTML = '<div class="fu-empty">No visits in the last 7 days today.</div>';
     } else {
       recentList.innerHTML = recent.map((c, i) => {
-        const phone = normalizePhone(c.phone || '');
         const daysAgo = c.daysAgo != null ? c.daysAgo : '?';
-        const note = c.therapistNote || c.notes || '';
-        const rowId = 'fu-row-recent-' + i;
-        return `<div class="fu-row" id="${rowId}">
-          <div class="fu-row-main">
-            <div class="fu-row-name">${escHtml(c.name || '—')}</div>
-            <div class="fu-row-meta">
-              ${phone ? formatPhone(phone) + ' · ' : ''}
-              ${escHtml(c.service || '')}${c.service ? ' · ' : ''}
-              Visited ${daysAgo === 0 ? 'today' : daysAgo + (daysAgo===1?' day':' days') + ' ago'}
-            </div>
-            ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
-            ${phone ? `<div class="fu-actions" style="margin-top:7px;">
-              <a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
-              <a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>
-            </div>` : ''}
-          </div>
-          <div class="fu-row-right">
-            <span class="fu-tag fu-tag-recent">Recent</span>
-            <div class="fu-days">${escHtml(c.visitDate || '')}</div>
-            <button class="fu-btn-contacted" onclick="markContacted('${rowId}','${escHtml(c.name||'')}','${phone}','recent','${escHtml(c.visitDate||'')}')">✓ Contacted</button>
-          </div>
-        </div>`;
+        const phone = normalizePhone(c.phone || '');
+        const visitLabel = daysAgo === 0 ? 'today' : daysAgo + (daysAgo===1?' day':' days') + ' ago';
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${escHtml(c.service||'')}${c.service?' · ':''}Visited ${visitLabel}`;
+        const tag = `<span class="fu-tag fu-tag-recent">${daysAgo===0?'Today':daysAgo+'d ago'}</span>
+                     <div class="fu-days">${escHtml(c.visitDate||'')}</div>`;
+        return fuRow(c, i, 'recent', tag, 'recent', c.visitDate||'');
       }).join('');
     }
 
-    // — SECTION 2: Package alerts —
-    document.getElementById('fu-pkg-count').textContent = packages.length;
+    // — SECTION 2: Package Alerts (max 25) —
+    document.getElementById('fu-pkg-count').textContent = packages.length + (data.pkgTotal > packages.length ? '+' : '');
     const pkgList = document.getElementById('fu-pkg-list');
     if (!packages.length) {
       pkgList.innerHTML = '<div class="fu-empty">No package alerts right now. 🎉</div>';
     } else {
       pkgList.innerHTML = packages.map((c, i) => {
         const phone = normalizePhone(c.phone || '');
-        const isExpired = c.status === 'Expired' || c._type === 'expired';
+        const isExpired = c._type === 'expired';
         const tagClass = isExpired ? 'fu-tag-expired' : 'fu-tag-expiring';
         const tagLabel = isExpired ? 'Expired' : `Exp. in ${c.daysToExpiry||'?'}d`;
-        const sessLeft = c.sessionsLeft != null ? c.sessionsLeft : c['Sessions Left'];
-        const rowId = 'fu-row-pkg-' + i;
-        const pkgName = escHtml(c.packageName || c['Package Name'] || '');
-        return `<div class="fu-row" id="${rowId}">
-          <div class="fu-row-main">
-            <div class="fu-row-name">${escHtml(c.name || c['Client Name'] || '—')}</div>
-            <div class="fu-row-meta">
-              ${phone ? formatPhone(phone) + '<br>' : ''}
-              ${pkgName}
-              ${sessLeft != null ? ' · ' + sessLeft + ' sessions left' : ''}
-              ${c.expiryDate ? '<br>Expiry: ' + escHtml(c.expiryDate) : ''}
-            </div>
-            ${phone ? `<div class="fu-actions" style="margin-top:7px;">
-              <a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
-              <a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>
-            </div>` : ''}
-          </div>
-          <div class="fu-row-right">
-            <span class="fu-tag ${tagClass}">${tagLabel}</span>
-            <button class="fu-btn-contacted" style="margin-top:8px;" onclick="markContacted('${rowId}','${escHtml(c.name||c['Client Name']||'')}','${phone}','package','${pkgName}')">✓ Contacted</button>
-          </div>
-        </div>`;
-      }).join('');
+        const sessLeft = c.sessionsLeft != null ? c.sessionsLeft : '';
+        const pkgName  = c.packageName || '';
+        c._meta = `${phone ? formatPhone(phone) + '<br>' : ''}${escHtml(pkgName)}${sessLeft!=='' ? ' · ' + sessLeft + ' sessions left' : ''}${c.expiryDate ? '<br>Expiry: ' + escHtml(c.expiryDate) : ''}`;
+        const tag = `<span class="fu-tag ${tagClass}">${tagLabel}</span>`;
+        return fuRow(c, i, 'pkg', tag, 'package', pkgName);
+      }).join('') + (data.pkgTotal > packages.length
+        ? `<div class="fu-empty" style="color:var(--gold);font-style:normal;">+${data.pkgTotal - packages.length} more · shown tomorrow</div>` : '');
     }
 
-    // — SECTION 3: Inactive 6+ months —
-    document.getElementById('fu-inactive-count').textContent = inactive.length;
+    // — SECTION 3: No Visit 3–6 months (max 25) —
+    document.getElementById('fu-warm-count').textContent = warm.length + (data.warmTotal > warm.length ? '+' : '');
+    const warmList = document.getElementById('fu-warm-list');
+    if (!warm.length) {
+      warmList.innerHTML = '<div class="fu-empty">No clients in the 3–6 month range. ✅</div>';
+    } else {
+      warmList.innerHTML = warm.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        const months = c.monthsInactive != null ? c.monthsInactive : '?';
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
+        const tag = `<span class="fu-tag" style="background:#ffe6cc;color:#7a4a1e;">${months}mo away</span>`;
+        return fuRow(c, i, 'warm', tag, 'warm', c.lastVisit||'');
+      }).join('') + (data.warmTotal > warm.length
+        ? `<div class="fu-empty" style="color:#c07840;font-style:normal;">+${data.warmTotal - warm.length} more · shown tomorrow</div>` : '');
+    }
+
+    // — SECTION 4: Inactive 6+ months (max 25) —
+    document.getElementById('fu-inactive-count').textContent = inactive.length + (data.inactiveTotal > inactive.length ? '+' : '');
     const inactiveList = document.getElementById('fu-inactive-list');
     if (!inactive.length) {
-      inactiveList.innerHTML = '<div class="fu-empty">All clients have visited recently. ✅</div>';
+      inactiveList.innerHTML = '<div class="fu-empty">No long-term inactive clients. ✅</div>';
     } else {
       inactiveList.innerHTML = inactive.map((c, i) => {
         const phone = normalizePhone(c.phone || '');
         const months = c.monthsInactive != null ? c.monthsInactive : '?';
-        const rowId = 'fu-row-inactive-' + i;
-        return `<div class="fu-row" id="${rowId}">
-          <div class="fu-row-main">
-            <div class="fu-row-name">${escHtml(c.name || '—')}</div>
-            <div class="fu-row-meta">
-              ${phone ? formatPhone(phone) + ' · ' : ''}
-              Last visit: ${escHtml(c.lastVisit || 'never recorded')}
-            </div>
-            ${phone ? `<div class="fu-actions" style="margin-top:7px;">
-              <a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
-              <a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>
-            </div>` : ''}
-          </div>
-          <div class="fu-row-right">
-            <span class="fu-tag fu-tag-inactive">${months}mo away</span>
-            <button class="fu-btn-contacted" style="margin-top:8px;" onclick="markContacted('${rowId}','${escHtml(c.name||'')}','${phone}','inactive','${escHtml(c.lastVisit||'')}')">✓ Contacted</button>
-          </div>
-        </div>`;
-      }).join('');
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
+        const tag = `<span class="fu-tag fu-tag-inactive">${months}mo away</span>`;
+        return fuRow(c, i, 'inactive', tag, 'inactive', c.lastVisit||'');
+      }).join('') + (data.inactiveTotal > inactive.length
+        ? `<div class="fu-empty" style="color:#9b3a2a;font-style:normal;">+${data.inactiveTotal - inactive.length} more · shown tomorrow</div>` : '');
     }
 
   } catch(e) {
@@ -1288,7 +1298,7 @@ async function loadFollowUp() {
     statusEl.textContent = 'Could not load follow-up data. Check your connection and try again.';
     statusEl.className = 'status err';
     statusEl.removeAttribute('hidden');
-    ['fu-recent-list','fu-pkg-list','fu-inactive-list'].forEach(id => {
+    ['fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
   }
@@ -1316,7 +1326,7 @@ async function markContacted(rowId, clientName, phone, category, detail) {
     type: 'follow_up_contact',
     clientName: clientName,
     clientPhone: phone,
-    category: category,      // 'recent' | 'package' | 'inactive'
+    category: category,      // 'recent' | 'package' | 'warm' | 'inactive'
     detail: detail,          // visit date, package name, or last visit date
     contactedDate: today,
     contactedBy: 'admin'
