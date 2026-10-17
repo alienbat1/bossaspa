@@ -49,7 +49,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
 /* Radio options */
 .radio-opts{display:flex;flex-direction:column;gap:8px;}
-.radio-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;font-size:.88rem;transition:all .15s;display:flex;align-items:center;gap:10px;}
+.radio-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:#fff;cursor:pointer;font-size:.88rem;transition:all .15s;display:flex;align-items:center;gap:10px;user-select:none;-webkit-user-select:none;}
 .radio-opt::before{content:'';width:16px;height:16px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;}
 .radio-opt.selected{border-color:var(--teal);background:#f0f5f4;}
 .radio-opt.selected::before{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px #fff;}
@@ -1121,7 +1121,7 @@ const SERVICE_INFO = {
   'massage-sports': {
     what:'Specific techniques for athletes and active people: friction, percussion, and passive stretching to release adhesions, speed up recovery, and prevent injury. Designed for the body that trains.',
     expect:'More specific and targeted than a relaxation massage. Your therapist will focus on areas of tension or recent activity. Some discomfort in worked areas is normal and part of the process.',
-    window:'As needed', windowLabel:'Book whenever you like's responsiveness. Beyond that, chronic adhesions and tension patterns tend to reform.',
+    window:'As needed', windowLabel:'Book whenever you like',
     before:'Arrive hydrated. Inform therapist of recent activity or injuries.',
     after:'Drink water. Light activity encouraged.',
     contra:'Not over acute injuries or inflamed joints.'
@@ -1138,7 +1138,7 @@ const SERVICE_INFO = {
   'massage-cupping': {
     what:'Silicone or glass cups create suction on the skin, lifting the tissue rather than compressing it. Promotes circulation, relieves deep muscle tension, and helps break down adhesions. A unique sensation unlike any hands-on massage.',
     expect:'The cups are placed and glided or stationary on targeted areas. You\'ll feel a lifting, pulling sensation — unusual but not painful. Marks on the skin (circular discolorations) are common and a normal response. They fade within 3–7 days.',
-    window:'As needed', windowLabel:'Book whenever you like's essentially starting from zero.',
+    window:'As needed', windowLabel:'Book whenever you like',
     before:'Stay hydrated.',
     after:'Drink water. Avoid sun exposure on marked areas.',
     contra:'Not over varicose veins, broken skin, or during pregnancy.',
