@@ -901,7 +901,7 @@ const SVC_ICONS = {
   'massage-swedish':     '🤲', 'massage-deep':        '💪', 'massage-hot-stones':  '🔥',
   'massage-hot-bamboo':  '🎋', 'massage-sports':      '🏃', 'massage-prenatal':    '🤰',
   'massage-cupping':     '🫙',
-  'couples-essencial':   '💑', 'couples-relaxing':    '🌹', 'couples-signature':   '💆',
+  'couples-essencial':   '💑', 'couples-relaxing':    '🌹', 'couples-relaxing-sauna': '🧖',
   'couples-love-rio':    '❤️', 'couples-rio-romance': '🌙',
   'facial-dermaplaning': '✨', 'facial-anti-age':     '⏳', 'facial-signature':    '🌸',
   'facial-hydra':        '💎', 'facial-extraction':   '🔬', 'facial-sculpt':       '🌟',
@@ -1162,6 +1162,42 @@ const SERVICE_INFO = {
     after:'Drink 2L of water. Avoid alcohol.',
     contra:'Not recommended with heart conditions, during pregnancy, or with severe heat sensitivity.'
   },
+  'facial-dermaplaning': {
+    what:'A two-step treatment combining dermaplaning with deep hydration. Dermaplaning uses a sterile surgical blade to physically remove the top layer of dead skin cells and fine vellus hair (peach fuzz) from the face, revealing the fresh skin underneath. Followed immediately by a targeted hydration protocol to feed the newly exposed skin.',
+    expect:'Your therapist holds the skin taut and uses light, precise strokes across the face with the blade — no pain, just a gentle scraping sensation. The process takes about 20–30 minutes, then transitions to a hydrating serum, mask, and moisturizer applied to your freshly exfoliated skin. You will leave with noticeably smoother texture, a soft glow, and makeup-ready skin.',
+    window:'4 weeks', windowLabel:'Maximum gap between sessions',
+    consistency:'Skin cell turnover happens every 28–30 days — timing sessions to that cycle keeps the skin in a continuously refreshed state. Beyond 4 weeks, dead cell buildup and peach fuzz regrow fully and the cumulative glow effect resets.',
+    before:'Come with clean, makeup-free skin if possible. Avoid strong exfoliating actives (retinol, AHAs) for 5 days before.',
+    after:'Your skin is freshly exfoliated — sun protection is essential. Avoid retinol and strong acids for 48h. Apply SPF every morning.',
+    contra:'Not over active acne breakouts, rosacea flare-ups, open wounds, or sunburned skin. Not recommended if you are on Accutane or recently finished a course.'
+  },
+  'facial-hydra': {
+    what:'A multi-step machine facial that cleanses, exfoliates, extracts, and infuses the skin with targeted serums in one session — using a vortex suction tip that simultaneously removes impurities and delivers active ingredients deep into the pore. Suitable for most skin types.',
+    expect:'Each step uses a different tip: cleansing and exfoliation first, then a gentle acid peel loosens debris, followed by painless vortex extraction that removes blackheads and congestion without manual squeezing. The final step infuses antioxidants, peptides, and hyaluronic acid into the skin. You will see and feel an immediate difference — clearer pores, plumper skin, and a visible glow.',
+    window:'4 weeks', windowLabel:'Maximum gap between sessions',
+    consistency:'Regular sessions align with the skin\'s natural renewal cycle and build cumulative hydration and clarity over time. Beyond 4 weeks, pore congestion and surface buildup return and each session starts fresh.',
+    before:'Arrive with clean skin. Avoid waxing or laser treatments 2 weeks before.',
+    after:'Avoid active ingredients (retinol, acids) for 24h. No heavy makeup immediately after — let the serums absorb. Use SPF.',
+    contra:'Not during active rosacea flare-ups, if you have used Accutane in the past 6 months, or over open wounds.'
+  },
+  'facial-extraction': {
+    what:'A focused treatment dedicated to deep pore cleansing and manual extraction of blackheads, whiteheads, and congestion. Ideal for clients with oily or congestion-prone skin, or those who haven\'t had a professional facial in a while.',
+    expect:'Your therapist begins with cleansing and steam to open the pores and soften the skin — making extractions easier and less uncomfortable. Manual extractions are then performed on areas of congestion. The session finishes with a soothing mask and calming product to reduce post-extraction redness. Some temporary redness or sensitivity immediately after is normal and fades within a few hours.',
+    window:'3 weeks', windowLabel:'Maximum gap between sessions',
+    consistency:'Pores re-congested faster in oily or active skin — regular sessions within 3 weeks keep congestion managed before it re-deepens. Beyond 3 weeks, new buildup requires more aggressive work to clear.',
+    before:'Do not attempt to extract at home before your appointment — it inflames the skin and makes professional work harder. Arrive with clean skin.',
+    after:'Avoid touching your face. Skip makeup for a few hours if possible. Use a gentle, non-comedogenic moisturizer and SPF.',
+    contra:'Not over highly inflamed active acne (cystic or nodular). Not recommended if you are currently on Accutane.'
+  },
+  'facial-sculpt': {
+    what:'A treatment combining two technologies — Radio Frequency (RF) and a sculpting facial massage protocol — to simultaneously firm, lift, and add glow. RF energy heats the deeper skin layers to stimulate collagen production and tighten tissue. The sculpting massage component works the facial muscles and contours for an immediate lifting effect.',
+    expect:'Your therapist applies the RF device in slow, circular movements across the face and jaw. You will feel a comfortable warmth — not painful. This is followed or combined with a specific sculpting massage that works the muscles, cheekbones, and jawline. Results include immediate visible contouring, skin that feels firmer, and a warm, healthy glow. Progressive collagen benefits build over 4–6 weeks after each session.',
+    window:'2 weeks', windowLabel:'Maximum gap between sessions',
+    consistency:'RF collagen stimulation is cumulative — the tightening effect builds across sessions. Beyond 2 weeks, new collagen production stalls and the treatment resets to baseline.',
+    before:'Remove makeup. Come with clean, dry skin. Avoid active skincare (retinol, acids) the night before.',
+    after:'Avoid sun exposure on face for 24h. Use SPF daily. Skip heavy actives for 48h.',
+    contra:'Not with a pacemaker, metal implants in the face, or during pregnancy. Not over active skin infections or open wounds.'
+  },
   'facial-signature': {
     what:'A complete facial treatment combining deep cleansing, exfoliation, extraction, a customized mask, and hydration. Adapted to your skin type and concerns at the time of your visit.',
     expect:'Your therapist will analyze your skin before beginning. The session includes cleansing, steam, exfoliation, extractions if needed, a customized mask, and a finishing serum or moisturizer. Your skin will look and feel visibly refreshed and balanced.',
@@ -1188,6 +1224,46 @@ const SERVICE_INFO = {
     before:'Remove makeup. Clean skin, no heavy creams.',
     after:'Avoid sun exposure on face. Stay hydrated.',
     contra:'Not with pacemaker, metal facial implants, or active skin infection.'
+  },
+  'couples-essencial': {
+    what:'A relaxing Swedish Massage for two — a simple way to slow down, reconnect, and make time for yourselves. Both guests receive a full 60-minute session side by side in your private couples room.',
+    expect:'Your therapist and a partner therapist work simultaneously so you and your guest experience the session together. Long, smooth gliding strokes across the full body at a pressure that suits each guest. Deeply calming and restorative — many clients drift off. You will leave feeling lighter, calmer, and closer.',
+    window:'As needed', windowLabel:'Book whenever you like',
+    before:'Arrive a few minutes early to settle in together. Avoid heavy meals beforehand.',
+    after:'Drink water. Take your time — there is no rush to leave your room.',
+    contra:'Let us know of any injuries, skin conditions, or health considerations when booking.'
+  },
+  'couples-relaxing': {
+    what:'An extended 90-minute Swedish Massage for two, giving each of you more time to fully unwind and receive additional attention wherever your body needs it most. Both guests are in your private couples room for the entire session.',
+    expect:'The same smooth, flowing Swedish technique as the Essencial — but with the extra 30 minutes your therapist can give deeper attention to areas of tension, work more slowly, and let the relaxation set in fully. Ideal for guests who want to truly disconnect.',
+    window:'As needed', windowLabel:'Book whenever you like',
+    before:'Arrive relaxed. Avoid heavy meals.',
+    after:'Drink water. Rest if possible — the extra length makes this one especially restorative.',
+    contra:'Let us know of any injuries, skin conditions, or health considerations when booking.'
+  },
+  'couples-relaxing-sauna': {
+    what:'A Swedish Massage followed by time in our infrared sauna — for two. Begin with a 60-minute relaxation massage together, then transition to the sauna to extend the warmth and let the benefits settle in. One beverage of your choice is included.',
+    expect:'Your session opens with a full 60-minute Swedish Massage side by side. Afterward, you move to the infrared sauna for 30 minutes of dry heat — perfect for deepening muscle relaxation, supporting circulation, and extending the sense of calm. Plan for approximately 1.5–2 hours total.',
+    window:'As needed', windowLabel:'Book whenever you like',
+    before:'Hydrate well before arriving. Avoid a heavy meal. Wear or bring comfortable clothing for after the sauna.',
+    after:'Drink water — the sauna increases fluid loss. Avoid alcohol for a few hours after.',
+    contra:'Infrared sauna is not recommended during pregnancy or for guests with certain heart conditions. Please let us know when booking.'
+  },
+  'couples-love-rio': {
+    what:'A premium couples experience combining an extended massage, infrared sauna, and thoughtful extras to make your visit feel like a real occasion. For two guests — 90 minutes of Swedish Massage each, followed by 30 minutes in our infrared sauna, with a beverage and a tray of premium fruits and Brazilian sweets.',
+    expect:'Your experience begins with a full 90-minute Swedish Massage together in your private room. From there, you transition to 30 minutes in the infrared sauna. The beverages, fruit, and sweets are ready when you are — a moment to enjoy together before or after. Plan for approximately 2–2.5 hours total.',
+    window:'As needed', windowLabel:'Book whenever you like',
+    before:'Hydrate before arriving. Avoid a heavy meal. Arrive a few minutes early to settle in.',
+    after:'Drink water. The combination of massage and sauna is deeply dehydrating — take your time and enjoy the refreshments included.',
+    contra:'Sauna is not recommended during pregnancy or for guests with certain heart conditions. Please let us know when booking so we can adjust your experience.'
+  },
+  'couples-rio-romance': {
+    what:'Our most complete couples experience — created for those who want to turn their visit into something truly special. Combines massage, facial lymphatic drainage, infrared sauna, beverages, premium fruits and Brazilian sweets, flowers, and romantic décor, all in your private couples room.\n\nEach guest chooses either a 60-minute Swedish Massage or a 60-minute Body Lymphatic Drainage, followed by 30 minutes of Facial Lymphatic Drainage. Then 30 minutes in the infrared sauna together.',
+    expect:'Your experience is layered: first, your chosen body treatment (massage or lymphatic) side by side. Then a dedicated 30-minute facial lymphatic session to de-puff, define, and leave you glowing. Afterward, the sauna — and your room will be set with flowers, décor, refreshments, and sweets for you to enjoy together. Plan for approximately 2–2.5 hours total.',
+    window:'As needed', windowLabel:'Book whenever you like',
+    before:'Arrive a few minutes early. If choosing lymphatic drainage, drink at least 1L of water before. Remove makeup before your facial portion. Avoid heavy meals.',
+    after:'Drink plenty of water — massage, lymphatic drainage, and sauna all promote fluid movement. Take your time enjoying the room.',
+    contra:'Infrared sauna is not recommended during pregnancy or with certain heart conditions. Lymphatic drainage is not recommended during active infections. Please inform us of any health considerations when booking.'
   }
 };
 
