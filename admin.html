@@ -233,6 +233,15 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .fu-btn-contacted.done{background:#d4ede4;border-color:#2a6b44;color:#2a6b44;cursor:default;pointer-events:none;}
 .fu-contacted-label{font-size:.65rem;color:#2a6b44;margin-top:4px;text-align:right;}
 .fu-row.contacted{opacity:.55;}
+/* Collapse arrow */
+.fu-section-header{cursor:pointer;user-select:none;}
+.fu-collapse-arrow{font-size:.75rem;color:var(--muted);margin-left:4px;transition:transform .2s;display:inline-block;line-height:1;}
+.fu-section-header.collapsed .fu-collapse-arrow{transform:rotate(-90deg);}
+.fu-list.collapsed{display:none;}
+/* Wax Club section */
+.fu-wax{background:linear-gradient(135deg,#fff8ed,#fdf3e3);border:1.5px solid var(--gold);}
+.fu-badge-wax{background:var(--gold);color:#fff;}
+.fu-tag-waxclub{background:#fff3d0;color:#7a5c1e;}
 </style>
 </head>
 <body>
@@ -573,15 +582,32 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
       <div class="status" id="fu-status" hidden></div>
 
+      <!-- SECTION 0: Wax Club expiring -->
+      <div class="fu-section" style="margin-bottom:18px;">
+        <div class="fu-section-header fu-wax" onclick="toggleFuSection(this,'fu-waxclub-list')">
+          <span class="fu-icon">🌟</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#7a5c1e;">Wax Club — Expiring Soon</div>
+            <div class="fu-section-sub" style="color:#9a7535;">Had a wax 22–29 days ago · 1–8 days left to rebook at Wax Club price</div>
+          </div>
+          <div class="fu-badge fu-badge-wax" id="fu-waxclub-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-waxclub-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
       <!-- SECTION 1: Recent Visits — today's 7-day window -->
       <div class="fu-section">
-        <div class="fu-section-header fu-green">
+        <div class="fu-section-header fu-green" onclick="toggleFuSection(this,'fu-recent-list')">
           <span class="fu-icon">🌿</span>
           <div class="fu-header-text">
             <div class="fu-section-title">Recent Visits — Follow-Up Today</div>
             <div class="fu-section-sub">Visited exactly in the last 7 days · Contact today or they leave this list</div>
           </div>
           <div class="fu-badge fu-badge-green" id="fu-recent-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-recent-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
@@ -590,13 +616,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
       <!-- SECTION 2: Package alerts (max 25) -->
       <div class="fu-section" style="margin-top:18px;">
-        <div class="fu-section-header fu-gold">
+        <div class="fu-section-header fu-gold" onclick="toggleFuSection(this,'fu-pkg-list')">
           <span class="fu-icon">📦</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a5c1e;">Package Alerts</div>
             <div class="fu-section-sub" style="color:#9a7535;">Expiring within 50 days or expired · Up to 25 per day, most urgent first</div>
           </div>
           <div class="fu-badge fu-badge-gold" id="fu-pkg-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-pkg-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
@@ -605,13 +632,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
       <!-- SECTION 3: No Visit 3–6 months (max 25) -->
       <div class="fu-section" style="margin-top:18px;">
-        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5ede0,#f0e0cc);border-radius:var(--r) var(--r) 0 0;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5ede0,#f0e0cc);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-warm-list')">
           <span class="fu-icon">⏳</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a4a1e;">No Visit in 3–6 Months</div>
             <div class="fu-section-sub" style="color:#9a6535;">Starting to drift · Warm check-in before they go cold · Up to 25 per day</div>
           </div>
           <div class="fu-badge" style="background:#c07840;color:#fff;" id="fu-warm-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-warm-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
@@ -620,13 +648,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 
       <!-- SECTION 4: Inactive 6+ months (max 25) -->
       <div class="fu-section" style="margin-top:18px;margin-bottom:32px;">
-        <div class="fu-section-header fu-red">
+        <div class="fu-section-header fu-red" onclick="toggleFuSection(this,'fu-inactive-list')">
           <span class="fu-icon">💤</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a2a1e;">No Visit in 6+ Months</div>
             <div class="fu-section-sub" style="color:#9b3a2a;">Long gone · Reconnect campaign · Up to 25 per day</div>
           </div>
           <div class="fu-badge fu-badge-red" id="fu-inactive-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-inactive-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
@@ -1402,16 +1431,22 @@ async function saveNote() {
 ══════════════════════════════ */
 let followUpLoaded = false;
 
+function toggleFuSection(headerEl, listId) {
+  const list = document.getElementById(listId);
+  const isCollapsed = list.classList.toggle('collapsed');
+  headerEl.classList.toggle('collapsed', isCollapsed);
+}
+
 async function loadFollowUp() {
   showSpinner('Loading follow-up list…');
   const statusEl = document.getElementById('fu-status');
   statusEl.setAttribute('hidden','');
 
   // Set loading state in all lists
-  ['fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
+  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="fu-empty">Loading…</div>';
   });
-  ['fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count'].forEach(id => {
+  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count'].forEach(id => {
     document.getElementById(id).textContent = '…';
   });
 
@@ -1426,6 +1461,7 @@ async function loadFollowUp() {
     const packages = data.packages || [];  // expiring/expired, max 25
     const warm     = data.warm     || [];  // no visit 3–6 months, max 25
     const inactive = data.inactive || [];  // no visit 6+ months, max 25
+    const waxclub  = data.waxclub  || [];  // wax clients 22-29 days ago (server) OR computed below
 
     // helper: build a standard fu-row
     function fuRow(c, i, prefix, tagHtml, category, detail) {
@@ -1450,6 +1486,30 @@ async function loadFollowUp() {
             onclick="markContacted('${rowId}','${nameEsc}','${phone}','${category}','${detailEsc}')">✓ Contacted</button>
         </div>
       </div>`;
+    }
+
+    // — SECTION 0: Wax Club expiring (22–29 days since last wax of exact same service) —
+    // If server doesn't send waxclub, compute from recent + all visit history in data
+    let waxclubList = waxclub;
+    if (!waxclubList.length && data.allWaxRecent) {
+      // server may send allWaxRecent: visits 22–29 days ago in Wax category
+      waxclubList = data.allWaxRecent;
+    }
+    document.getElementById('fu-waxclub-count').textContent = waxclubList.length || '0';
+    const waxclubListEl = document.getElementById('fu-waxclub-list');
+    if (!waxclubList.length) {
+      waxclubListEl.innerHTML = '<div class="fu-empty">No Wax Club windows expiring this week. ✅</div>';
+    } else {
+      waxclubListEl.innerHTML = waxclubList.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        const daysAgo   = c.daysAgo   != null ? c.daysAgo   : '?';
+        const daysLeft  = c.daysLeft  != null ? c.daysLeft  : (daysAgo !== '?' ? 30 - daysAgo : '?');
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${escHtml(c.service||'')}${c.service?' · ':''}Waxed ${daysAgo}d ago · <strong style="color:#7a5c1e;">${daysLeft}d left</strong> in window`;
+        const urgency = daysLeft <= 3 ? 'background:#fde8e4;color:#9b3a2a;' : 'background:#fff3d0;color:#7a5c1e;';
+        const tag = `<span class="fu-tag" style="${urgency}">${daysLeft}d left</span>
+                     <div class="fu-days">${escHtml(c.visitDate||'')}</div>`;
+        return fuRow(c, i, 'waxclub', tag, 'waxclub', c.visitDate||'');
+      }).join('');
     }
 
     // — SECTION 1: Recent Visits (today's 7-day window, no limit) —
@@ -1527,7 +1587,7 @@ async function loadFollowUp() {
     statusEl.textContent = 'Could not load follow-up data. Check your connection and try again.';
     statusEl.className = 'status err';
     statusEl.removeAttribute('hidden');
-    ['fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
+    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
   }
