@@ -228,6 +228,8 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .fu-actions{display:flex;gap:6px;margin-top:6px;}
 .fu-btn-wa{padding:5px 10px;background:#25d366;color:#fff;border:none;border-radius:6px;font-size:.7rem;cursor:pointer;text-decoration:none;display:inline-block;font-family:'Jost',sans-serif;}
 .fu-btn-call{padding:5px 10px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.7rem;cursor:pointer;text-decoration:none;display:inline-block;font-family:'Jost',sans-serif;}
+.fu-btn-sms{padding:5px 10px;background:#5b7fdb;color:#fff;border:none;border-radius:6px;font-size:.7rem;cursor:pointer;text-decoration:none;display:inline-block;font-family:'Jost',sans-serif;}
+.fu-btn-email{padding:5px 10px;background:#f0f5f4;color:var(--teal);border:1.5px solid var(--teal);border-radius:6px;font-size:.7rem;cursor:pointer;text-decoration:none;display:inline-block;font-family:'Jost',sans-serif;}
 .fu-btn-contacted{padding:5px 10px;background:#f0f5f4;color:var(--teal);border:1.5px solid var(--teal);border-radius:6px;font-size:.7rem;cursor:pointer;font-family:'Jost',sans-serif;transition:all .2s;}
 .fu-btn-contacted:hover{background:var(--teal);color:#fff;}
 .fu-btn-contacted.done{background:#d4ede4;border-color:#2a6b44;color:#2a6b44;cursor:default;pointer-events:none;}
@@ -1466,18 +1468,24 @@ async function loadFollowUp() {
     // helper: build a standard fu-row
     function fuRow(c, i, prefix, tagHtml, category, detail) {
       const phone = normalizePhone(c.phone || '');
+      const email = (c.email || '').trim();
       const note  = c.therapistNote || c.notes || '';
       const rowId = `fu-row-${prefix}-${i}`;
       const nameEsc = escHtml(c.name || c['Client Name'] || '—');
       const detailEsc = escHtml(detail || '');
+      const smsBody  = encodeURIComponent(`Hi ${c.name ? c.name.split(' ')[0] : 'there'}! This is Bossa Spa reaching out — `);
+      const emailSubj = encodeURIComponent('Following up from Bossa Spa');
+      const emailBody = encodeURIComponent(`Hi ${c.name ? c.name.split(' ')[0] : 'there'},\n\nThis is Bossa Spa reaching out — `);
       return `<div class="fu-row" id="${rowId}">
         <div class="fu-row-main">
           <div class="fu-row-name">${nameEsc}</div>
           <div class="fu-row-meta">${c._meta || ''}</div>
           ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
-          ${phone ? `<div class="fu-actions" style="margin-top:7px;">
-            <a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
-            <a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>
+          ${phone || email ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
+            ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
+            ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
+            ${phone ? `<a class="fu-btn-sms" href="sms:${phone}&body=${smsBody}">💬 Text</a>` : ''}
+            ${email ? `<a class="fu-btn-email" href="mailto:${email}?subject=${emailSubj}&body=${emailBody}" target="_blank">✉️ Email</a>` : ''}
           </div>` : ''}
         </div>
         <div class="fu-row-right">
@@ -2148,17 +2156,36 @@ async function markContacted(rowId, clientName, phone, category, detail) {
       body: JSON.stringify(payload)
     });
 
-    // Success — mark row visually
-    if (row) row.classList.add('contacted');
+    // Success — flash green then fade out and remove the row
     if (btn) {
       btn.textContent = '✓ Done';
       btn.classList.add('done');
     }
-    // Add a small timestamp label
-    const label = document.createElement('div');
-    label.className = 'fu-contacted-label';
-    label.textContent = 'Contacted ' + today;
-    btn.after(label);
+    if (row) {
+      row.style.transition = 'opacity .35s, max-height .4s .3s';
+      row.style.overflow   = 'hidden';
+      row.style.maxHeight  = row.offsetHeight + 'px';
+      // start fade
+      setTimeout(() => { row.style.opacity = '0'; row.style.maxHeight = '0'; }, 50);
+      setTimeout(() => {
+        const list = row.parentElement;
+        row.remove();
+        // if list is now empty, show the "all done" message
+        if (list && !list.querySelector('.fu-row')) {
+          list.innerHTML = '<div class="fu-empty">All contacted for today ✅</div>';
+        }
+        // update badge count on the header above this list
+        if (list) {
+          const section = list.closest('.fu-section') || list.parentElement;
+          const badge   = section && section.querySelector('.fu-badge');
+          if (badge) {
+            const remaining = list.querySelectorAll('.fu-row').length;
+            const cur = parseInt(badge.textContent) || 0;
+            if (!isNaN(cur) && cur > 0) badge.textContent = Math.max(0, cur - 1);
+          }
+        }
+      }, 750);
+    }
 
   } catch(e) {
     btn.textContent = '✓ Contacted';
