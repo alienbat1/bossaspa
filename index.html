@@ -239,18 +239,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       <div style="font-size:.72rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;">Is this you? Please confirm before continuing.</div>
     </div>
 
-    <!-- Visit summary by category (always shown when visits exist) -->
-    <div id="visits-summary-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"></div>
-
-    <!-- Collapsible: all visits -->
-    <div id="visits-history-wrap" style="margin-bottom:16px;display:none;">
-      <button onclick="toggleVisitHistory()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);">
-        <span id="visits-history-label">See all visits</span>
-        <span id="visits-history-arrow" style="transition:transform .2s;">▸</span>
-      </button>
-      <div id="visits-history-body" style="display:none;border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:0;background:#fff;max-height:260px;overflow-y:auto;">
-        <div id="visits-history-list"></div>
-      </div>
+    <!-- Wax Club notice (shown when client has a wax within 30 days) -->
+    <div id="pkg-waxclub-banner" style="display:none;background:#fff8e6;border:1.5px solid var(--gold);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;">
+      <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a6200;font-weight:600;margin-bottom:4px;">🌟 Wax Club Available</div>
+      <div style="font-size:.83rem;color:#7a5c1e;line-height:1.5;" id="pkg-waxclub-msg"></div>
     </div>
 
     <!-- Active package question (shown only when client has active package) -->
@@ -281,6 +273,20 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div class="radio-opt" id="pkg-no" onclick="selectPkgUse(false)">💳 No — I'll pay separately today</div>
       </div>
       <div class="err-msg" id="pkg-err">Please select an option to continue.</div>
+    </div>
+
+    <!-- Visit summary by category (shown after package info) -->
+    <div id="visits-summary-cards" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;margin-top:20px;"></div>
+
+    <!-- Collapsible: all visits -->
+    <div id="visits-history-wrap" style="margin-bottom:16px;display:none;">
+      <button onclick="toggleVisitHistory()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);">
+        <span id="visits-history-label">See all visits</span>
+        <span id="visits-history-arrow" style="transition:transform .2s;">▸</span>
+      </button>
+      <div id="visits-history-body" style="display:none;border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:0;background:#fff;max-height:260px;overflow-y:auto;">
+        <div id="visits-history-list"></div>
+      </div>
     </div>
 
     <button class="btn" id="pkg-btn" onclick="nextScreen()">Continue →</button>
