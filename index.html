@@ -515,6 +515,7 @@ let selectedDuration = null;
 let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
+let clientNotes = '';        // notes from client profile (from lookup)
 let lastHealth = null;       // previous health answers from lookup
 let healthConfirmed = false; // true when returning client taps "confirm unchanged"
 let svcFormAnswers = {};     // answers from the service-specific form
@@ -535,9 +536,8 @@ function buildScreenFlow() {
   // Only show if: has active package OR has actual visit history
   // (don't show if only inactive packages with no visits — nothing useful to display)
   const hasActiveNow = activePackage && activePackage.sessionsLeft > 0;
-  // Only show history/package screen if client has an ACTIVE package with sessions left
-  // (visits alone → skip straight to service screen; expired/completed packages shown on service screen)
-  if (!isNewClient && hasActiveNow) {
+  // Show profile/package screen for ALL returning clients so they can confirm their info
+  if (!isNewClient) {
     screenFlow.push('package');
   }
   screenFlow.push('service');
@@ -647,6 +647,7 @@ async function nextScreen() {
       if (found) {
         // Client exists — proceed as returning
         clientName       = found.name || '';
+        clientNotes      = found.clientNotes || '';
         lastHealth       = found.lastHealth || null;
         lastSvcForm      = found.lastSvcForm || null;
         activePackage    = found.activePackage || null;
