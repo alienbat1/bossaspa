@@ -1897,7 +1897,7 @@ async function acDeleteVisit(v) {
   try {
     const res = await fetch(WEBAPP_URL, {
       method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ type: 'delete_visit_row', rowIndex: v.rowIndex, date: v.date, service: v.service })
     });
     const data = await res.json();
