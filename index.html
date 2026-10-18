@@ -354,6 +354,31 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn" onclick="nextScreen()">I've read this — Continue →</button>
   </div>
 
+  <!-- SCREEN 3c: SERVICE FORM -->
+  <div class="screen" id="screen-svcform">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
+    <div class="screen-title" id="svcform-title">About Your Session</div>
+    <div class="screen-sub" id="svcform-sub">A few quick questions for your therapist</div>
+
+    <!-- Returning client: previous answers on file -->
+    <div id="svcform-returning-banner" style="display:none;background:#edf5f3;border:1px solid #b0cec9;border-radius:var(--r);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:4px;">On file from your last visit</div>
+      <div style="font-size:.82rem;color:var(--ink);line-height:1.6;" id="svcform-returning-summary"></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:8px;">If anything has changed, update below. Otherwise confirm at the bottom.</div>
+    </div>
+
+    <!-- Therapist notes from previous facial visits -->
+    <div id="svcform-therapist-notes" style="display:none;background:#fdf6ff;border:1.5px solid #d4b0e8;border-radius:var(--r);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#7a3fa0;font-weight:600;margin-bottom:6px;">📋 Therapist notes from your last visit</div>
+      <div style="font-size:.84rem;color:var(--ink);line-height:1.6;" id="svcform-therapist-notes-text"></div>
+    </div>
+
+    <div id="svcformFields"></div>
+    <div class="err-msg" id="svcform-err">Please answer all required questions.</div>
+    <button class="btn" id="svcform-confirm-btn" style="display:none;background:var(--teal);margin-top:12px;" onclick="confirmSvcFormUnchanged()">✓ I confirm — nothing has changed</button>
+    <button class="btn" id="svcform-continue-btn" onclick="nextScreen()">Continue →</button>
+  </div>
+
   <!-- SCREEN 4: HEALTH FORM -->
   <div class="screen" id="screen-health">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
@@ -492,6 +517,9 @@ let sigHasContent = false;
 let screenFlow = [];
 let lastHealth = null;       // previous health answers from lookup
 let healthConfirmed = false; // true when returning client taps "confirm unchanged"
+let svcFormAnswers = {};     // answers from the service-specific form
+let svcFormConfirmed = false;// true when returning client confirms svc form unchanged
+let lastSvcForm = null;      // previous svc form answers from lookup
 
 function prevScreen() {
   if (currentStep <= 0) return;
@@ -514,6 +542,7 @@ function buildScreenFlow() {
   }
   screenFlow.push('service');
   screenFlow.push('info');
+  screenFlow.push('svcform');
   screenFlow.push('health');
   if (isNewClient) screenFlow.push('waiver');
   screenFlow.push('thanks');
@@ -585,6 +614,9 @@ function showScreen(id) {
   if (id === 'info') {
     buildInfoScreen();
   }
+  if (id === 'svcform') {
+    buildSvcForm();
+  }
   if (id === 'waiver') {
     setTimeout(resizeCanvas, 50);
   }
@@ -616,6 +648,7 @@ async function nextScreen() {
         // Client exists — proceed as returning
         clientName       = found.name || '';
         lastHealth       = found.lastHealth || null;
+        lastSvcForm      = found.lastSvcForm || null;
         activePackage    = found.activePackage || null;
         inactivePackages = found.inactivePackages || [];
         visitHistory     = found.visitHistory || [];
@@ -719,6 +752,23 @@ async function nextScreen() {
     updateHealthStep();
   }
 
+  if (current === 'svcform') {
+    if (!svcFormConfirmed) {
+      // Validate required questions (chips need at least one selection)
+      const fields = document.querySelectorAll('#svcformFields .svcf-q[data-required="1"]');
+      let ok = true;
+      fields.forEach(f => {
+        const hasChips = f.querySelector('.svcf-opt');
+        if (hasChips && !f.querySelector('.svcf-opt.selected')) ok = false;
+        // textarea fields are optional by design (required=false)
+      });
+      if (!ok) { showErr('svcform-err'); return; }
+    }
+    hideErr('svcform-err');
+    // Collect and store service form answers
+    svcFormAnswers = collectSvcForm();
+  }
+
   if (current === 'health') {
     // Returning client who confirmed no changes — use lastHealth data
     const hasRealHealthData = lastHealth && !isNewClient &&
@@ -732,13 +782,15 @@ async function nextScreen() {
         clientName: name, clientPhone: phone,
         service: selectedService.name, duration: selectedDuration,
         date: new Date().toLocaleDateString('en-US'),
-        healthConfirmedUnchanged: true, ...lastHealth
+        healthConfirmedUnchanged: true, ...lastHealth,
+        svcForm: svcFormAnswers
       });
       await sendToSheets('visit', {
         clientName: name, clientPhone: phone,
         serviceName: selectedService.name, duration: selectedDuration,
         serviceCategory: selectedService.cat, isNew: false,
-        date: new Date().toLocaleDateString('en-US')
+        date: new Date().toLocaleDateString('en-US'),
+        svcForm: svcFormAnswers
       });
       // Use package session if client opted in
       if (usePackageToday && activePackage) {
@@ -762,13 +814,15 @@ async function nextScreen() {
       await sendToSheets('health_form', {
         clientName: name, clientPhone: phone,
         service: selectedService.name, duration: selectedDuration,
-        date: new Date().toLocaleDateString('en-US'), ...answers
+        date: new Date().toLocaleDateString('en-US'), ...answers,
+        svcForm: svcFormAnswers
       });
       await sendToSheets('visit', {
         clientName: name, clientPhone: phone,
         serviceName: selectedService.name, duration: selectedDuration,
         serviceCategory: selectedService.cat, isNew: isNewClient,
-        date: new Date().toLocaleDateString('en-US')
+        date: new Date().toLocaleDateString('en-US'),
+        svcForm: svcFormAnswers
       });
       // Use package session if client opted in
       if (usePackageToday && activePackage) {
@@ -831,7 +885,10 @@ function resetApp() {
   sigHasContent = false;
   clientName = '';
   lastHealth = null;
+  lastSvcForm = null;
   healthConfirmed = false;
+  svcFormConfirmed = false;
+  svcFormAnswers = {};
   activePackage    = null;
   inactivePackages = [];
   visitHistory     = [];
@@ -1808,6 +1865,349 @@ function selectPkgUse(useIt) {
     selectedService  = null;
     selectedDuration = null;
   }
+}
+
+// ── SERVICE-SPECIFIC FORM ──
+
+// Questions per category (or per service id for specific overrides).
+// Types: 'chips' (single select), 'chips-multi' (multi-select), 'textarea', 'info-only'
+// required: true = must answer before continuing
+// showIf: function(svc) → boolean — show this question only for specific services
+
+const SVC_FORM_QUESTIONS = {
+
+  Massage: [
+    { id:'massage-areas',    label:'Which areas would you like to focus on?',
+      type:'chips-multi',    opts:['Full Body','Back & Shoulders','Neck & Scalp','Arms & Hands','Legs & Feet','Glutes','Abdomen'],
+      required:true },
+    { id:'massage-goal',     label:'What is your goal for today\'s session?',
+      type:'chips',          opts:['Relaxation','Tension relief','Pain / soreness','Sports recovery','Stress relief','Improve circulation'],
+      required:true },
+    { id:'massage-pressure', label:'Preferred pressure?',
+      type:'chips',          opts:['Light','Medium','Firm','Mix — start light, go deeper'],
+      required:true },
+    { id:'massage-avoid',    label:'Any areas to avoid? (injury, sensitivity, preference)',
+      type:'textarea',       required:false, placeholder:'e.g. Lower back injury, avoid left knee…' },
+    { id:'massage-first',    label:'Is this your first time receiving this type of massage?',
+      type:'chips',          opts:['Yes, first time','No, I\'ve had it before'],
+      required:true,
+      showIf: svc => ['massage-prenatal','massage-cupping','massage-hot-bamboo'].includes(svc.id) },
+    { id:'massage-notes',    label:'Anything else you\'d like your therapist to know? (optional)',
+      type:'textarea',       required:false, placeholder:'Notes for your therapist…' },
+  ],
+
+  Facial: [
+    { id:'facial-concern',   label:'What is your main skin concern today?',
+      type:'chips-multi',    opts:['Acne / breakouts','Dark spots / hyperpigmentation','Fine lines & wrinkles','Dryness & dehydration','Oiliness','Large pores','Redness / sensitivity','Uneven texture','Dullness'],
+      required:true },
+    { id:'facial-skin-type', label:'How would you describe your skin type?',
+      type:'chips',          opts:['Dry','Oily','Combination','Sensitive','Normal','Not sure'],
+      required:true },
+    { id:'facial-actives',   label:'Are you currently using any acids or retinol on your skin?',
+      type:'chips',          opts:['No','Yes — mild (AHA/BHA)','Yes — prescription-strength or retinol'],
+      required:true },
+    { id:'facial-procedure', label:'Have you had any cosmetic procedures recently? (Botox, filler, peel, laser)',
+      type:'chips',          opts:['No','Yes — within the past 2 weeks','Yes — 2–4 weeks ago','Yes — over a month ago'],
+      required:true },
+    { id:'facial-sun',       label:'How is your skin with sun sensitivity after treatments?',
+      type:'chips',          opts:['No issues','Mildly sensitive','Very sensitive — I burn easily'],
+      required:false },
+    { id:'facial-notes',     label:'Anything else your esthetician should know? (optional)',
+      type:'textarea',       required:false, placeholder:'Skin history, allergies, preferences…' },
+  ],
+
+  // Standard lymphatic (non-post-op)
+  Lymphatic: [
+    { id:'lymph-goal',       label:'What is your goal for today\'s session?',
+      type:'chips-multi',    opts:['General wellness','Reduce water retention / bloating','Improve circulation','Detox / cleanse','Relaxation','Skin health'],
+      required:true },
+    { id:'lymph-area',       label:'Which areas feel most congested or uncomfortable?',
+      type:'chips-multi',    opts:['Face & neck','Arms','Abdomen','Legs','Full body','Not sure'],
+      required:false },
+    { id:'lymph-notes',      label:'Anything else for your therapist? (optional)',
+      type:'textarea',       required:false, placeholder:'Notes…' },
+  ],
+
+  // Post-op lymphatic (separate block — merged dynamically for post-op services)
+  LymphaticPostOp: [
+    { id:'lymph-po-procedure', label:'What procedure did you have?',
+      type:'chips',            opts:['Liposuction','Tummy tuck (abdominoplasty)','BBL (Brazilian Butt Lift)','Breast augmentation / reduction','Arm lift','Mommy makeover','Rhinoplasty','Other / multiple'],
+      required:true },
+    { id:'lymph-po-time',      label:'How long ago was your surgery?',
+      type:'chips',            opts:['Less than 2 weeks','2–4 weeks','1–2 months','Over 2 months'],
+      required:true },
+    { id:'lymph-po-area',      label:'Which areas have the most swelling or discomfort?',
+      type:'chips-multi',      opts:['Abdomen','Flanks / sides','Arms','Legs','Back','Chest','Glutes','Face & neck'],
+      required:true },
+    { id:'lymph-po-garment',   label:'Are you wearing a compression garment?',
+      type:'chips',            opts:['Yes — full time','Yes — part time','No — just stopped','No'],
+      required:true },
+    { id:'lymph-po-notes',     label:'Anything else your therapist should know? (optional)',
+      type:'textarea',         required:false, placeholder:'Surgeon notes, restrictions, concerns…' },
+  ],
+
+  'Body Treatments': [
+    { id:'body-area',        label:'Which area(s) would you like to focus on?',
+      type:'chips-multi',    opts:['Abdomen','Flanks / love handles','Arms','Thighs','Glutes','Back','Chest'],
+      required:true },
+    { id:'body-goal',        label:'What is your main goal?',
+      type:'chips-multi',    opts:['Reduce measurements','Tone & firm','Reduce cellulite','Body contouring','Improve skin texture','Post-surgery recovery'],
+      required:true },
+    { id:'body-done-before', label:'Have you done this treatment before?',
+      type:'chips',          opts:['Yes','No — this is my first time'],
+      required:true },
+    { id:'body-sessions',    label:'Are you part of a treatment program? If so, which session is this?',
+      type:'chips',          opts:['Not part of a program','Session 1–3','Session 4–6','Session 7+'],
+      required:false },
+    { id:'body-notes',       label:'Anything else for your therapist? (optional)',
+      type:'textarea',       required:false, placeholder:'Notes…' },
+  ],
+
+  Wax: [
+    // Wax Club status — info-only block, populated dynamically
+    { id:'wax-club-status',  label:'',  type:'info-only', required:false },
+
+    { id:'wax-first',        label:'Have you had a wax before?',
+      type:'chips',          opts:['Yes, regularly','Yes, a few times','No — this is my first time'],
+      required:true },
+    { id:'wax-last-time',    label:'When was your last wax (approximately)?',
+      type:'chips',          opts:['Less than 2 weeks ago','2–3 weeks ago','4 weeks ago','More than 4 weeks ago','I don\'t remember'],
+      required:true,
+      // Skip this question when Wax Club already confirmed exact last visit date
+      hideIfWaxClub: true },
+    { id:'wax-actives',      label:'Are you using any active skincare in the area to be waxed? (retinol, acids, Accutane)',
+      type:'chips',          opts:['No','Yes — I\'ll let my therapist know'],
+      required:true },
+    { id:'wax-style',        label:'Style preference?',
+      type:'chips',          opts:['Fully bare','Leave a small strip','Leave a triangle','Not sure — let therapist guide me'],
+      required:false,
+      showIf: svc => ['wax-brazilian','wax-manzilian','wax-bikini'].includes(svc.id) },
+    { id:'wax-notes',        label:'Anything else for your therapist? (optional)',
+      type:'textarea',       required:false, placeholder:'Skin sensitivity, preferences…' },
+  ],
+
+  Couples: [
+    { id:'couples-pressure-1', label:'Person 1 — preferred pressure?',
+      type:'chips',            opts:['Light','Medium','Firm'],
+      required:true },
+    { id:'couples-pressure-2', label:'Person 2 — preferred pressure?',
+      type:'chips',            opts:['Light','Medium','Firm'],
+      required:true },
+    { id:'couples-avoid',      label:'Any areas to avoid for either person? (injuries, sensitivities)',
+      type:'textarea',         required:false, placeholder:'e.g. Person 1: left shoulder injury. Person 2: no restrictions.' },
+    { id:'couples-occasion',   label:'Is this a special occasion?',
+      type:'chips',            opts:['No, just a relaxing day','Anniversary','Birthday','Valentine\'s Day','Honeymoon / engagement','Gift / surprise','Other'],
+      required:false },
+    { id:'couples-notes',      label:'Anything else we should know to make your experience special? (optional)',
+      type:'textarea',         required:false, placeholder:'Notes…' },
+  ],
+
+  Sauna: [
+    { id:'sauna-first',      label:'Is this your first time in an infrared sauna?',
+      type:'chips',          opts:['Yes, first time','No, I\'ve used one before'],
+      required:true },
+    { id:'sauna-goal',       label:'What is your goal today?',
+      type:'chips-multi',    opts:['Relaxation','Detox / cleanse','Muscle recovery','Improve circulation','Weight / water loss','Skin health'],
+      required:true },
+    { id:'sauna-cardio',     label:'Do you have any heart conditions or high blood pressure?',
+      type:'chips',          opts:['No','Yes — my doctor has approved sauna use','Yes — I\'m not sure if it\'s safe for me'],
+      required:true },
+    { id:'sauna-notes',      label:'Anything else? (optional)',
+      type:'textarea',       required:false, placeholder:'Notes…' },
+  ],
+};
+
+// Which service ids are post-op lymphatic
+const POST_OP_IDS = ['lymphatic-post1','lymphatic-post-full'];
+
+function getSvcFormQuestions(svc) {
+  if (!svc) return [];
+  let base = [];
+
+  if (POST_OP_IDS.includes(svc.id)) {
+    // Post-op: use the post-op specific questions
+    base = SVC_FORM_QUESTIONS.LymphaticPostOp || [];
+  } else if (SVC_FORM_QUESTIONS[svc.cat]) {
+    base = SVC_FORM_QUESTIONS[svc.cat];
+  }
+
+  // Filter by showIf
+  return base.filter(q => !q.showIf || q.showIf(svc));
+}
+
+function buildSvcForm() {
+  if (!selectedService) return;
+  svcFormConfirmed = false;
+
+  const svc = selectedService;
+  const questions = getSvcFormQuestions(svc);
+
+  // Title
+  document.getElementById('svcform-title').textContent = 'About Your Session';
+  document.getElementById('svcform-sub').textContent   = svc.name + ' — a few quick questions for your therapist';
+
+  // Therapist notes (facial only — show previous therapist notes)
+  const therapistNotesEl  = document.getElementById('svcform-therapist-notes');
+  const therapistNotesText = document.getElementById('svcform-therapist-notes-text');
+  const prevTherapistNotes = lastSvcForm && lastSvcForm['_therapist_notes'];
+  if (svc.cat === 'Facial' && prevTherapistNotes && !isNewClient) {
+    therapistNotesText.textContent = prevTherapistNotes;
+    therapistNotesEl.style.display = 'block';
+  } else {
+    therapistNotesEl.style.display = 'none';
+  }
+
+  // Wax Club info-only block
+  const waxClubStatusQ = questions.find(q => q.id === 'wax-club-status');
+  if (waxClubStatusQ) {
+    const now    = new Date();
+    const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const match  = visitHistory && visitHistory.find(v => {
+      if (v.service !== svc.name) return false;
+      const d = new Date(v.date);
+      return !isNaN(d.getTime()) && d >= cutoff;
+    });
+    if (match) {
+      const days = Math.round((now - new Date(match.date)) / (1000 * 60 * 60 * 24));
+      waxClubStatusQ._html = `<div style="background:#fff8e6;border:1.5px solid var(--gold);border-radius:var(--r);padding:12px 14px;margin-bottom:4px;">
+        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8a6200;font-weight:600;margin-bottom:4px;">🌟 Wax Club — eligible</div>
+        <div style="font-size:.84rem;color:#8a6200;">Your last ${svc.name} was <strong>${days} day${days===1?'':'s'} ago</strong> — within the 30-day window. <strong>Wax Club pricing applies today.</strong></div>
+      </div>`;
+    } else {
+      // Find any wax visit regardless of service
+      const anyWax = visitHistory && visitHistory.find(v => {
+        const d = new Date(v.date);
+        return v.category === 'Wax' && !isNaN(d.getTime()) && d >= cutoff;
+      });
+      if (anyWax) {
+        const days = Math.round((now - new Date(anyWax.date)) / (1000 * 60 * 60 * 24));
+        waxClubStatusQ._html = `<div style="background:#f7f7f7;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:4px;">
+          <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px;">Wax Club — not applicable today</div>
+          <div style="font-size:.84rem;color:var(--muted);">Your last wax visit was ${days} day${days===1?'':'s'} ago for <strong>${anyWax.service}</strong>. Wax Club applies only when the <em>same exact service</em> is repeated within 30 days.</div>
+        </div>`;
+      } else {
+        waxClubStatusQ._html = `<div style="background:#f7f7f7;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:4px;">
+          <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px;">Wax Club</div>
+          <div style="font-size:.84rem;color:var(--muted);">No recent wax visit on file. Come back within 30 days of today to qualify for Wax Club pricing on this service.</div>
+        </div>`;
+      }
+    }
+  }
+
+  // Build form HTML
+  const container = document.getElementById('svcformFields');
+  container.innerHTML = questions.map((q, i) => {
+    if (q.type === 'info-only') {
+      return `<div class="svcf-q" data-idx="${i}" data-id="${q.id}" data-required="0">${q._html || ''}</div>`;
+    }
+    // Hide wax last-time question when Wax Club already has the date
+    if (q.id === 'wax-last-time' && q.hideIfWaxClub) {
+      const now = new Date();
+      const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const hasExact = visitHistory && visitHistory.find(v => {
+        if (v.service !== svc.name) return false;
+        const d = new Date(v.date);
+        return !isNaN(d.getTime()) && d >= cutoff;
+      });
+      if (hasExact) return ''; // skip
+    }
+
+    const isReq = q.required ? '1' : '0';
+    let inner = '';
+    if (q.type === 'chips' || q.type === 'chips-multi') {
+      const multi = q.type === 'chips-multi';
+      inner = `<div class="health-opts">${q.opts.map(o =>
+        `<div class="h-opt svcf-opt" onclick="selectSvcOpt(this,${i},${multi})">${o}</div>`
+      ).join('')}</div>`;
+    } else if (q.type === 'textarea') {
+      inner = `<textarea class="health-note" style="display:block;width:100%;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.85rem;font-weight:300;resize:vertical;min-height:64px;outline:none;color:var(--ink);background:#fff;" placeholder="${q.placeholder||'Your answer…'}" oninput="this.style.borderColor='var(--teal)'"></textarea>`;
+    }
+    return `<div class="svcf-q" data-idx="${i}" data-id="${q.id}" data-required="${isReq}">
+      <label>${q.label}${q.required ? '' : ' <span style="font-weight:300;color:var(--muted);font-size:.78rem;">(optional)</span>'}</label>
+      ${inner}
+    </div>`;
+  }).join('');
+
+  // Returning client — show previous answers banner + pre-fill
+  const banner     = document.getElementById('svcform-returning-banner');
+  const confirmBtn = document.getElementById('svcform-confirm-btn');
+  const hasPrev    = lastSvcForm && !isNewClient &&
+    questions.some(q => q.id !== 'wax-club-status' && lastSvcForm[q.id] && lastSvcForm[q.id] !== '');
+
+  if (hasPrev) {
+    const lines = [];
+    questions.forEach(q => {
+      if (q.type === 'info-only') return;
+      const ans = lastSvcForm[q.id];
+      if (ans) lines.push(`<strong>${q.label}</strong> → ${Array.isArray(ans) ? ans.join(', ') : ans}`);
+    });
+    document.getElementById('svcform-returning-summary').innerHTML = lines.join('<br>');
+    banner.style.display  = 'block';
+    confirmBtn.style.display = 'block';
+
+    // Pre-fill answers
+    const groups = container.querySelectorAll('.svcf-q');
+    questions.forEach((q, i) => {
+      if (q.type === 'info-only') return;
+      const prevAns = lastSvcForm[q.id];
+      if (!prevAns) return;
+      const group = groups[i];
+      if (!group) return;
+      if (q.type === 'chips' || q.type === 'chips-multi') {
+        const answers = Array.isArray(prevAns) ? prevAns : [prevAns];
+        group.querySelectorAll('.svcf-opt').forEach(opt => {
+          if (answers.includes(opt.textContent)) opt.classList.add('selected');
+        });
+      } else if (q.type === 'textarea') {
+        const ta = group.querySelector('textarea');
+        if (ta) ta.value = prevAns;
+      }
+    });
+  } else {
+    banner.style.display     = 'none';
+    confirmBtn.style.display = 'none';
+  }
+}
+
+function selectSvcOpt(el, groupIdx, isMulti) {
+  const group = document.querySelectorAll('.svcf-q')[groupIdx];
+  if (!isMulti) {
+    group.querySelectorAll('.svcf-opt').forEach(o => o.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+  hideErr('svcform-err');
+}
+
+function confirmSvcFormUnchanged() {
+  svcFormConfirmed = true;
+  const btn = document.getElementById('svcform-confirm-btn');
+  btn.textContent = '✓ Confirmed — no changes';
+  btn.style.background = '#6aab9c';
+  btn.disabled = true;
+  hideErr('svcform-err');
+}
+
+function collectSvcForm() {
+  if (!selectedService) return {};
+  const questions = getSvcFormQuestions(selectedService);
+  const result = {};
+  const groups  = document.querySelectorAll('#svcformFields .svcf-q');
+  questions.forEach((q, i) => {
+    if (q.type === 'info-only') return;
+    const group = groups[i];
+    if (!group) return;
+    if (q.type === 'chips') {
+      const sel = group.querySelector('.svcf-opt.selected');
+      result[q.id] = sel ? sel.textContent : '';
+    } else if (q.type === 'chips-multi') {
+      const sels = group.querySelectorAll('.svcf-opt.selected');
+      result[q.id] = Array.from(sels).map(s => s.textContent);
+    } else if (q.type === 'textarea') {
+      const ta = group.querySelector('textarea');
+      result[q.id] = ta ? ta.value.trim() : '';
+    }
+  });
+  return result;
 }
 
 // ── HEALTH FORM ──
