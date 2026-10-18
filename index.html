@@ -754,10 +754,11 @@ async function nextScreen() {
 
   if (current === 'svcform') {
     if (!svcFormConfirmed) {
-      // Validate required questions (chips need at least one selection)
+      // Validate required questions (chips need at least one selection; skip hidden groups)
       const fields = document.querySelectorAll('#svcformFields .svcf-q[data-required="1"]');
       let ok = true;
       fields.forEach(f => {
+        if (f.style.display === 'none') return; // hidden by conditional logic
         const hasChips = f.querySelector('.svcf-opt');
         if (hasChips && !f.querySelector('.svcf-opt.selected')) ok = false;
         // textarea fields are optional by design (required=false)
@@ -1973,10 +1974,13 @@ const SVC_FORM_QUESTIONS = {
     { id:'wax-last-time',    label:'When was your last wax (approximately)?',
       type:'chips',          opts:['Less than 2 weeks ago','2–3 weeks ago','4 weeks ago','More than 4 weeks ago','I don\'t remember'],
       required:true,
-      // Skip this question when Wax Club already confirmed exact last visit date
+      // Hide when client said it's their first time OR when Wax Club already has exact date
+      hideIfFirstTime: true,
       hideIfWaxClub: true },
     { id:'wax-actives',      label:'Are you using any active skincare in the area to be waxed? (retinol, acids, Accutane)',
-      type:'chips',          opts:['No','Yes — I\'ll let my therapist know'],
+      type:'chips-with-note', opts:['No','Yes'],
+      noteLabel:'Please describe the product(s) and area of use',
+      noteTrigger:'Yes',
       required:true },
     { id:'wax-style',        label:'Style preference?',
       type:'chips',          opts:['Fully bare','Leave a small strip','Leave a triangle','Not sure — let therapist guide me'],
@@ -2113,12 +2117,17 @@ function buildSvcForm() {
     }
 
     const isReq = q.required ? '1' : '0';
+    // hideIfFirstTime: initially visible; JS will hide/show dynamically
+    const hideStyle = (q.id === 'wax-last-time' && q.hideIfFirstTime) ? '' : '';
     let inner = '';
-    if (q.type === 'chips' || q.type === 'chips-multi') {
+    if (q.type === 'chips' || q.type === 'chips-multi' || q.type === 'chips-with-note') {
       const multi = q.type === 'chips-multi';
       inner = `<div class="health-opts">${q.opts.map(o =>
         `<div class="h-opt svcf-opt" onclick="selectSvcOpt(this,${i},${multi})">${o}</div>`
       ).join('')}</div>`;
+      if (q.type === 'chips-with-note' && q.noteLabel) {
+        inner += `<textarea class="svcf-note-ta" data-for="${q.id}" style="display:none;width:100%;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.85rem;font-weight:300;resize:vertical;min-height:64px;outline:none;color:var(--ink);background:#fff;" placeholder="${q.noteLabel}…" oninput="this.style.borderColor='var(--teal)'"></textarea>`;
+      }
     } else if (q.type === 'textarea') {
       inner = `<textarea class="health-note" style="display:block;width:100%;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.85rem;font-weight:300;resize:vertical;min-height:64px;outline:none;color:var(--ink);background:#fff;" placeholder="${q.placeholder||'Your answer…'}" oninput="this.style.borderColor='var(--teal)'"></textarea>`;
     }
@@ -2170,12 +2179,49 @@ function buildSvcForm() {
 }
 
 function selectSvcOpt(el, groupIdx, isMulti) {
-  const group = document.querySelectorAll('.svcf-q')[groupIdx];
+  const groups = document.querySelectorAll('.svcf-q');
+  const group  = groups[groupIdx];
   if (!isMulti) {
     group.querySelectorAll('.svcf-opt').forEach(o => o.classList.remove('selected'));
   }
   el.classList.toggle('selected');
   hideErr('svcform-err');
+
+  const qId = group.dataset.id;
+
+  // wax-first: hide/show wax-last-time based on "first time" selection
+  if (qId === 'wax-first') {
+    const chosen = group.querySelector('.svcf-opt.selected');
+    const isFirst = chosen && chosen.textContent.trim().startsWith('No');
+    // find wax-last-time group
+    const lastTimeGroup = Array.from(groups).find(g => g.dataset.id === 'wax-last-time');
+    if (lastTimeGroup) {
+      if (isFirst) {
+        lastTimeGroup.style.display = 'none';
+        lastTimeGroup.dataset.required = '0'; // don't validate when hidden
+        lastTimeGroup.querySelectorAll('.svcf-opt').forEach(o => o.classList.remove('selected'));
+      } else {
+        lastTimeGroup.style.display = '';
+        // restore required status if the question is marked required
+        const questions = getSvcFormQuestions(selectedService);
+        const ltQ = questions.find(q => q.id === 'wax-last-time');
+        lastTimeGroup.dataset.required = (ltQ && ltQ.required) ? '1' : '0';
+      }
+    }
+  }
+
+  // wax-actives: show note textarea when "Yes" is selected
+  if (qId === 'wax-actives') {
+    const chosen = group.querySelector('.svcf-opt.selected');
+    const questions = getSvcFormQuestions(selectedService);
+    const activesQ  = questions.find(q => q.id === 'wax-actives');
+    const noteTa    = group.querySelector('textarea.svcf-note-ta');
+    if (noteTa && activesQ && activesQ.noteTrigger) {
+      const triggered = chosen && chosen.textContent.trim() === activesQ.noteTrigger;
+      noteTa.style.display = triggered ? 'block' : 'none';
+      if (!triggered) noteTa.value = '';
+    }
+  }
 }
 
 function confirmSvcFormUnchanged() {
@@ -2196,12 +2242,22 @@ function collectSvcForm() {
     if (q.type === 'info-only') return;
     const group = groups[i];
     if (!group) return;
+    // skip hidden questions (e.g. wax-last-time hidden after "first time" answer)
+    if (group.style.display === 'none') return;
     if (q.type === 'chips') {
       const sel = group.querySelector('.svcf-opt.selected');
-      result[q.id] = sel ? sel.textContent : '';
+      result[q.id] = sel ? sel.textContent.trim() : '';
     } else if (q.type === 'chips-multi') {
       const sels = group.querySelectorAll('.svcf-opt.selected');
-      result[q.id] = Array.from(sels).map(s => s.textContent);
+      result[q.id] = Array.from(sels).map(s => s.textContent.trim());
+    } else if (q.type === 'chips-with-note') {
+      const sel = group.querySelector('.svcf-opt.selected');
+      result[q.id] = sel ? sel.textContent.trim() : '';
+      // capture note textarea if visible
+      const noteTa = group.querySelector('textarea.svcf-note-ta');
+      if (noteTa && noteTa.style.display !== 'none') {
+        result[q.id + '-note'] = noteTa.value.trim();
+      }
     } else if (q.type === 'textarea') {
       const ta = group.querySelector('textarea');
       result[q.id] = ta ? ta.value.trim() : '';
