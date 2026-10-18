@@ -1866,18 +1866,23 @@ function acRenderProfile(c, visits, packages, forms) {
 }
 
 function acRenderVisitCards(visits, limit) {
-  return visits.slice(0, limit).map(v => {
+  return visits.slice(0, limit).map((v, idx) => {
     const date      = v.date || v['Visit Date'] || v['Date'] || '—';
     const service   = v.service || v['Service'] || '';
     const category  = v.category || v['Category'] || '';
     const notes     = v.notes || v['Notes'] || '';
     const next      = v.next || v['Next Recommendation'] || '';
     const therapist = v.therapist || v['Therapist'] || '';
-    const source    = v['Booking Source'] || '';
-    return `<div class="cp-visit-card">
+    const source    = v['Booking Source'] || v.source || '';
+    const rowIndex  = v.rowIndex || 0;
+    const vData     = JSON.stringify({rowIndex, date, service}).replace(/"/g,'&quot;');
+    return `<div class="cp-visit-card" id="cp-visit-row-${rowIndex}">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div class="cp-visit-date">${escHtml(date)}</div>
-        ${source ? `<span style="font-size:.62rem;color:var(--muted);">${escHtml(source)}</span>` : ''}
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${source ? `<span style="font-size:.62rem;color:var(--muted);">${escHtml(source)}</span>` : ''}
+          ${rowIndex ? `<button onclick="acDeleteVisit(${vData})" style="background:none;border:none;cursor:pointer;color:#d00;font-size:.75rem;padding:2px 4px;border-radius:4px;opacity:.6;" title="Delete this visit">🗑️</button>` : ''}
+        </div>
       </div>
       ${service   ? `<div class="cp-visit-service">${escHtml(service)}${category&&category!==service?' · '+escHtml(category):''}</div>` : ''}
       ${notes     ? `<div class="cp-visit-note">${escHtml(notes)}</div>` : ''}
@@ -1885,6 +1890,26 @@ function acRenderVisitCards(visits, limit) {
       ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+async function acDeleteVisit(v) {
+  if (!confirm(`Delete this visit?\n\n${v.date} — ${v.service}\n\nThis cannot be undone.`)) return;
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'delete_visit_row', rowIndex: v.rowIndex, date: v.date, service: v.service })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const el = document.getElementById('cp-visit-row-' + v.rowIndex);
+      if (el) { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }
+    } else {
+      alert('Could not delete: ' + (data.error || 'unknown error'));
+    }
+  } catch(err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 function acShowMoreVisits(visits) {
