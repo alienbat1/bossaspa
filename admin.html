@@ -1854,7 +1854,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
     <div class="cp-section-title">Contact Info</div>
     ${acEditableRow('Phone', formatPhone(phone)||'—', 'phone', c)}
     ${acEditableRow('Email', c.email||'—', 'email', c)}
-    ${acEditableRow('Date of Birth', c.dob||'—', 'dob', c)}
+    ${acEditableRow('Date of Birth', formatDob(c.dob), 'dob', c)}
     ${acEditableRow('Notes', c.notes||'—', 'notes', c)}
   </div>`;
 
@@ -2635,6 +2635,13 @@ async function acDeletePkg(p) {
     hideSpinner();
     alert('Could not delete. Please try again.');
   }
+}
+
+function formatDob(dob) {
+  if (!dob || dob === '—') return '—';
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return dob;
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 function formatPhone(p) {
