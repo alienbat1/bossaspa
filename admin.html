@@ -2693,8 +2693,15 @@ async function loadTodayCheckins(force) {
 
     const checkins = data.checkins || [];
 
+    // Temp debug info
+    const dbg = `<div style="font-size:.7rem;color:#999;margin-bottom:8px;background:#f5f5f5;padding:6px 8px;border-radius:6px;">
+      🔍 server today: <b>${data.todayUS||'?'}</b> · ISO: ${data.todayISO||'?'} · fmt: ${data.todayFmt||'?'}<br>
+      last 5 dates in sheet: ${(data.debugDates||[]).map(d=>`"${d.raw}"(${d.isDate?'Date':'str'})`).join(', ')}
+    </div>`;
+    listEl.innerHTML = dbg;
+
     if (!checkins.length) {
-      listEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No check-ins yet today.</div></div>`;
+      listEl.innerHTML += `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No check-ins yet today.</div></div>`;
       return;
     }
 
