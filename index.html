@@ -2260,23 +2260,24 @@ function collectSvcForm() {
     if (!group) return;
     // skip hidden questions (e.g. wax-last-time hidden after "first time" answer)
     if (group.style.display === 'none') return;
+    // Use label as key (readable in Sheets), convert arrays to comma string
+    const key = q.label;
     if (q.type === 'chips') {
       const sel = group.querySelector('.svcf-opt.selected');
-      result[q.id] = sel ? sel.textContent.trim() : '';
+      result[key] = sel ? sel.textContent.trim() : '';
     } else if (q.type === 'chips-multi') {
       const sels = group.querySelectorAll('.svcf-opt.selected');
-      result[q.id] = Array.from(sels).map(s => s.textContent.trim());
+      result[key] = Array.from(sels).map(s => s.textContent.trim()).join(', ');
     } else if (q.type === 'chips-with-note') {
       const sel = group.querySelector('.svcf-opt.selected');
-      result[q.id] = sel ? sel.textContent.trim() : '';
-      // capture note textarea if visible
+      result[key] = sel ? sel.textContent.trim() : '';
       const noteTa = group.querySelector('textarea.svcf-note-ta');
-      if (noteTa && noteTa.style.display !== 'none') {
-        result[q.id + '-note'] = noteTa.value.trim();
+      if (noteTa && noteTa.style.display !== 'none' && noteTa.value.trim()) {
+        result[key + ' — note'] = noteTa.value.trim();
       }
     } else if (q.type === 'textarea') {
       const ta = group.querySelector('textarea');
-      result[q.id] = ta ? ta.value.trim() : '';
+      result[key] = ta ? ta.value.trim() : '';
     }
   });
   return result;
