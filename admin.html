@@ -1331,16 +1331,17 @@ async function notesLoadVisits(phone) {
     const url = WEBAPP_URL + '?action=get_visits&phone=' + encodeURIComponent(phone);
     const res = await fetch(url, { mode: 'cors' });
     const data = await res.json();
-    const visits = (data.visits || []).slice(0, 5); // last 5
+    const allVisits = data.visits || [];
     const wrap = document.getElementById('notes-visits-wrap');
     const list = document.getElementById('notes-visits-list');
-    if (!visits.length) { wrap.setAttribute('hidden',''); return; }
+    if (!allVisits.length) { wrap.setAttribute('hidden',''); return; }
     wrap.removeAttribute('hidden');
-    const sortedVisits = [...visits].sort((a, b) => {
-      const da = new Date(a.date || a['Visit Date'] || ''), db = new Date(b.date || b['Visit Date'] || '');
-      if (!isNaN(db) && !isNaN(da)) return db - da;
-      return 0;
-    });
+    // Sort most recent first using robust parser, then take top 5
+    const sortedVisits = [...allVisits].sort((a, b) => {
+      const da = parseVisitDate(a.date || a['Visit Date'] || '');
+      const db = parseVisitDate(b.date || b['Visit Date'] || '');
+      return db - da;
+    }).slice(0, 5);
     list.innerHTML = sortedVisits.map(v => `
       <div class="visit-card">
         <div class="visit-card-date">${escHtml(v.date || v['Visit Date'] || '—')}</div>
@@ -1870,12 +1871,25 @@ function acRenderProfile(c, visits, packages, forms) {
   document.getElementById('ac-profile-content').innerHTML = html;
 }
 
+function parseVisitDate(str) {
+  if (!str) return new Date(0);
+  // Try direct parse first (works for M/D/YYYY, ISO, etc.)
+  let d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  // Handle "Mon, Oct 13, 2026" format
+  const m = str.match(/(\w+),?\s+(\w+)\s+(\d+),?\s+(\d{4})/);
+  if (m) {
+    d = new Date(m[2] + ' ' + m[3] + ', ' + m[4]);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return new Date(0);
+}
+
 function acRenderVisitCards(visits, limit) {
   const sorted = [...visits].sort((a, b) => {
-    const da = new Date(a.date || a['Visit Date'] || a['Date'] || '');
-    const db = new Date(b.date || b['Visit Date'] || b['Date'] || '');
-    if (!isNaN(db) && !isNaN(da)) return db - da;
-    return 0;
+    const da = parseVisitDate(a.date || a['Visit Date'] || a['Date'] || '');
+    const db = parseVisitDate(b.date || b['Visit Date'] || b['Date'] || '');
+    return db - da;
   });
   return sorted.slice(0, limit).map((v, idx) => {
     const date      = v.date || v['Visit Date'] || v['Date'] || '—';
