@@ -1336,7 +1336,12 @@ async function notesLoadVisits(phone) {
     const list = document.getElementById('notes-visits-list');
     if (!visits.length) { wrap.setAttribute('hidden',''); return; }
     wrap.removeAttribute('hidden');
-    list.innerHTML = visits.map(v => `
+    const sortedVisits = [...visits].sort((a, b) => {
+      const da = new Date(a.date || a['Visit Date'] || ''), db = new Date(b.date || b['Visit Date'] || '');
+      if (!isNaN(db) && !isNaN(da)) return db - da;
+      return 0;
+    });
+    list.innerHTML = sortedVisits.map(v => `
       <div class="visit-card">
         <div class="visit-card-date">${escHtml(v.date || v['Visit Date'] || '—')}</div>
         ${v.service || v['Service'] ? `<div class="visit-card-service">${escHtml(v.service || v['Service'])}</div>` : ''}
@@ -1866,7 +1871,13 @@ function acRenderProfile(c, visits, packages, forms) {
 }
 
 function acRenderVisitCards(visits, limit) {
-  return visits.slice(0, limit).map((v, idx) => {
+  const sorted = [...visits].sort((a, b) => {
+    const da = new Date(a.date || a['Visit Date'] || a['Date'] || '');
+    const db = new Date(b.date || b['Visit Date'] || b['Date'] || '');
+    if (!isNaN(db) && !isNaN(da)) return db - da;
+    return 0;
+  });
+  return sorted.slice(0, limit).map((v, idx) => {
     const date      = v.date || v['Visit Date'] || v['Date'] || '—';
     const service   = v.service || v['Service'] || '';
     const category  = v.category || v['Category'] || '';
@@ -2178,7 +2189,7 @@ async function markContacted(rowId, clientName, phone, category, detail) {
     await fetch(WEBAPP_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
 
