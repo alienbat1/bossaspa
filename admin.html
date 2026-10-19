@@ -1933,6 +1933,38 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
   }
   html += `</div>`;
 
+  // Indicação / Referral section
+  html += `<div class="cp-section" id="cp-referral-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="cp-section-title" style="margin-bottom:0;">Indicação</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Indicado por</div>
+      <div id="cp-referredby-display" style="display:flex;align-items:center;gap:8px;">
+        <span id="cp-referredby-val" style="font-size:.88rem;color:var(--ink);">${referredBy ? escHtml(referredBy) : '<span style="color:var(--muted);">—</span>'}</span>
+        <button onclick="acEditReferredBy()" style="font-size:.66rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">${referredBy ? 'Editar' : '+ Definir'}</button>
+      </div>
+      <div id="cp-referredby-edit" hidden style="margin-top:8px;">
+        <div style="position:relative;">
+          <input id="cp-referral-input" type="text" placeholder="Nome do cliente…" autocomplete="off"
+            oninput="acReferralSearch(this.value)"
+            style="width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;font-family:'Jost',sans-serif;background:var(--beige);">
+          <div id="cp-referral-results" hidden style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:160px;overflow-y:auto;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.08);"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="acSaveReferredBy()" style="font-size:.72rem;background:var(--teal);color:#fff;border:none;border-radius:5px;padding:5px 14px;cursor:pointer;font-family:'Jost',sans-serif;">Salvar</button>
+          <button onclick="acCancelReferredBy()" style="font-size:.72rem;background:none;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:5px 12px;cursor:pointer;font-family:'Jost',sans-serif;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Indicações feitas (${referrals.length})</div>
+      ${referrals.length
+        ? referrals.map(r => `<div style="font-size:.82rem;color:var(--ink);padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"><span>${escHtml(r.name)}</span><span style="color:var(--muted);font-size:.75rem;">${r.phone ? formatPhone(r.phone) : ''}</span></div>`).join('')
+        : '<div style="font-size:.8rem;color:var(--muted);">Nenhuma indicação registrada.</div>'}
+    </div>
+  </div>`;
+
   // Delete client section
   html += `<div class="cp-section" style="margin-top:24px;border-top:1px solid #f0ddd0;padding-top:16px;">
     <button onclick="acDeleteClient()" style="font-size:.75rem;color:#9b3a2a;cursor:pointer;border:1.5px solid #e8b4a8;border-radius:6px;padding:8px 16px;background:#fff5f3;font-family:'Jost',sans-serif;width:100%;">
@@ -2061,6 +2093,156 @@ function acShowMoreVisits(visits) {
   document.getElementById('cp-visits-list').innerHTML = acRenderVisitCards(visits, acVisitsShowing);
   const btn = document.getElementById('cp-more-btn');
   if (btn) btn.remove();
+}
+
+// ── Visit check-in answers toggle ────────────────────────────────────────────
+const _visitFormCache = {};
+async function acToggleVisitForm(key, phone, date) {
+  const detail = document.getElementById(key + '-detail');
+  const btn    = document.querySelector(`[onclick*="${key}"]`);
+  if (!detail) return;
+
+  // If already loaded & visible, just hide it
+  if (!detail.hidden) {
+    detail.hidden = true;
+    if (btn) btn.textContent = '📋 Check-in answers';
+    return;
+  }
+
+  // Show it
+  detail.hidden = false;
+  if (btn) btn.textContent = '▲ Fechar';
+
+  // If already fetched, just show cached
+  if (_visitFormCache[key]) {
+    detail.innerHTML = _visitFormCache[key];
+    return;
+  }
+
+  detail.innerHTML = '<span style="color:var(--muted);font-size:.75rem;">Carregando…</span>';
+
+  try {
+    const res  = await fetch(
+      WEBAPP_URL + '?action=get_checkin_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date),
+      { mode: 'cors' }
+    );
+    const data = await res.json();
+    const qa   = data.answers || [];
+
+    if (data.answers === null || data.answers === undefined) {
+      _visitFormCache[key] = '<span style="color:var(--muted);font-size:.75rem;">Nenhuma resposta encontrada para esta sessão.</span>';
+    } else if (!qa.length) {
+      _visitFormCache[key] = '<span style="color:var(--muted);font-size:.75rem;">Nenhuma resposta registrada neste check-in.</span>';
+    } else {
+      let inner = '';
+      // Service + duration header
+      const svcLine = [data.service, data.duration].filter(Boolean).join(' · ');
+      if (svcLine) inner += `<div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:8px;">${escHtml(svcLine)}</div>`;
+      qa.forEach(item => {
+        inner += `<div style="margin-bottom:7px;">
+          <div style="font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:1px;">${escHtml(item.q||'')}</div>
+          <div style="font-size:.83rem;color:var(--ink);">${escHtml(item.a)}</div>
+        </div>`;
+      });
+      _visitFormCache[key] = inner;
+    }
+    detail.innerHTML = _visitFormCache[key];
+  } catch(err) {
+    detail.innerHTML = `<span style="color:var(--muted);font-size:.75rem;">Erro ao carregar: ${escHtml(err.message)}</span>`;
+  }
+}
+
+// ── Referral / Indicação ─────────────────────────────────────────────────────
+let _referralSelected = null; // { name, phone }
+
+function acEditReferredBy() {
+  const display = document.getElementById('cp-referredby-display');
+  const editBox = document.getElementById('cp-referredby-edit');
+  const inp     = document.getElementById('cp-referral-input');
+  if (!display || !editBox) return;
+  display.hidden = true;
+  editBox.hidden = false;
+  _referralSelected = null;
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+
+function acCancelReferredBy() {
+  const display = document.getElementById('cp-referredby-display');
+  const editBox = document.getElementById('cp-referredby-edit');
+  const results = document.getElementById('cp-referral-results');
+  if (display) display.hidden = false;
+  if (editBox) editBox.hidden = true;
+  if (results) results.hidden = true;
+  _referralSelected = null;
+}
+
+let _referralTimer = null;
+async function acReferralSearch(q) {
+  const results = document.getElementById('cp-referral-results');
+  if (!results) return;
+  _referralSelected = null;
+  clearTimeout(_referralTimer);
+  if (!q || q.trim().length < 2) { results.hidden = true; return; }
+  _referralTimer = setTimeout(async () => {
+    try {
+      const res  = await fetch(WEBAPP_URL + '?action=search_clients&q=' + encodeURIComponent(q.trim()), { mode:'cors' });
+      const data = await res.json();
+      const list = data.results || [];
+      if (!list.length) { results.hidden = true; return; }
+      results.innerHTML = list.map(r =>
+        `<div onclick="acReferralPick(${JSON.stringify(r).replace(/"/g,'&quot;')})"
+          style="padding:7px 12px;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"
+          onmouseover="this.style.background='#f8f0ea'" onmouseout="this.style.background=''"
+        ><span>${escHtml(r.name)}</span><span style="color:var(--muted);font-size:.73rem;">${formatPhone(r.phone||'')}</span></div>`
+      ).join('');
+      results.hidden = false;
+    } catch(e) { results.hidden = true; }
+  }, 280);
+}
+
+function acReferralPick(r) {
+  _referralSelected = r;
+  const inp     = document.getElementById('cp-referral-input');
+  const results = document.getElementById('cp-referral-results');
+  if (inp) inp.value = r.name + (r.phone ? ' · ' + formatPhone(r.phone) : '');
+  if (results) results.hidden = true;
+}
+
+async function acSaveReferredBy() {
+  if (!_referralSelected) {
+    alert('Selecione um cliente da lista.');
+    return;
+  }
+  const c = acProfileClient;
+  if (!c) return;
+  const btn = document.querySelector('#cp-referredby-edit button');
+  if (btn) btn.textContent = 'Salvando…';
+
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type:             'save_referral',
+        clientPhone:      c.phone || '',
+        clientName:       c.name  || '',
+        clientId:         c.clientId || '',
+        rowIndex:         c.rowIndex || 0,
+        referredByName:   _referralSelected.name,
+        referredByPhone:  _referralSelected.phone
+      })
+    });
+    // Update display
+    const valEl = document.getElementById('cp-referredby-val');
+    if (valEl) valEl.innerHTML = escHtml(_referralSelected.name);
+    const editBtn = document.querySelector('#cp-referredby-display button');
+    if (editBtn) editBtn.textContent = 'Editar';
+    acCancelReferredBy();
+    _referralSelected = null;
+  } catch(e) {
+    alert('Erro ao salvar. Tente novamente.');
+    if (btn) btn.textContent = 'Salvar';
+  }
 }
 
 function acEditableRow(label, val, field, c) {
