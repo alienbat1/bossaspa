@@ -1779,19 +1779,22 @@ async function acOpenProfile(c) {
   const contentEl = document.getElementById('ac-profile-content');
   contentEl.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto;"></div><div class="spinner-text" style="margin-top:12px;">Loading profile…</div></div>`;
 
-  // Fetch full profile: visits, packages, forms
-  let visits = [], packages = [], forms = [];
+  // Fetch full profile: visits, packages, forms, referrals
+  let visits = [], packages = [], forms = [], referrals = [], referredBy = '', referredByPhone = '';
   try {
     const phone = c.phone || '';
     if (phone) {
-      const [vRes, pRes] = await Promise.all([
+      const [vRes, pRes, rRes] = await Promise.all([
         fetch(WEBAPP_URL + '?action=get_visits&phone=' + encodeURIComponent(phone) + '&limit=200', { mode:'cors' }),
-        fetch(WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone), { mode:'cors' })
+        fetch(WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone), { mode:'cors' }),
+        fetch(WEBAPP_URL + '?action=get_referrals&phone=' + encodeURIComponent(phone), { mode:'cors' })
       ]);
       const vData = await vRes.json();
       const pData = await pRes.json();
+      const rData = await rRes.json();
       visits   = vData.visits   || [];
       packages = pData.packages || [];
+      referrals = rData.referrals || [];
     } else {
       // No phone — try by clientId
       if (c.clientId) {
@@ -1806,9 +1809,19 @@ async function acOpenProfile(c) {
       const fData = await fRes.json();
       forms = fData.forms || [];
     } catch(e) {}
+    // Referred by (from client row in CLIENTS sheet — lookup by phone)
+    try {
+      const luRes = await fetch(WEBAPP_URL + '?action=lookup&phone=' + encodeURIComponent(c.phone || ''), { mode:'cors' });
+      const luData = await luRes.json();
+      if (luData.found) {
+        referredBy      = luData.referredBy      || '';
+        referredByPhone = luData.referredByPhone || '';
+        if (luData.referrals && luData.referrals.length) referrals = luData.referrals;
+      }
+    } catch(e) {}
   } catch(e) {}
 
-  acRenderProfile(c, visits, packages, forms);
+  acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone);
 }
 
 function acShowList() {
@@ -1817,7 +1830,8 @@ function acShowList() {
 }
 
 let acVisitsShowing = 5;
-function acRenderProfile(c, visits, packages, forms) {
+function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone) {
+  referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || '';
   acVisitsShowing = 5;
   const initials = (c.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const phone = c.phone || '';
@@ -1993,6 +2007,8 @@ function acRenderVisitCards(visits, limit) {
     const source    = v['Booking Source'] || v.source || '';
     const rowIndex  = v.rowIndex || 0;
     const vData     = JSON.stringify({rowIndex, date, service}).replace(/"/g,'&quot;');
+    const phone     = acProfileClient ? (acProfileClient.phone || '') : '';
+    const visitKey  = 'vf-' + rowIndex + '-' + idx;
     return `<div class="cp-visit-card" id="cp-visit-row-${rowIndex}">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div class="cp-visit-date">${escHtml(date)}</div>
@@ -2005,6 +2021,12 @@ function acRenderVisitCards(visits, limit) {
       ${notes     ? `<div class="cp-visit-note">${escHtml(notes)}</div>` : ''}
       ${next      ? `<div class="cp-visit-next">→ ${escHtml(next)}</div>` : ''}
       ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
+      <div id="${visitKey}-wrap" style="margin-top:6px;">
+        <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
+          📋 Check-in answers
+        </button>
+        <div id="${visitKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
+      </div>
     </div>`;
   }).join('');
 }
