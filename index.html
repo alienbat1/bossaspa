@@ -810,7 +810,7 @@ async function nextScreen() {
         });
       }
       hideSpinner();
-      populateThanks();
+      if (!isNewClient) populateThanks();
     } else {
       // New client or returning client who updated answers — validate all answered
       const groups = document.querySelectorAll('#healthForm .health-q');
@@ -852,11 +852,12 @@ async function nextScreen() {
     showSpinner();
     const name = getClientName();
     const phone = getClientPhone();
+    const sigImage = canvas.toDataURL('image/png');
     await sendToSheets('waiver', {
       clientName: name, clientPhone: phone,
       service: selectedService.name,
       date: new Date().toLocaleDateString('en-US'),
-      signaturePresent: true, waiverVersion: '2024-v1'
+      signatureImage: sigImage, waiverVersion: '2024-v1'
     });
     hideSpinner();
     populateThanks();
