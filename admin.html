@@ -2129,10 +2129,8 @@ async function acToggleVisitForm(key, phone, date) {
     const data = await res.json();
     const qa   = data.answers || [];
 
-    if (data.answers === null || data.answers === undefined) {
-      _visitFormCache[key] = '<span style="color:var(--muted);font-size:.75rem;">Nenhuma resposta encontrada para esta sessão.</span>';
-    } else if (!qa.length) {
-      _visitFormCache[key] = '<span style="color:var(--muted);font-size:.75rem;">Nenhuma resposta registrada neste check-in.</span>';
+    if (data.answers === null || data.answers === undefined || !qa.length) {
+      _visitFormCache[key] = '<span style="color:var(--muted);font-size:.75rem;">No service questions recorded for this visit.</span>';
     } else {
       let inner = '';
       // Service + duration header
@@ -2914,8 +2912,10 @@ async function loadTodayCheckins(force) {
     listEl.innerHTML = checkins.map((c, i) => {
       const isNew    = (c.isNew || '').toLowerCase() === 'yes';
       const session  = c.session;
+      const todayKey = 'td-' + i + '-' + (c.phone || '').replace(/\D/g,'');
+      const todayDate = new Date().toLocaleDateString('en-US');
 
-      // Build session answers section (service-specific questions)
+      // Build session answers section inline (only if data already in c.session)
       let sessionHtml = '';
       if (session && session.allAnswers && session.allAnswers.length) {
         const rows = session.allAnswers.map(qa => {
@@ -2933,6 +2933,14 @@ async function loadTodayCheckins(force) {
           </div>`;
         }
       }
+
+      // Always show a clickable button to fetch/toggle session answers
+      const svcBtnHtml = `<div id="${todayKey}-wrap" style="margin-top:8px;">
+        <button onclick="acToggleVisitForm('${todayKey}','${escHtml(c.phone||'')}','${escHtml(todayDate)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
+          📋 Check-in answers
+        </button>
+        <div id="${todayKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
+      </div>`;
 
       const newBadge = isNew
         ? `<span style="background:#fff8e8;color:#7a5c1e;border:1px solid #e8d4a0;border-radius:20px;font-size:.65rem;padding:2px 8px;letter-spacing:.04em;">New client</span>`
@@ -2967,6 +2975,7 @@ async function loadTodayCheckins(force) {
         </div>
         ${notesHtml}${nextHtml}
         ${sessionHtml}
+        ${svcBtnHtml}
       </div>`;
     }).join('');
 
