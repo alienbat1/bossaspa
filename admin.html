@@ -1965,14 +1965,104 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
     </div>
   </div>`;
 
-  // Delete client section
-  html += `<div class="cp-section" style="margin-top:24px;border-top:1px solid #f0ddd0;padding-top:16px;">
+  // Merge + Delete section
+  html += `<div class="cp-section" style="margin-top:24px;border-top:1px solid #f0ddd0;padding-top:16px;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="acShowManualMerge()" style="font-size:.75rem;color:#7a5c1e;cursor:pointer;border:1.5px solid var(--gold);border-radius:6px;padding:8px 16px;background:#fff8ed;font-family:'Jost',sans-serif;width:100%;">
+      🔀 Merge with another client
+    </button>
     <button onclick="acDeleteClient()" style="font-size:.75rem;color:#9b3a2a;cursor:pointer;border:1.5px solid #e8b4a8;border-radius:6px;padding:8px 16px;background:#fff5f3;font-family:'Jost',sans-serif;width:100%;">
       🗑 Delete this client record
     </button>
+  </div>
+  <div id="manual-merge-panel" hidden style="margin-top:12px;background:#fff8ed;border:1.5px solid var(--gold);border-radius:var(--r);padding:16px;">
+    <div style="font-size:.78rem;font-weight:500;color:#7a5c1e;letter-spacing:.04em;margin-bottom:6px;">MERGE WITH ANOTHER CLIENT</div>
+    <div style="font-size:.73rem;color:#9a7535;margin-bottom:10px;line-height:1.5;">Search for the duplicate record. The client you keep will inherit all visits, packages and forms from the one being deleted.</div>
+    <input id="manual-merge-search" type="text" placeholder="Search by name or phone…" oninput="acManualMergeSearch(this.value)"
+      style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.85rem;margin-bottom:8px;outline:none;">
+    <div id="manual-merge-results" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    <div id="manual-merge-selected" hidden style="margin-top:10px;"></div>
+    <button id="manual-merge-confirm" hidden onclick="acDoManualMerge()" class="btn-merge" style="margin-top:10px;">Merge — keep current client →</button>
+    <button onclick="document.getElementById('manual-merge-panel').setAttribute('hidden','')" class="btn-merge-cancel" style="margin-top:6px;">Cancel</button>
   </div>`;
 
   document.getElementById('ac-profile-content').innerHTML = html;
+}
+
+let manualMergeTarget = null; // the client to be deleted (duplicate)
+
+function acShowManualMerge() {
+  const panel = document.getElementById('manual-merge-panel');
+  panel.removeAttribute('hidden');
+  document.getElementById('manual-merge-search').value = '';
+  document.getElementById('manual-merge-results').innerHTML = '';
+  document.getElementById('manual-merge-selected').setAttribute('hidden','');
+  document.getElementById('manual-merge-confirm').setAttribute('hidden','');
+  manualMergeTarget = null;
+  setTimeout(() => document.getElementById('manual-merge-search').focus(), 100);
+}
+
+function acManualMergeSearch(q) {
+  const resultsEl = document.getElementById('manual-merge-results');
+  if (!q.trim()) { resultsEl.innerHTML = ''; return; }
+  const current = acProfileClient;
+  const term = q.toLowerCase();
+  const matches = acAllClients.filter(c =>
+    c.rowIndex !== current.rowIndex &&
+    (c.name.toLowerCase().includes(term) || (c.phone||'').replace(/\D/g,'').includes(term.replace(/\D/g,'')))
+  ).slice(0, 8);
+  if (!matches.length) {
+    resultsEl.innerHTML = `<div style="font-size:.78rem;color:var(--muted);padding:6px;">No clients found.</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matches.map(c => {
+    const meta = [c.phone ? formatPhone(c.phone) : 'no phone', c.lastVisit ? 'Last: '+c.lastVisit : '', c.visitCount ? c.visitCount+' visits' : ''].filter(Boolean).join(' · ');
+    return `<div class="merge-option" onclick="acSelectManualMergeTarget(${JSON.stringify(c).replace(/"/g,'&quot;')}, this)">
+      <div class="merge-option-name">${escHtml(c.name)}</div>
+      <div class="merge-option-meta">${escHtml(meta)}</div>
+    </div>`;
+  }).join('');
+}
+
+function acSelectManualMergeTarget(c, el) {
+  manualMergeTarget = c;
+  document.querySelectorAll('#manual-merge-results .merge-option').forEach(o => o.classList.remove('keep'));
+  el.classList.add('keep');
+  const selEl = document.getElementById('manual-merge-selected');
+  selEl.removeAttribute('hidden');
+  selEl.innerHTML = `<div style="font-size:.78rem;color:#7a5c1e;line-height:1.5;">
+    <strong>${escHtml(acProfileClient.name)}</strong> will be <span style="color:#2a6b44;font-weight:500;">KEPT</span>.<br>
+    <strong>${escHtml(c.name)}</strong> will be <span style="color:#9b3a2a;font-weight:500;">DELETED</span> — their visits/forms move to ${escHtml(acProfileClient.name)}.
+  </div>`;
+  document.getElementById('manual-merge-confirm').removeAttribute('hidden');
+}
+
+async function acDoManualMerge() {
+  if (!manualMergeTarget || !acProfileClient) return;
+  const keep = acProfileClient;
+  const del  = manualMergeTarget;
+  const confirmed = confirm(`Merge "${del.name}" INTO "${keep.name}"?\n\nThis will:\n• Delete ${del.name}'s client row\n• Move their visits/forms to ${keep.name}\n\nThis cannot be undone.`);
+  if (!confirmed) return;
+  const btn = document.getElementById('manual-merge-confirm');
+  btn.disabled = true;
+  showSpinner('Merging clients…');
+  try {
+    const body = JSON.stringify({ type: 'merge_clients', keepRowIndex: keep.rowIndex, deleteRowIndex: del.rowIndex, keepPhone: keep.phone, deletePhone: del.phone });
+    await fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body });
+    await new Promise(r => setTimeout(r, 1200));
+    // Update local cache
+    acAllClients = acAllClients.filter(x => x.rowIndex !== del.rowIndex);
+    acFiltered   = acFiltered.filter(x => x.rowIndex !== del.rowIndex);
+    hideSpinner();
+    alert(`✅ Merged! ${del.name} has been merged into ${keep.name}.`);
+    document.getElementById('manual-merge-panel').setAttribute('hidden','');
+    manualMergeTarget = null;
+    // Reload profile to show updated visits
+    acOpenProfile(keep);
+  } catch(e) {
+    hideSpinner();
+    btn.disabled = false;
+    alert('Error: ' + e.message);
+  }
 }
 
 async function acDeleteClient() {
