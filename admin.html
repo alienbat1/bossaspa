@@ -2012,15 +2012,20 @@ function acRenderVisitCards(visits, limit) {
 async function acDeleteVisit(v) {
   if (!confirm(`Delete this visit?\n\n${v.date} — ${v.service}\n\nThis cannot be undone.`)) return;
   try {
+    const c = acProfileClient;
+    const phone = c ? (c.phone || '') : '';
     const res = await fetch(WEBAPP_URL, {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ type: 'delete_visit_row', rowIndex: v.rowIndex, date: v.date, service: v.service })
+      body: JSON.stringify({ type: 'delete_visit_row', rowIndex: v.rowIndex, date: v.date, service: v.service, phone })
     });
     const data = await res.json();
     if (data.success) {
+      // Remove from DOM immediately, then reload profile to get fresh rowIndexes
       const el = document.getElementById('cp-visit-row-' + v.rowIndex);
       if (el) { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }
+      // Reload full profile after short delay so planilha reflects the delete
+      if (c) setTimeout(() => acOpenProfile(c), 800);
     } else {
       alert('Could not delete: ' + (data.error || 'unknown error'));
     }
