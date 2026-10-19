@@ -2123,7 +2123,7 @@ async function acToggleVisitForm(key, phone, date) {
 
   try {
     const res  = await fetch(
-      WEBAPP_URL + '?action=get_checkin_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date),
+      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date),
       { mode: 'cors' }
     );
     const data = await res.json();
@@ -2913,42 +2913,26 @@ async function loadTodayCheckins(force) {
 
     listEl.innerHTML = checkins.map((c, i) => {
       const isNew    = (c.isNew || '').toLowerCase() === 'yes';
-      const health   = c.health;
-      const hasFlags = health && health.allAnswers && health.allAnswers.some(a =>
-        a.a.toLowerCase() !== 'no' && a.a.toLowerCase() !== 'no, none' && !a.q.toLowerCase().includes(' — note'));
+      const session  = c.session;
 
-      // Build health section
-      let healthHtml = '';
-      if (health && health.allAnswers && health.allAnswers.length) {
-        const rows = health.allAnswers.map(qa => {
-          const isNote  = qa.q.includes(' — note');
-          const isPos   = qa.a.toLowerCase() !== 'no' && qa.a.toLowerCase() !== 'no, none';
-          if (isNote) return ''; // inline notes shown next to their question
-          const noteQ = qa.q + ' — note';
-          const noteA = (health.allAnswers.find(x => x.q === noteQ) || {}).a || '';
-          const flagStyle = isPos ? 'color:#9b3a2a;font-weight:500;' : 'color:var(--muted);';
-          return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--beige);font-size:.8rem;align-items:flex-start;">
-            <span style="flex:1;${flagStyle}">${escHtml(qa.q.replace(' — note',''))}</span>
-            <span style="${isPos?'color:#9b3a2a;font-weight:500;':'color:var(--muted);'}min-width:28px;text-align:right;">${isPos ? '⚠ ' : ''}${escHtml(qa.a)}</span>
-            ${noteA ? `<span style="font-size:.75rem;color:#7a5c1e;margin-left:6px;">— ${escHtml(noteA)}</span>` : ''}
+      // Build session answers section (service-specific questions)
+      let sessionHtml = '';
+      if (session && session.allAnswers && session.allAnswers.length) {
+        const rows = session.allAnswers.map(qa => {
+          const val = (qa.a || '').toString();
+          if (!val || val === '—') return '';
+          return `<div style="margin-bottom:6px;">
+            <div style="font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:1px;">${escHtml(qa.q||'')}</div>
+            <div style="font-size:.82rem;color:var(--ink);">${escHtml(val)}</div>
           </div>`;
         }).filter(Boolean).join('');
         if (rows) {
-          const confirmedLine = health.confirmed === 'Yes'
-            ? '<div style="font-size:.72rem;color:#2a6b44;letter-spacing:.04em;margin-bottom:8px;">✓ Client confirmed health info unchanged</div>'
-            : '';
-          healthHtml = `<div style="margin-top:10px;padding:10px 12px;background:var(--beige);border-radius:8px;">
-            <div style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Health Form</div>
-            ${confirmedLine}${rows}
+          sessionHtml = `<div style="margin-top:10px;padding:10px 12px;background:var(--beige);border-radius:8px;">
+            <div style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Session Questions</div>
+            ${rows}
           </div>`;
         }
-      } else if (health && health.confirmed === 'Yes') {
-        healthHtml = `<div style="margin-top:8px;font-size:.75rem;color:#2a6b44;">✓ Health info confirmed unchanged</div>`;
       }
-
-      const flagBadge = hasFlags
-        ? `<span style="background:#fff0ee;color:#9b3a2a;border:1px solid #f5cbc4;border-radius:20px;font-size:.65rem;padding:2px 8px;letter-spacing:.04em;">⚠ Health flags</span>`
-        : (health ? `<span style="background:#eef5f0;color:#2a6b44;border:1px solid #b8ddc8;border-radius:20px;font-size:.65rem;padding:2px 8px;letter-spacing:.04em;">✓ Health OK</span>` : '');
 
       const newBadge = isNew
         ? `<span style="background:#fff8e8;color:#7a5c1e;border:1px solid #e8d4a0;border-radius:20px;font-size:.65rem;padding:2px 8px;letter-spacing:.04em;">New client</span>`
@@ -2976,13 +2960,13 @@ async function loadTodayCheckins(force) {
           </div>
         </div>
         <div style="font-size:.88rem;color:var(--teal);font-weight:500;margin-bottom:6px;">
-          ${escHtml(c.service || '—')}${c.health && c.health.duration ? `<span style="font-weight:300;color:var(--muted);"> · ${escHtml(c.health.duration)}</span>` : ''}
+          ${escHtml(c.service || '—')}${session && session.duration ? `<span style="font-weight:300;color:var(--muted);"> · ${escHtml(session.duration)}</span>` : ''}
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
-          ${newBadge}${flagBadge}${therapistStr}
+          ${newBadge}${therapistStr}
         </div>
         ${notesHtml}${nextHtml}
-        ${healthHtml}
+        ${sessionHtml}
       </div>`;
     }).join('');
 
