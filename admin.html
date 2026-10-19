@@ -649,7 +649,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       </div>
 
       <!-- SECTION 4: Inactive 6+ months (max 25) -->
-      <div class="fu-section" style="margin-top:18px;margin-bottom:32px;">
+      <div class="fu-section" style="margin-top:18px;margin-bottom:18px;">
         <div class="fu-section-header fu-red" onclick="toggleFuSection(this,'fu-inactive-list')">
           <span class="fu-icon">💤</span>
           <div class="fu-header-text">
@@ -660,6 +660,21 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
           <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-inactive-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
+      <div class="fu-section" style="margin-top:18px;margin-bottom:32px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5e8f0,#ede0f5);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-birthday-list')">
+          <span class="fu-icon">🎂</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#6a1e5a;">Birthdays This Month</div>
+            <div class="fu-section-sub" style="color:#8a3570;">Clients with birthdays this month · Send a special message · Suppressed for 30 days after contact</div>
+          </div>
+          <div class="fu-badge" style="background:#8a3570;color:#fff;" id="fu-birthday-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-birthday-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
         </div>
       </div>
@@ -1451,10 +1466,10 @@ async function loadFollowUp() {
   statusEl.setAttribute('hidden','');
 
   // Set loading state in all lists
-  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
+  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="fu-empty">Loading…</div>';
   });
-  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count'].forEach(id => {
+  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count','fu-birthday-count'].forEach(id => {
     document.getElementById(id).textContent = '…';
   });
 
@@ -1597,13 +1612,28 @@ async function loadFollowUp() {
         ? `<div class="fu-empty" style="color:#9b3a2a;font-style:normal;">+${data.inactiveTotal - inactive.length} more · shown tomorrow</div>` : '');
     }
 
+    // — SECTION 5: Birthdays this month —
+    const birthdays = data.birthday || [];
+    document.getElementById('fu-birthday-count').textContent = birthdays.length || '0';
+    const birthdayListEl = document.getElementById('fu-birthday-list');
+    if (!birthdays.length) {
+      birthdayListEl.innerHTML = '<div class="fu-empty">No birthdays on file this month. 🎂</div>';
+    } else {
+      birthdayListEl.innerHTML = birthdays.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}Birthday: <strong style="color:#6a1e5a;">${escHtml(c.birthdayLabel||c.dob||'')}</strong>`;
+        const tag = `<span class="fu-tag" style="background:#f0d8f0;color:#6a1e5a;">🎂 ${escHtml(c.birthdayLabel||'')}</span>`;
+        return fuRow(c, i, 'birthday', tag, 'birthday', c.dob||'');
+      }).join('');
+    }
+
   } catch(e) {
     hideSpinner();
     const statusEl = document.getElementById('fu-status');
     statusEl.textContent = 'Could not load follow-up data. Check your connection and try again.';
     statusEl.className = 'status err';
     statusEl.removeAttribute('hidden');
-    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list'].forEach(id => {
+    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
   }
@@ -1792,6 +1822,7 @@ function acRenderProfile(c, visits, packages, forms) {
     <div class="cp-section-title">Contact Info</div>
     ${acEditableRow('Phone', formatPhone(phone)||'—', 'phone', c)}
     ${acEditableRow('Email', c.email||'—', 'email', c)}
+    ${acEditableRow('Date of Birth', c.dob||'—', 'dob', c)}
     ${acEditableRow('Notes', c.notes||'—', 'notes', c)}
   </div>`;
 
@@ -1870,7 +1901,48 @@ function acRenderProfile(c, visits, packages, forms) {
   }
   html += `</div>`;
 
+  // Delete client section
+  html += `<div class="cp-section" style="margin-top:24px;border-top:1px solid #f0ddd0;padding-top:16px;">
+    <button onclick="acDeleteClient()" style="font-size:.75rem;color:#9b3a2a;cursor:pointer;border:1.5px solid #e8b4a8;border-radius:6px;padding:8px 16px;background:#fff5f3;font-family:'Jost',sans-serif;width:100%;">
+      🗑 Delete this client record
+    </button>
+  </div>`;
+
   document.getElementById('ac-profile-content').innerHTML = html;
+}
+
+async function acDeleteClient() {
+  const c = acProfileClient;
+  if (!c) return;
+  const name = c.name || 'this client';
+  const confirmed = confirm(`Delete ${name}?\n\nThis will permanently remove the client row from the spreadsheet. Visits and forms are NOT deleted. This cannot be undone.`);
+  if (!confirmed) return;
+  const confirmed2 = confirm(`Are you sure? "${name}" will be deleted.`);
+  if (!confirmed2) return;
+
+  showSpinner('Deleting client…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'delete_client',
+        clientId: c.clientId,
+        rowIndex: c.rowIndex
+      })
+    });
+    // Remove from local cache
+    acAllClients = acAllClients.filter(x => x.rowIndex !== c.rowIndex);
+    acFiltered   = acFiltered.filter(x => x.rowIndex !== c.rowIndex);
+    acProfileClient = null;
+    hideSpinner();
+    acShowList();
+    acRenderList();
+  } catch(e) {
+    hideSpinner();
+    alert('Could not delete. Please try again.');
+  }
 }
 
 function parseVisitDate(str) {
@@ -1978,7 +2050,8 @@ function acCancelEdit(field, c, originalVal) {
   const rowId = 'cp-row-' + field;
   const row = document.getElementById(rowId);
   if (!row) return;
-  row.outerHTML = acEditableRow(field==='phone'?'Phone':field==='email'?'Email':'Notes', originalVal, field, c);
+  const labelMap = {phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
+  row.outerHTML = acEditableRow(labelMap[field]||field, originalVal, field, c);
 }
 
 async function acSaveField(field, c) {
@@ -2013,7 +2086,8 @@ async function acSaveField(field, c) {
     // Re-render just this row
     if (row) {
       const displayVal = field === 'phone' ? (newVal ? formatPhone(newVal) : '—') : (newVal || '—');
-      row.outerHTML = acEditableRow(field==='phone'?'Phone':field==='email'?'Email':'Notes', displayVal, field, updated);
+      const labelMap2 = {phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
+      row.outerHTML = acEditableRow(labelMap2[field]||field, displayVal, field, updated);
     }
   } catch(e) {
     if (row) row.style.opacity = '1';
