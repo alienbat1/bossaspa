@@ -2097,12 +2097,36 @@ async function acSaveField(field, c) {
 
 // ── Add Visit modal ──────────────────────────────────────────────────────────
 const AC_SERVICES = [
-  'Brazilian Style Lymphatic','Facial Lymphatic','Lymphatic Drainage','Lymphatic Drainage+ Cavitation',
-  'Facial Lymphatic & Body Post Surgery','Deep Tissue Massage (60min)','Deep Tissue Massage (90min)',
-  'Swedish Massage (60min)','Post Surgery Full Body Lymphatic','Dermaplaning Facial +Facial Hydro',
-  'Dermaplaning Facial','Brazilian Body Shape','Individual Sauna Session','ClassPass Hydrafacial',
-  'ClassPass Brazilian-style Lymphatic','ClassPass Deep Tissue 60min','ClassPass Facial Lymphatic + Ra',
-  'ClassPass Lymphatic + Cavitation','Other'
+  // ── Corpo & Drenagem ──
+  'Lymphatic Drainage','Lymphatic + Cavitation','Facial Lymphatic','Brazilian-Style Lymphatic',
+  'Post Surgery (1 área)','Post Surgery (corpo todo)','Brazilian Body Shape','Wood Therapy',
+  'Ultrasound Cavitation','LLLT Therapy','Electro Therapy','Vacuum Therapy','Vacuum BBL',
+  'RF Corporal','Cryo Contour','Detox Seaweed Body Wrap',
+  // ── Massagem & Sauna ──
+  'Swedish Massage (60min)','Swedish Massage (90min)','Deep Tissue Massage (60min)','Deep Tissue Massage (90min)',
+  'Hot Stones Massage','Hot Bamboo Massage','Sports Massage','Cupping Therapy',
+  'Pre-Natal Massage','Sauna Infrared + Cromotherapy',
+  // ── Faciais ──
+  'Dermaplaning + Hydration','Anti-Aging Facial','Signature Facial','Hydrafacial',
+  'Facial Extraction','Sculpt & Glow Combo','Facial Lymphatic + RF',
+  // ── Depilação Feminino ──
+  'Wax – Full Body (F)','Wax – Brazilian (F)','Wax – Bikini (F)','Wax – Full Leg (F)',
+  'Wax – Half Leg (F)','Wax – Underarm (F)','Wax – Full Face (F)','Wax – Eyebrows (F)',
+  'Wax – Upper Lip (F)','Wax – Chin (F)','Wax – Full Stomach (F)','Wax – Chest (F)',
+  'Wax – Full Back (F)','Wax – Full Butt (F)','Wax – Arms (F)',
+  // ── Depilação Masculino ──
+  'Wax – Full Body (M)','Wax – Brazilian (M)','Wax – Full Butt (M)','Wax – Full Back (M)',
+  'Wax – Chest (M)','Wax – Stomach (M)','Wax – Neck (M)','Wax – Half Leg (M)',
+  'Wax – Full Leg (M)','Wax – Half Arm (M)','Wax – Full Arm (M)','Wax – Underarm (M)',
+  'Wax – Ear (M)','Wax – Eyebrow (M)','Wax – Full Face (M)','Manzilian Shaving',
+  // ── Casais ──
+  'Couples Essencial (60min)','Couples Relaxing (90min)','Couples Signature (60min)',
+  'Love in Rio (90min)','Rio Romance (180min)',
+  // ── ClassPass ──
+  'ClassPass Hydrafacial','ClassPass Brazilian-Style Lymphatic','ClassPass Deep Tissue 60min',
+  'ClassPass Facial Lymphatic + RF','ClassPass Lymphatic + Cavitation',
+  // ──
+  'Other'
 ];
 const AC_THERAPISTS = ['Maria Marin','Bruna Oliveira','Oksana Feldshtein','Other'];
 
@@ -2180,28 +2204,47 @@ async function acSaveVisit() {
 }
 
 function acEditPkg(p) {
-  const pkgId = p.packageId || p['Package ID'] || '';
-  const name  = p.packageName || p['Package Name'] || '';
-  const done  = p['Sessions Done'] ?? p.sessionsDone ?? 0;
-  const total = p['Sessions Total'] ?? p.sessionsTotal ?? 0;
-  const left  = p['Sessions Left'] ?? p.sessionsLeft ?? 0;
-  const status = p.status || p['Status'] || 'Active';
+  const pkgId   = p.packageId || p['Package ID'] || '';
+  const name    = p.packageName || p['Package Name'] || '';
+  const done    = p['Sessions Done'] ?? p.sessionsDone ?? 0;
+  const total   = p['Sessions Total'] ?? p.sessionsTotal ?? 0;
+  const status  = p.status || p['Status'] || 'Active';
+  const purDate = p.purchasedDate || p['Purchased Date'] || '';
+  const expDate = p.expiryDate   || p['Expiry Date']    || '';
+  const notes   = p.notes        || p['Notes']          || '';
+
+  // Normalize date to YYYY-MM-DD for input[type=date]
+  function toInputDate(str) {
+    if (!str) return '';
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  }
+
+  const fieldStyle = 'width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:\'Jost\',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;';
 
   const html = `
   <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-pkg-modal" onclick="if(event.target.id==='ac-pkg-modal')document.getElementById('ac-pkg-modal').remove()">
-    <div style="background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto;">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);margin-bottom:4px;">Edit Package</div>
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:16px;">${escHtml(name)}</div>
       <div class="field"><label>Status</label>
-        <select id="mpkg-status" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+        <select id="mpkg-status" style="${fieldStyle}">
           <option value="Active" ${status==='Active'?'selected':''}>Active</option>
           <option value="Completed" ${status==='Completed'?'selected':''}>Completed</option>
           <option value="Expired" ${status==='Expired'?'selected':''}>Expired</option>
         </select>
       </div>
       <div class="row-2">
-        <div class="field"><label>Sessions Total</label><input type="number" id="mpkg-total" value="${total}" min="1" max="99" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;"></div>
-        <div class="field"><label>Sessions Done</label><input type="number" id="mpkg-done" value="${done}" min="0" max="99" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;"></div>
+        <div class="field"><label>Sessions Total</label><input type="number" id="mpkg-total" value="${total}" min="1" max="99" style="${fieldStyle}"></div>
+        <div class="field"><label>Sessions Done</label><input type="number" id="mpkg-done" value="${done}" min="0" max="99" style="${fieldStyle}"></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Purchase Date</label><input type="date" id="mpkg-pur" value="${toInputDate(purDate)}" style="${fieldStyle}"></div>
+        <div class="field"><label>Expiry Date</label><input type="date" id="mpkg-exp" value="${toInputDate(expDate)}" style="${fieldStyle}"></div>
+      </div>
+      <div class="field"><label>Notes</label>
+        <textarea id="mpkg-notes" rows="2" placeholder="Optional notes…" style="${fieldStyle}resize:vertical;">${escHtml(notes)}</textarea>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button onclick="acSavePkgEdit(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="flex:1;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Save Changes</button>
@@ -2217,6 +2260,9 @@ async function acSavePkgEdit(p) {
   const newTotal  = parseInt(document.getElementById('mpkg-total').value) || 0;
   const newDone   = parseInt(document.getElementById('mpkg-done').value) || 0;
   const newLeft   = Math.max(0, newTotal - newDone);
+  const newPur    = document.getElementById('mpkg-pur').value || '';
+  const newExp    = document.getElementById('mpkg-exp').value || '';
+  const newNotes  = document.getElementById('mpkg-notes').value.trim();
   const pkgId     = p.packageId || p['Package ID'] || '';
   const phone     = acProfileClient ? acProfileClient.phone : '';
 
@@ -2234,7 +2280,10 @@ async function acSavePkgEdit(p) {
         status: newStatus,
         sessionsTotal: newTotal,
         sessionsDone: newDone,
-        sessionsLeft: newLeft
+        sessionsLeft: newLeft,
+        purchasedDate: newPur,
+        expiryDate: newExp,
+        notes: newNotes
       })
     });
     hideSpinner();
