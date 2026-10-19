@@ -1697,10 +1697,16 @@ function populatePackageScreen() {
     summaryEl.style.display = 'grid';
 
     // Collapsible visit list
-    const totalVisits = visitHistory.length;
+    // Sort most recent first
+    const sortedVisits = [...visitHistory].sort((a, b) => {
+      const da = new Date(a.date), db = new Date(b.date);
+      if (!isNaN(db) && !isNaN(da)) return db - da;
+      return (b.date || '').localeCompare(a.date || '');
+    });
+    const totalVisits = sortedVisits.length;
     document.getElementById('visits-history-label').textContent =
       totalVisits === 1 ? 'See 1 previous visit' : 'See all ' + totalVisits + ' visits';
-    document.getElementById('visits-history-list').innerHTML = visitHistory.map(v => {
+    document.getElementById('visits-history-list').innerHTML = sortedVisits.map(v => {
       const sourceTag = v.source && v.source !== 'Manual Import'
         ? '<span style="background:var(--beige);border-radius:10px;padding:2px 8px;font-size:.68rem;color:var(--muted);">' + v.source + '</span>' : '';
       return '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">' +
