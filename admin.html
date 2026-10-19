@@ -1475,7 +1475,8 @@ async function loadFollowUp() {
     function fuRow(c, i, prefix, tagHtml, category, detail) {
       const phone = normalizePhone(c.phone || '');
       const email = (c.email || '').trim();
-      const note  = c.therapistNote || c.notes || '';
+      const note        = c.therapistNote || c.notes || '';
+      const contactNote = c.contactNote || '';
       const rowId = `fu-row-${prefix}-${i}`;
       const nameEsc = escHtml(c.name || c['Client Name'] || '—');
       const detailEsc = escHtml(detail || '');
@@ -1487,6 +1488,7 @@ async function loadFollowUp() {
           <div class="fu-row-name">${nameEsc}</div>
           <div class="fu-row-meta">${c._meta || ''}</div>
           ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
+          ${contactNote ? `<div class="fu-row-note" style="color:#7c5c2e;background:#fff8ee;border-left:3px solid #e8c47a;padding:4px 8px;border-radius:0 4px 4px 0;margin-top:4px;">📝 ${escHtml(contactNote)}</div>` : ''}
           ${phone || email ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
             ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
             ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
@@ -2183,6 +2185,9 @@ async function markContacted(rowId, clientName, phone, category, detail) {
   const btn = row ? row.querySelector('.fu-btn-contacted') : null;
   if (!btn) return;
 
+  // Ask for optional note before saving
+  const note = (prompt(`Note for ${clientName} (optional — leave blank to skip):`) || '').trim();
+
   // Visual feedback immediately
   btn.textContent = 'Saving…';
   btn.disabled = true;
@@ -2196,7 +2201,8 @@ async function markContacted(rowId, clientName, phone, category, detail) {
     category: category,      // 'recent' | 'package' | 'warm' | 'inactive'
     detail: detail,          // visit date, package name, or last visit date
     contactedDate: today,
-    contactedBy: 'admin'
+    contactedBy: 'admin',
+    note: note
   };
 
   try {
