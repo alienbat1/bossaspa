@@ -2162,7 +2162,8 @@ async function markContacted(rowId, clientName, phone, category, detail) {
   btn.textContent = 'Saving…';
   btn.disabled = true;
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayObj = new Date();
+  const today = todayObj.toLocaleDateString('en-US'); // M/D/YYYY to match backend
   const payload = {
     type: 'follow_up_contact',
     clientName: clientName,
