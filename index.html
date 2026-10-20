@@ -581,6 +581,7 @@ let sigHasContent = false;
 let screenFlow = [];
 let clientNotes = '';        // notes from client profile (from lookup)
 let lastHealth = null;       // previous health answers from lookup
+let clientHasWaiver = false; // true if returning client already has a waiver on file
 let healthConfirmed = false; // true when returning client taps "confirm unchanged"
 let svcFormAnswers = {};     // answers from the service-specific form
 let svcFormConfirmed = false;// true when returning client confirms svc form unchanged
@@ -605,7 +606,7 @@ function buildScreenFlow() {
   screenFlow.push('info');
   screenFlow.push('svcform');
   screenFlow.push('health');
-  if (isNewClient) screenFlow.push('waiver');
+  if (isNewClient || !clientHasWaiver) screenFlow.push('waiver');
   screenFlow.push('thanks');
 }
 
@@ -725,6 +726,7 @@ async function nextScreen() {
         activePackage    = found.activePackage || null;
         inactivePackages = found.inactivePackages || [];
         visitHistory     = found.visitHistory || [];
+        clientHasWaiver  = !!found.hasWaiver;
         usePackageToday  = null;
         buildScreenFlow();
         updateStepBar();
@@ -813,12 +815,10 @@ async function nextScreen() {
       return;
     }
     document.getElementById('pkgsign-err').style.display = 'none';
-    // Skip service screen — service already auto-selected from package
-    if (usePackageToday === true && selectedService) {
-      const svcIdx = screenFlow.indexOf('service');
-      if (svcIdx !== -1) {
-        currentStep = svcIdx; // nextStep() below will go to svcIdx+1
-      }
+    // Always skip service screen when using package — service is auto-selected (or not needed)
+    const svcIdx = screenFlow.indexOf('service');
+    if (svcIdx !== -1) {
+      currentStep = svcIdx; // currentStep++ below lands on svcIdx+1 (info)
     }
   }
 
@@ -993,6 +993,7 @@ function resetApp() {
   inactivePackages = [];
   visitHistory     = [];
   usePackageToday  = null;
+  clientHasWaiver  = false;
   ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
