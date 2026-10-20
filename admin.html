@@ -2387,6 +2387,27 @@ async function acLoadWaivers(phone) {
   }
 }
 
+async function acFetchAndShowSignature(waiverId, service, date, btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const url = WEBAPP_URL + '?action=get_waiver_sig&waiverId=' + encodeURIComponent(waiverId);
+    const res = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    if (data.signature && data.signature.startsWith('data:image')) {
+      acShowSignature(waiverId, service, date, encodeURIComponent(data.signature));
+    } else {
+      alert('Signature image not available for this waiver.');
+    }
+  } catch(e) {
+    alert('Could not load signature. Please try again.');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
 function acShowSignature(idx, service, date, encodedSig) {
   const sig = decodeURIComponent(encodedSig);
   let modal = document.getElementById('waiver-sig-modal');
