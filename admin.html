@@ -703,6 +703,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div class="ac-filters">
           <button class="ac-filter-btn active" id="acf-all" onclick="acSetFilter('all',this)">All</button>
           <button class="ac-filter-btn" id="acf-pkg" onclick="acSetFilter('pkg',this)">Has Package</button>
+          <button class="ac-filter-btn" id="acf-hadpkg" onclick="acSetFilter('hadpkg',this)">Had Package</button>
           <button class="ac-filter-btn" id="acf-nophone" onclick="acSetFilter('nophone',this)">No Phone</button>
           <button class="ac-filter-btn" id="acf-new" onclick="acSetFilter('new',this)">New (30d)</button>
         </div>
@@ -1703,6 +1704,7 @@ function acFilterClients() {
     }
     // filter
     if (acActiveFilter === 'pkg')     return c.hasPackage;
+    if (acActiveFilter === 'hadpkg')  return c.hadPackage && !c.hasPackage;
     if (acActiveFilter === 'nophone') return !c.phone;
     if (acActiveFilter === 'new')     return c.firstVisit && c.firstVisit >= thirtyDaysAgo;
     return true;
