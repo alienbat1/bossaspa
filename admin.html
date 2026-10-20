@@ -1933,6 +1933,14 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
   }
   html += `</div>`;
 
+  // Waivers section
+  html += `<div class="cp-section" id="cp-waivers-section">
+    <div class="cp-section-title">Signed Waivers</div>
+    <div id="cp-waivers-list" style="font-size:.8rem;color:var(--muted);">
+      <button onclick="acLoadWaivers('${escHtml(phone)}')" style="font-size:.72rem;color:var(--teal);border:1px solid var(--border);border-radius:4px;padding:4px 12px;background:var(--beige);cursor:pointer;font-family:'Jost',sans-serif;">Load waivers</button>
+    </div>
+  </div>`;
+
   // Indicação / Referral section
   html += `<div class="cp-section" id="cp-referral-section">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -2082,7 +2090,8 @@ async function acDeleteClient() {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         type: 'delete_client',
-        clientId: c.clientId,
+        clientId: c.clientId || '',
+        clientPhone: c.phone || '',
         rowIndex: c.rowIndex
       })
     });
@@ -2127,13 +2136,14 @@ function acRenderVisitCards(visits, limit) {
     const next      = v.next || v['Next Recommendation'] || '';
     const therapist = v.therapist || v['Therapist'] || '';
     const source    = v['Booking Source'] || v.source || '';
+    const timestamp = v.timestamp || v['Timestamp'] || '';
     const rowIndex  = v.rowIndex || 0;
     const vData     = JSON.stringify({rowIndex, date, service}).replace(/"/g,'&quot;');
     const phone     = acProfileClient ? (acProfileClient.phone || '') : '';
     const visitKey  = 'vf-' + rowIndex + '-' + idx;
     return `<div class="cp-visit-card" id="cp-visit-row-${rowIndex}">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div class="cp-visit-date">${escHtml(date)}</div>
+        <div class="cp-visit-date">${escHtml(date)}${timestamp ? `<span style="font-size:.68rem;color:var(--muted);margin-left:6px;font-weight:400;">🕐 ${escHtml(timestamp)}</span>` : ''}</div>
         <div style="display:flex;align-items:center;gap:6px;">
           ${source ? `<span style="font-size:.62rem;color:var(--muted);">${escHtml(source)}</span>` : ''}
           ${rowIndex ? `<button onclick="acDeleteVisit(${vData})" style="background:none;border:none;cursor:pointer;color:#d00;font-size:.75rem;padding:2px 4px;border-radius:4px;opacity:.6;" title="Delete this visit">🗑️</button>` : ''}
@@ -2144,7 +2154,7 @@ function acRenderVisitCards(visits, limit) {
       ${next      ? `<div class="cp-visit-next">→ ${escHtml(next)}</div>` : ''}
       ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
       <div id="${visitKey}-wrap" style="margin-top:6px;">
-        <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
+        <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
         <div id="${visitKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
@@ -2187,7 +2197,7 @@ function acShowMoreVisits(visits) {
 
 // ── Visit check-in answers toggle ────────────────────────────────────────────
 const _visitFormCache = {};
-async function acToggleVisitForm(key, phone, date) {
+async function acToggleVisitForm(key, phone, date, category) {
   const detail = document.getElementById(key + '-detail');
   const btn    = document.querySelector(`[onclick*="${key}"]`);
   if (!detail) return;
@@ -2213,7 +2223,7 @@ async function acToggleVisitForm(key, phone, date) {
 
   try {
     const res  = await fetch(
-      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date),
+      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date) + (category ? '&category=' + encodeURIComponent(category) : ''),
       { mode: 'cors' }
     );
     const data = await res.json();
@@ -2331,6 +2341,62 @@ async function acSaveReferredBy() {
     alert('Erro ao salvar. Tente novamente.');
     if (btn) btn.textContent = 'Salvar';
   }
+}
+
+async function acLoadWaivers(phone) {
+  const el = document.getElementById('cp-waivers-list');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--muted);font-size:.8rem;">Loading...</span>';
+  try {
+    const res = await fetch(`${WEBAPP_URL}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode: 'cors' });
+    const data = await res.json();
+    const waivers = data.waivers || [];
+    if (!waivers.length) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:.8rem;">No waivers on file.</span>';
+      return;
+    }
+    let html = '';
+    waivers.forEach((w, idx) => {
+      const hasSig = w.signature && w.signature.startsWith('data:image');
+      html += `<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--beige);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:.8rem;font-weight:600;color:var(--teal);">${escHtml(w.service||'General')}</div>
+          <div style="font-size:.7rem;color:var(--muted);">${escHtml(w.date||'')} · ${escHtml(w.version||'')}</div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:${hasSig?'8px':'0'};">ID: ${escHtml(w.waiverId||'—')}</div>
+        ${hasSig ? `<button onclick="acShowSignature('${idx}','${escHtml(w.service||'General')}','${escHtml(w.date||'')}','${encodeURIComponent(w.signature)}')" style="font-size:.7rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:3px 10px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View Signature</button>` : '<span style="font-size:.72rem;color:var(--muted);">Signature: Yes (no image saved)</span>'}
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch(err) {
+    el.innerHTML = `<span style="color:#c0392b;font-size:.8rem;">Error loading waivers.</span>`;
+  }
+}
+
+function acShowSignature(idx, service, date, encodedSig) {
+  const sig = decodeURIComponent(encodedSig);
+  let modal = document.getElementById('waiver-sig-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'waiver-sig-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `<div style="background:#fff;border-radius:10px;padding:24px;max-width:420px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div id="wsm-title" style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:#2d5c5c;"></div>
+        <button onclick="document.getElementById('waiver-sig-modal').remove()" style="font-size:1.2rem;color:#999;background:none;border:none;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div id="wsm-date" style="font-size:.75rem;color:#999;margin-bottom:14px;"></div>
+      <div style="border:1px solid #e0d9d0;border-radius:6px;background:#fafaf8;padding:8px;text-align:center;">
+        <img id="wsm-img" src="" style="max-width:100%;border-radius:4px;" />
+      </div>
+      <div style="font-size:.7rem;color:#aaa;margin-top:10px;text-align:center;">Bossa Spa — Informed Consent & Liability Waiver</div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('wsm-title').textContent = service + ' — Signed Waiver';
+  document.getElementById('wsm-date').textContent = date;
+  document.getElementById('wsm-img').src = sig;
+  modal.style.display = 'flex';
 }
 
 function acEditableRow(label, val, field, c) {
@@ -3033,7 +3099,7 @@ async function loadTodayCheckins(force) {
 
       // Always show a clickable button to fetch/toggle session answers
       const svcBtnHtml = `<div id="${todayKey}-wrap" style="margin-top:8px;">
-        <button onclick="acToggleVisitForm('${todayKey}','${escHtml(c.phone||'')}','${escHtml(todayDate)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
+        <button onclick="acToggleVisitForm('${todayKey}','${escHtml(c.phone||'')}','${escHtml(todayDate)}','${escHtml(c.category||c.service||'')}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
         <div id="${todayKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
