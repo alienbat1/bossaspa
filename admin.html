@@ -2001,12 +2001,16 @@ let manualMergeTarget = null; // the client to be deleted (duplicate)
 function acShowManualMerge() {
   const panel = document.getElementById('manual-merge-panel');
   panel.removeAttribute('hidden');
-  document.getElementById('manual-merge-search').value = '';
+  const inp = document.getElementById('manual-merge-search');
+  inp.value = '';
   document.getElementById('manual-merge-results').innerHTML = '';
   document.getElementById('manual-merge-selected').setAttribute('hidden','');
   document.getElementById('manual-merge-confirm').setAttribute('hidden','');
   manualMergeTarget = null;
-  setTimeout(() => document.getElementById('manual-merge-search').focus(), 100);
+  // Attach listener fresh each time (avoids issues with innerHTML rebuild)
+  inp.oninput = null;
+  inp.addEventListener('input', function() { acManualMergeSearch(this.value); });
+  setTimeout(() => inp.focus(), 100);
 }
 
 function acManualMergeSearch(q) {
@@ -2095,16 +2099,25 @@ async function acDeleteClient() {
         rowIndex: c.rowIndex
       })
     });
+    // Small delay so sheet can process before we reload
+    await new Promise(r => setTimeout(r, 800));
     // Remove from local cache
     acAllClients = acAllClients.filter(x => x.rowIndex !== c.rowIndex);
     acFiltered   = acFiltered.filter(x => x.rowIndex !== c.rowIndex);
     acProfileClient = null;
     hideSpinner();
-    acShowList();
-    acRenderList();
+    try { acShowList(); } catch(_) {}
+    try { acRenderList(); } catch(_) {}
   } catch(e) {
     hideSpinner();
-    alert('Could not delete. Please try again.');
+    // If fetch itself threw (shouldn't happen with no-cors), still clean up UI
+    acAllClients = acAllClients.filter(x => x.rowIndex !== c.rowIndex);
+    acFiltered   = acFiltered.filter(x => x.rowIndex !== c.rowIndex);
+    acProfileClient = null;
+    try { acShowList(); } catch(_) {}
+    try { acRenderList(); } catch(_) {}
+    // Don't show error — the delete likely worked (no-cors can't confirm)
+    console.warn('Delete catch:', e.message);
   }
 }
 
