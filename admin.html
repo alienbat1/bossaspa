@@ -2496,32 +2496,44 @@ async function acTogglePkgSessions(pkgId, btn, sessionsDone, clientPhone) {
     const res  = await fetch(url, { mode: 'cors' });
     const data = await res.json();
     const sessions = data.sessions || [];
-    if (!sessions.length) {
-      el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No sessions recorded yet.</span>';
-    } else {
-      let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Session Log</div>`;
-      sessions.forEach(s => {
-        const sNum  = s.sessionNum || '?';
-        const sDate = escHtml(s.date || '—');
-        const sigId = escHtml(s.sigId || '');
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
-          <div>
-            <span style="font-size:.78rem;font-weight:600;color:var(--ink);">Session #${sNum}</span>
-            <span style="font-size:.72rem;color:var(--muted);margin-left:8px;">${sDate}</span>
-          </div>
-          <div>
-            ${s.hasSig && sigId
-              ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
-              : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`}
-          </div>
-        </div>`;
-      });
-      el.innerHTML = html;
-    }
+    acRenderPkgSessionRows(el, sessions, pkgId);
     el.dataset.loaded = '1';
   } catch(err) {
     el.innerHTML = `<span style="color:#c0392b;font-size:.78rem;">Error loading sessions.</span>`;
   }
+}
+
+function acRenderPkgSessionRows(el, sessions, pkgId) {
+  if (!sessions.length) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No sessions recorded yet.</span>';
+    return;
+  }
+  let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Session Log</div>`;
+  sessions.forEach(s => {
+    const sNum  = s.sessionNum || '?';
+    const sDate = escHtml(s.date || '');
+    const sigId = escHtml(s.sigId || '');
+    const rowId = `pkgsess-${pkgId}-${sNum}`;
+    html += `<div id="${rowId}" style="padding:6px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span style="font-size:.78rem;font-weight:600;color:var(--ink);">Session #${sNum}</span>
+          <span id="${rowId}-date" style="font-size:.72rem;color:var(--muted);margin-left:8px;">${sDate || '<em style="color:var(--muted);">no date</em>'}</span>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          ${s.hasSig && sigId
+            ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
+            : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`}
+          ${sigId
+            ? `<button onclick="acEditPkgSession('${rowId}','${sigId}','${sDate}')" title="Edit date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
+               <button onclick="acDeletePkgSession('${rowId}','${sigId}','${sNum}','${escHtml(pkgId)}')" title="Delete session" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`
+            : `<button onclick="acEditPkgSessionNoSig('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Set date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>`}
+        </div>
+      </div>
+      <div id="${rowId}-edit" style="display:none;margin-top:6px;"></div>
+    </div>`;
+  });
+  el.innerHTML = html;
 }
 
 async function acFetchAndShowPkgSig(sigId, sessionNum, date, btn) {
@@ -2542,6 +2554,117 @@ async function acFetchAndShowPkgSig(sigId, sessionNum, date, btn) {
   } finally {
     btn.textContent = orig;
     btn.disabled = false;
+  }
+}
+
+/* ── Edit / Delete individual PKG_SESSION_SIGS rows ── */
+function acEditPkgSession(rowId, sigId, currentDate) {
+  const editEl = document.getElementById(rowId + '-edit');
+  if (!editEl) return;
+  if (editEl.style.display !== 'none') { editEl.style.display = 'none'; return; }
+  // Convert display date to yyyy-mm-dd for input
+  let isoDate = '';
+  if (currentDate) {
+    const d = new Date(currentDate);
+    if (!isNaN(d)) isoDate = d.toISOString().slice(0,10);
+  }
+  editEl.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <input type="date" id="${rowId}-dateinp" value="${escHtml(isoDate)}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;">
+      <button onclick="acSavePkgSessionDate('${rowId}','${sigId}')" style="padding:5px 12px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Save</button>
+      <button onclick="document.getElementById('${rowId}-edit').style.display='none'" style="padding:5px 10px;background:none;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>`;
+  editEl.style.display = 'block';
+}
+
+// Same but for placeholder rows (no sigId yet — create a PKG_SESSION_SIGS entry)
+function acEditPkgSessionNoSig(rowId, sessionNum, pkgId) {
+  const editEl = document.getElementById(rowId + '-edit');
+  if (!editEl) return;
+  if (editEl.style.display !== 'none') { editEl.style.display = 'none'; return; }
+  const c = acProfileClient;
+  const pkgs = c ? (c._packages || []) : [];
+  const pkg  = pkgs.find(p => (p.packageId || p['Package ID'] || '') === pkgId) || {};
+  editEl.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <input type="date" id="${rowId}-dateinp" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;">
+      <button onclick="acCreatePkgSessionEntry('${rowId}','${escHtml(pkgId)}','${escHtml(sessionNum)}')" style="padding:5px 12px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Set Date</button>
+      <button onclick="document.getElementById('${rowId}-edit').style.display='none'" style="padding:5px 10px;background:none;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>`;
+  editEl.style.display = 'block';
+}
+
+async function acSavePkgSessionDate(rowId, sigId) {
+  const inp = document.getElementById(rowId + '-dateinp');
+  if (!inp || !inp.value) { alert('Please select a date.'); return; }
+  const dateVal = new Date(inp.value + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+  const editEl  = document.getElementById(rowId + '-edit');
+  const dateDisp= document.getElementById(rowId + '-date');
+  if (editEl) editEl.innerHTML = '<span style="color:var(--muted);font-size:.75rem;">Saving…</span>';
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'edit_pkg_session', sigId, date: dateVal })
+    });
+    if (dateDisp) dateDisp.innerHTML = escHtml(dateVal);
+    if (editEl)   editEl.style.display = 'none';
+  } catch(e) {
+    if (editEl) editEl.innerHTML = '<span style="color:#c0392b;font-size:.75rem;">Error saving. Try again.</span>';
+  }
+}
+
+async function acCreatePkgSessionEntry(rowId, pkgId, sessionNum) {
+  const inp = document.getElementById(rowId + '-dateinp');
+  if (!inp || !inp.value) { alert('Please select a date.'); return; }
+  const c = acProfileClient;
+  if (!c) return;
+  const pkgs = c._packages || [];
+  const pkg  = pkgs.find(p => (p.packageId || p['Package ID'] || '') === pkgId) || {};
+  const pkgName = pkg.packageName || pkg['Package Name'] || '';
+  const dateVal = new Date(inp.value + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+  const editEl  = document.getElementById(rowId + '-edit');
+  if (editEl) editEl.innerHTML = '<span style="color:var(--muted);font-size:.75rem;">Saving…</span>';
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'pkg_session_sig',
+        pkgId, phone: c.phone || '', clientName: c.name || '',
+        pkgName, sessionNum, date: dateVal, signature: ''
+      })
+    });
+    // Reload the sessions panel
+    const el = document.getElementById('pkg-sessions-' + pkgId);
+    if (el) { el.dataset.loaded = ''; el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Loading…</span>'; }
+    const done = Number(pkg['Sessions Done'] ?? pkg.sessionsDone ?? 0);
+    // Re-fetch
+    const url = `${WEBAPP_URL}?action=get_pkg_session_sigs&pkgId=${encodeURIComponent(pkgId)}&phone=${encodeURIComponent(c.phone||'')}&sessionsDone=${done}`;
+    const res  = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    if (el) { acRenderPkgSessionRows(el, data.sessions || [], pkgId); el.dataset.loaded = '1'; }
+  } catch(e) {
+    if (editEl) editEl.innerHTML = '<span style="color:#c0392b;font-size:.75rem;">Error. Try again.</span>';
+  }
+}
+
+async function acDeletePkgSession(rowId, sigId, sessionNum, pkgId) {
+  if (!confirm(`Delete Session #${sessionNum} from the log?\n\nThis will also add back one session to the package counter.`)) return;
+  const rowEl = document.getElementById(rowId);
+  if (rowEl) { rowEl.style.opacity = '.4'; rowEl.style.pointerEvents = 'none'; }
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'delete_pkg_session', sigId })
+    });
+    // Reload profile to update session counts
+    const c = acProfileClient;
+    if (c) setTimeout(() => acOpenProfile(c), 600);
+  } catch(e) {
+    if (rowEl) { rowEl.style.opacity = '1'; rowEl.style.pointerEvents = ''; }
+    alert('Error deleting. Try again.');
   }
 }
 
