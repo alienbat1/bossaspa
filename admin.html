@@ -633,6 +633,22 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         </div>
       </div>
 
+      <!-- SECTION 2b: Active Package — No Visit 14+ Days -->
+      <div class="fu-section" style="margin-top:18px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#e8f4ef,#d4ede4);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-pkggap-list')">
+          <span class="fu-icon">⚠️</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#1a5c3a;">Active Package — Gap Alert</div>
+            <div class="fu-section-sub" style="color:#2a6b44;">Has active package but no visit in 14+ days · Needs to come back to continue treatment</div>
+          </div>
+          <div class="fu-badge" style="background:#2a6b44;color:#fff;" id="fu-pkggap-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-pkggap-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
       <!-- SECTION 3: No Visit 3–6 months (max 25) -->
       <div class="fu-section" style="margin-top:18px;">
         <div class="fu-section-header" style="background:linear-gradient(135deg,#f5ede0,#f0e0cc);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-warm-list')">
@@ -1485,10 +1501,10 @@ async function loadFollowUp() {
   statusEl.setAttribute('hidden','');
 
   // Set loading state in all lists
-  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
+  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="fu-empty">Loading…</div>';
   });
-  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-warm-count','fu-inactive-count','fu-birthday-count'].forEach(id => {
+  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-pkggap-count','fu-warm-count','fu-inactive-count','fu-birthday-count'].forEach(id => {
     document.getElementById(id).textContent = '…';
   });
 
@@ -1599,6 +1615,23 @@ async function loadFollowUp() {
         ? `<div class="fu-empty" style="color:var(--gold);font-style:normal;">+${data.pkgTotal - packages.length} more · shown tomorrow</div>` : '');
     }
 
+    // — SECTION 2b: Active Package — No Visit 14+ Days —
+    const pkgActiveGap = data.pkgActiveGap || [];
+    document.getElementById('fu-pkggap-count').textContent = pkgActiveGap.length + (data.pkgActiveGapTotal > pkgActiveGap.length ? '+' : '');
+    const pkgGapList = document.getElementById('fu-pkggap-list');
+    if (!pkgActiveGap.length) {
+      pkgGapList.innerHTML = '<div class="fu-empty">All package clients came in within the last 2 weeks. 🎉</div>';
+    } else {
+      pkgGapList.innerHTML = pkgActiveGap.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        const gapLabel = c.daysGap != null ? `${c.daysGap}d gap` : 'never visited';
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${escHtml(c.packageName||'')} · ${c.sessionsLeft} sessions left · Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
+        const tag = `<span class="fu-tag" style="background:#d4ede4;color:#1a5c3a;">${gapLabel}</span>`;
+        return fuRow(c, i, 'pkggap', tag, 'pkg_gap', c.packageName||'');
+      }).join('') + (data.pkgActiveGapTotal > pkgActiveGap.length
+        ? `<div class="fu-empty" style="color:#2a6b44;font-style:normal;">+${data.pkgActiveGapTotal - pkgActiveGap.length} more · shown tomorrow</div>` : '');
+    }
+
     // — SECTION 3: No Visit 3–6 months (max 25) —
     document.getElementById('fu-warm-count').textContent = warm.length + (data.warmTotal > warm.length ? '+' : '');
     const warmList = document.getElementById('fu-warm-list');
@@ -1652,7 +1685,7 @@ async function loadFollowUp() {
     statusEl.textContent = 'Could not load follow-up data. Check your connection and try again.';
     statusEl.className = 'status err';
     statusEl.removeAttribute('hidden');
-    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
+    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
   }
@@ -1854,6 +1887,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
   <!-- Editable contact fields -->
   <div class="cp-section">
     <div class="cp-section-title">Contact Info</div>
+    ${acEditableRow('Name', c.name||'—', 'name', c)}
     ${acEditableRow('Phone', formatPhone(phone)||'—', 'phone', c)}
     ${acEditableRow('Email', c.email||'—', 'email', c)}
     ${acEditableRow('Date of Birth', formatDob(c.dob), 'dob', c)}
@@ -1875,16 +1909,19 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
       const last   = p['Last Used Date'] || p.lastUsedDate || '';
       const pkgId  = p.packageId || p['Package ID'] || '';
       const statusClass = status.toLowerCase();
-      html += `<div class="cp-pkg-card">
+      const safePkgId = escHtml(pkgId);
+      html += `<div class="cp-pkg-card" id="pkg-card-${safePkgId}">
         <div class="cp-pkg-name">${escHtml(name)} <span class="pkg-status ${statusClass}">${escHtml(status)}</span></div>
         <div class="cp-pkg-meta">
           ${done}/${total} sessions used · ${left} left<br>
           Purchased: ${escHtml(pur)} ${last ? '· Last used: ' + escHtml(last) : ''}
           ${p.notes ? `<br><em>${escHtml(p.notes)}</em>` : ''}
         </div>
-        <div style="margin-top:6px;display:flex;gap:8px;">
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="acEditPkg(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;font-family:'Jost',sans-serif;">Edit status/sessions</button>
+          ${pkgId ? `<button onclick="acTogglePkgSessions('${safePkgId}',this)" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px 8px;background:var(--beige);font-family:'Jost',sans-serif;">▸ Sessions &amp; Signatures</button>` : ''}
         </div>
+        ${pkgId ? `<div id="pkg-sessions-${safePkgId}" style="display:none;margin-top:8px;"></div>` : ''}
       </div>`;
     });
   }
@@ -1987,7 +2024,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
   <div id="manual-merge-panel" hidden style="margin-top:12px;background:#fff8ed;border:1.5px solid var(--gold);border-radius:var(--r);padding:16px;">
     <div style="font-size:.78rem;font-weight:500;color:#7a5c1e;letter-spacing:.04em;margin-bottom:6px;">MERGE WITH ANOTHER CLIENT</div>
     <div style="font-size:.73rem;color:#9a7535;margin-bottom:10px;line-height:1.5;">Search for the duplicate record. The client you keep will inherit all visits, packages and forms from the one being deleted.</div>
-    <input id="manual-merge-search" type="text" placeholder="Search by name or phone…" oninput="acManualMergeSearch(this.value)"
+    <input id="manual-merge-search" type="text" placeholder="Search by name or phone…"
       style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.85rem;margin-bottom:8px;outline:none;">
     <div id="manual-merge-results" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
     <div id="manual-merge-selected" hidden style="margin-top:10px;"></div>
@@ -2436,6 +2473,72 @@ function acShowSignature(idx, service, date, encodedSig) {
   modal.style.display = 'flex';
 }
 
+async function acTogglePkgSessions(pkgId, btn) {
+  const el = document.getElementById('pkg-sessions-' + pkgId);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  if (isOpen) {
+    el.style.display = 'none';
+    btn.textContent = '▸ Sessions & Signatures';
+    return;
+  }
+  el.style.display = 'block';
+  btn.textContent = '▾ Sessions & Signatures';
+  if (el.dataset.loaded) return; // already fetched
+  el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Loading…</span>';
+  try {
+    const res  = await fetch(`${WEBAPP_URL}?action=get_pkg_session_sigs&pkgId=${encodeURIComponent(pkgId)}`, { mode: 'cors' });
+    const data = await res.json();
+    const sessions = data.sessions || [];
+    if (!sessions.length) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No session signatures recorded yet.</span>';
+    } else {
+      let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Session Log</div>`;
+      sessions.forEach(s => {
+        const sNum = s.sessionNum || '?';
+        const sDate = escHtml(s.date || '—');
+        const sigId  = escHtml(s.sigId || '');
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <span style="font-size:.78rem;font-weight:600;color:var(--ink);">Session #${sNum}</span>
+            <span style="font-size:.72rem;color:var(--muted);margin-left:8px;">${sDate}</span>
+          </div>
+          <div>
+            ${s.hasSig && sigId
+              ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
+              : `<span style="font-size:.68rem;color:var(--muted);">No signature</span>`}
+          </div>
+        </div>`;
+      });
+      el.innerHTML = html;
+    }
+    el.dataset.loaded = '1';
+  } catch(err) {
+    el.innerHTML = `<span style="color:#c0392b;font-size:.78rem;">Error loading sessions.</span>`;
+  }
+}
+
+async function acFetchAndShowPkgSig(sigId, sessionNum, date, btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const url = WEBAPP_URL + '?action=get_pkg_session_sig&sigId=' + encodeURIComponent(sigId);
+    const res  = await fetch(url, { mode: 'cors' });
+    const data = await res.json();
+    if (data.signature && data.signature.startsWith('data:image')) {
+      acShowSignature(sigId, 'Session #' + sessionNum + ' — Package Signature', date, encodeURIComponent(data.signature));
+    } else {
+      alert('Signature image not available for this session.');
+    }
+  } catch(e) {
+    alert('Could not load signature. Please try again.');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
 function acEditableRow(label, val, field, c) {
   const rowId = 'cp-row-' + field;
   const valId = 'cp-val-' + field;
@@ -2455,10 +2558,13 @@ function acStartEdit(field, c, currentVal) {
   if (!row) return;
 
   const displayVal = currentVal === '—' ? '' : currentVal;
+  const labelMap2 = {name:'Name', phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
+  const typeMap   = {phone:'tel', email:'email', name:'text', dob:'date', notes:'text'};
+  const phMap     = {name:'Full name', phone:'(310) 555-0000', email:'email@example.com', dob:'', notes:'Notes…'};
   row.innerHTML = `
-    <span class="cp-editable-label">${field==='phone'?'Phone':field==='email'?'Email':'Notes'}</span>
+    <span class="cp-editable-label">${labelMap2[field]||field}</span>
     <div class="cp-edit-inline">
-      <input type="${field==='phone'?'tel':field==='email'?'email':'text'}" id="cp-inp-${field}" value="${escHtml(displayVal)}" placeholder="${field==='phone'?'(310) 555-0000':field==='email'?'email@example.com':'Notes…'}">
+      <input type="${typeMap[field]||'text'}" id="cp-inp-${field}" value="${escHtml(displayVal)}" placeholder="${phMap[field]||''}">
       <button onclick="acSaveField('${field}',${JSON.stringify(c).replace(/"/g,'&quot;')})">Save</button>
       <button class="btn-discard" onclick="acCancelEdit('${field}',${JSON.stringify(c).replace(/"/g,'&quot;')},${JSON.stringify(currentVal).replace(/"/g,'&quot;')})">✕</button>
     </div>`;
@@ -2468,7 +2574,7 @@ function acCancelEdit(field, c, originalVal) {
   const rowId = 'cp-row-' + field;
   const row = document.getElementById(rowId);
   if (!row) return;
-  const labelMap = {phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
+  const labelMap = {name:'Name', phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
   row.outerHTML = acEditableRow(labelMap[field]||field, originalVal, field, c);
 }
 
@@ -2504,8 +2610,15 @@ async function acSaveField(field, c) {
     // Re-render just this row
     if (row) {
       const displayVal = field === 'phone' ? (newVal ? formatPhone(newVal) : '—') : (newVal || '—');
-      const labelMap2 = {phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
-      row.outerHTML = acEditableRow(labelMap2[field]||field, displayVal, field, updated);
+      const labelMap3 = {name:'Name', phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
+      row.outerHTML = acEditableRow(labelMap3[field]||field, displayVal, field, updated);
+    }
+    // If name changed, update header display too
+    if (field === 'name') {
+      const nameEl = document.querySelector('.cp-name');
+      if (nameEl) nameEl.textContent = newVal || '—';
+      const avatarEl = document.querySelector('.cp-avatar');
+      if (avatarEl) avatarEl.textContent = (newVal||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     }
   } catch(e) {
     if (row) row.style.opacity = '1';
