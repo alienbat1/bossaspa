@@ -789,26 +789,26 @@ async function nextScreen() {
       showSpinner();
       const name = getClientName();
       const phone = getClientPhone();
-      await sendToSheets('health_form', {
-        clientName: name, clientPhone: phone,
-        service: selectedService.name, duration: selectedDuration,
-        date: new Date().toLocaleDateString('en-US'),
-        healthConfirmedUnchanged: true, ...lastHealth,
-        svcForm: svcFormAnswers
-      });
-      await sendToSheets('visit', {
-        clientName: name, clientPhone: phone,
-        serviceName: selectedService.name, duration: selectedDuration,
-        serviceCategory: selectedService.cat, isNew: false,
-        date: new Date().toLocaleDateString('en-US'),
-        svcForm: svcFormAnswers
-      });
-      // Use package session if client opted in
+      const today = new Date().toLocaleDateString('en-US');
+      // Fire health_form + visit in parallel for speed
+      const calls = [
+        sendToSheets('health_form', {
+          clientName: name, clientPhone: phone,
+          service: selectedService.name, duration: selectedDuration,
+          date: today, healthConfirmedUnchanged: true, ...lastHealth,
+          svcForm: svcFormAnswers
+        }),
+        sendToSheets('visit', {
+          clientName: name, clientPhone: phone,
+          serviceName: selectedService.name, duration: selectedDuration,
+          serviceCategory: selectedService.cat, isNew: false,
+          date: today, svcForm: svcFormAnswers
+        })
+      ];
       if (usePackageToday && activePackage) {
-        await sendToSheets('use_package', {
-          phone: phone, pkgId: activePackage.pkgId
-        });
+        calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
       }
+      await Promise.all(calls);
       hideSpinner();
       if (!isNewClient) populateThanks();
     } else {
@@ -822,25 +822,25 @@ async function nextScreen() {
       const name = getClientName();
       const phone = getClientPhone();
       const answers = collectHealth();
-      await sendToSheets('health_form', {
-        clientName: name, clientPhone: phone,
-        service: selectedService.name, duration: selectedDuration,
-        date: new Date().toLocaleDateString('en-US'), ...answers,
-        svcForm: svcFormAnswers
-      });
-      await sendToSheets('visit', {
-        clientName: name, clientPhone: phone,
-        serviceName: selectedService.name, duration: selectedDuration,
-        serviceCategory: selectedService.cat, isNew: isNewClient,
-        date: new Date().toLocaleDateString('en-US'),
-        svcForm: svcFormAnswers
-      });
-      // Use package session if client opted in
+      const today = new Date().toLocaleDateString('en-US');
+      // Fire health_form + visit in parallel for speed
+      const calls = [
+        sendToSheets('health_form', {
+          clientName: name, clientPhone: phone,
+          service: selectedService.name, duration: selectedDuration,
+          date: today, ...answers, svcForm: svcFormAnswers
+        }),
+        sendToSheets('visit', {
+          clientName: name, clientPhone: phone,
+          serviceName: selectedService.name, duration: selectedDuration,
+          serviceCategory: selectedService.cat, isNew: isNewClient,
+          date: today, svcForm: svcFormAnswers
+        })
+      ];
       if (usePackageToday && activePackage) {
-        await sendToSheets('use_package', {
-          phone: phone, pkgId: activePackage.pkgId
-        });
+        calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
       }
+      await Promise.all(calls);
       hideSpinner();
       if (!isNewClient) populateThanks();
     }
