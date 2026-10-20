@@ -2370,14 +2370,15 @@ async function acLoadWaivers(phone) {
     }
     let html = '';
     waivers.forEach((w, idx) => {
-      const hasSig = w.signature && w.signature.startsWith('data:image');
+      const hasSig = w.hasSig || (w.signature && w.signature.startsWith('data:image'));
+      const wId = escHtml(w.waiverId || '');
       html += `<div style="border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--beige);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div style="font-size:.8rem;font-weight:600;color:var(--teal);">${escHtml(w.service||'General')}</div>
           <div style="font-size:.7rem;color:var(--muted);">${escHtml(w.date||'')} · ${escHtml(w.version||'')}</div>
         </div>
-        <div style="font-size:.72rem;color:var(--muted);margin-bottom:${hasSig?'8px':'0'};">ID: ${escHtml(w.waiverId||'—')}</div>
-        ${hasSig ? `<button onclick="acShowSignature('${idx}','${escHtml(w.service||'General')}','${escHtml(w.date||'')}','${encodeURIComponent(w.signature)}')" style="font-size:.7rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:3px 10px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View Signature</button>` : '<span style="font-size:.72rem;color:var(--muted);">Signature: Yes (no image saved)</span>'}
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:${hasSig?'8px':'0'};">ID: ${wId}</div>
+        ${hasSig ? `<button onclick="acFetchAndShowSignature('${wId}','${escHtml(w.service||'General')}','${escHtml(w.date||'')}',this)" style="font-size:.7rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:3px 10px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View Signature</button>` : '<span style="font-size:.72rem;color:var(--muted);">No signature recorded</span>'}
       </div>`;
     });
     el.innerHTML = html;
