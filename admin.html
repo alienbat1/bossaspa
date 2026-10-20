@@ -1868,6 +1868,8 @@ let acVisitsShowing = 5;
 function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone) {
   referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || '';
   acVisitsShowing = 5;
+  // Store packages on client for Add Visit modal
+  if (acProfileClient) acProfileClient._packages = packages || [];
   const initials = (c.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const phone = c.phone || '';
 
@@ -1919,7 +1921,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         </div>
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="acEditPkg(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;font-family:'Jost',sans-serif;">Edit status/sessions</button>
-          ${pkgId ? `<button onclick="acTogglePkgSessions('${safePkgId}',this)" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px 8px;background:var(--beige);font-family:'Jost',sans-serif;">▸ Sessions &amp; Signatures</button>` : ''}
+          ${pkgId ? `<button onclick="acTogglePkgSessions('${safePkgId}',this,${Number(done)||0},'${escHtml(phone)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px 8px;background:var(--beige);font-family:'Jost',sans-serif;">▸ Sessions &amp; Signatures</button>` : ''}
         </div>
         ${pkgId ? `<div id="pkg-sessions-${safePkgId}" style="display:none;margin-top:8px;"></div>` : ''}
       </div>`;
@@ -2205,12 +2207,15 @@ function acRenderVisitCards(visits, limit) {
       ${notes     ? `<div class="cp-visit-note">${escHtml(notes)}</div>` : ''}
       ${next      ? `<div class="cp-visit-next">→ ${escHtml(next)}</div>` : ''}
       ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
-      <div id="${visitKey}-wrap" style="margin-top:6px;">
+      <div id="${visitKey}-wrap" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
         <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
-        <div id="${visitKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
+        ${(source === 'Manual' && acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
+          ? `<button onclick="acShowLinkVisitToPkg('${escHtml(date)}',${rowIndex})" style="font-size:.68rem;color:#6a5;cursor:pointer;border:1px solid #6a5;border-radius:4px;padding:3px 10px;background:#f0f7f0;font-family:'Jost',sans-serif;">📦 Link to Package</button>`
+          : ''}
       </div>
+      <div id="${visitKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
     </div>`;
   }).join('');
 }
@@ -2473,7 +2478,7 @@ function acShowSignature(idx, service, date, encodedSig) {
   modal.style.display = 'flex';
 }
 
-async function acTogglePkgSessions(pkgId, btn) {
+async function acTogglePkgSessions(pkgId, btn, sessionsDone, clientPhone) {
   const el = document.getElementById('pkg-sessions-' + pkgId);
   if (!el) return;
   const isOpen = el.style.display !== 'none';
@@ -2487,17 +2492,18 @@ async function acTogglePkgSessions(pkgId, btn) {
   if (el.dataset.loaded) return; // already fetched
   el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Loading…</span>';
   try {
-    const res  = await fetch(`${WEBAPP_URL}?action=get_pkg_session_sigs&pkgId=${encodeURIComponent(pkgId)}`, { mode: 'cors' });
+    const url = `${WEBAPP_URL}?action=get_pkg_session_sigs&pkgId=${encodeURIComponent(pkgId)}&phone=${encodeURIComponent(clientPhone||'')}&sessionsDone=${encodeURIComponent(sessionsDone||0)}`;
+    const res  = await fetch(url, { mode: 'cors' });
     const data = await res.json();
     const sessions = data.sessions || [];
     if (!sessions.length) {
-      el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No session signatures recorded yet.</span>';
+      el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No sessions recorded yet.</span>';
     } else {
       let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Session Log</div>`;
       sessions.forEach(s => {
-        const sNum = s.sessionNum || '?';
+        const sNum  = s.sessionNum || '?';
         const sDate = escHtml(s.date || '—');
-        const sigId  = escHtml(s.sigId || '');
+        const sigId = escHtml(s.sigId || '');
         html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
           <div>
             <span style="font-size:.78rem;font-weight:600;color:var(--ink);">Session #${sNum}</span>
@@ -2506,7 +2512,7 @@ async function acTogglePkgSessions(pkgId, btn) {
           <div>
             ${s.hasSig && sigId
               ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
-              : `<span style="font-size:.68rem;color:var(--muted);">No signature</span>`}
+              : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`}
           </div>
         </div>`;
       });
@@ -2661,15 +2667,58 @@ const AC_SERVICES = [
 ];
 const AC_THERAPISTS = ['Maria Marin','Bruna Oliveira','Oksana Feldshtein','Other'];
 
-function acShowAddVisit() {
+function acShowAddVisit(prefillPkgId) {
   const today = new Date().toISOString().slice(0,10);
   const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
   const therapistOpts = AC_THERAPISTS.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+
+  // Detect active packages for this client
+  const pkgs = (acProfileClient && acProfileClient._packages) ? acProfileClient._packages : [];
+  const activePkgs = pkgs.filter(p => (p.status || p['Status'] || '').toLowerCase() === 'active');
+
+  let pkgToggleHtml = '';
+  if (activePkgs.length > 0) {
+    const pkgOpts = activePkgs.map(p => {
+      const pid  = escHtml(p.packageId || p['Package ID'] || '');
+      const pname = escHtml(p.packageName || p['Package Name'] || '');
+      const done  = p['Sessions Done'] ?? p.sessionsDone ?? 0;
+      const total = p['Sessions Total'] ?? p.sessionsTotal ?? 0;
+      const left  = p['Sessions Left'] ?? p.sessionsLeft ?? '?';
+      const sel   = (prefillPkgId && pid === escHtml(prefillPkgId)) ? 'selected' : '';
+      return `<option value="${pid}" data-done="${Number(done)}" data-name="${pname}" ${sel}>${pname} (${done}/${total} used · ${left} left)</option>`;
+    }).join('');
+    const defaultType = prefillPkgId ? 'package' : 'standalone';
+    pkgToggleHtml = `
+      <div class="field" style="margin-bottom:10px;">
+        <label style="margin-bottom:6px;display:block;">Visit Type</label>
+        <div style="display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button type="button" id="av-type-standalone" onclick="avSetType('standalone')"
+            data-active="${defaultType==='standalone'?'1':'0'}"
+            style="flex:1;padding:8px;border:none;font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;transition:background .15s;
+            ${defaultType==='standalone'?'background:var(--teal);color:#fff;':'background:var(--beige);color:var(--ink);'}">
+            Standalone
+          </button>
+          <button type="button" id="av-type-package" onclick="avSetType('package')"
+            data-active="${defaultType==='package'?'1':'0'}"
+            style="flex:1;padding:8px;border:none;border-left:1.5px solid var(--border);font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;transition:background .15s;
+            ${defaultType==='package'?'background:var(--teal);color:#fff;':'background:var(--beige);color:var(--ink);'}">
+            Package Session
+          </button>
+        </div>
+      </div>
+      <div id="av-pkg-select-wrap" class="field" style="display:${defaultType==='package'?'block':'none'};">
+        <label>Package</label>
+        <select id="av-pkg-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${pkgOpts}
+        </select>
+      </div>`;
+  }
 
   const html = `
   <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-visit-modal" onclick="if(event.target.id==='ac-visit-modal')document.getElementById('ac-visit-modal').remove()">
     <div style="background:#fff;border-radius:12px;padding:22px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto;">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--teal);margin-bottom:16px;">Add Visit</div>
+      ${pkgToggleHtml}
       <div class="field"><label>Date</label>
         <input type="date" id="av-date" value="${today}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
       </div>
@@ -2698,6 +2747,24 @@ function acShowAddVisit() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+function avSetType(type) {
+  const stBtn  = document.getElementById('av-type-standalone');
+  const pkBtn  = document.getElementById('av-type-package');
+  const pkWrap = document.getElementById('av-pkg-select-wrap');
+  if (!stBtn || !pkBtn) return;
+  if (type === 'package') {
+    pkBtn.style.background  = 'var(--teal)'; pkBtn.style.color  = '#fff';
+    stBtn.style.background  = 'var(--beige)'; stBtn.style.color = 'var(--ink)';
+    pkBtn.dataset.active = '1'; stBtn.dataset.active = '0';
+    if (pkWrap) pkWrap.style.display = 'block';
+  } else {
+    stBtn.style.background  = 'var(--teal)'; stBtn.style.color  = '#fff';
+    pkBtn.style.background  = 'var(--beige)'; pkBtn.style.color = 'var(--ink)';
+    stBtn.dataset.active = '1'; pkBtn.dataset.active = '0';
+    if (pkWrap) pkWrap.style.display = 'none';
+  }
+}
+
 async function acSaveVisit() {
   const c = acProfileClient;
   if (!c) return;
@@ -2708,6 +2775,21 @@ async function acSaveVisit() {
   const next      = document.getElementById('av-next').value.trim();
 
   if (!date || !service) { alert('Date and service are required.'); return; }
+
+  // Detect if this is a package session
+  const pkgBtn = document.getElementById('av-type-package');
+  const isPackageSession = pkgBtn && pkgBtn.dataset.active === '1';
+  let pkgId = '', pkgName = '', sessionNum = '';
+  if (isPackageSession) {
+    const pkgSel = document.getElementById('av-pkg-select');
+    if (pkgSel) {
+      pkgId = pkgSel.value;
+      const selOpt = pkgSel.selectedOptions[0];
+      pkgName = selOpt ? (selOpt.dataset.name || selOpt.textContent.split('(')[0].trim()) : '';
+      const done = selOpt ? (parseInt(selOpt.dataset.done || '0', 10)) : 0;
+      sessionNum = done + 1;
+    }
+  }
 
   document.getElementById('ac-visit-modal').remove();
   showSpinner('Saving visit…');
@@ -2725,12 +2807,92 @@ async function acSaveVisit() {
         service,
         therapist,
         notes,
-        next
+        next,
+        isPackageSession: !!isPackageSession,
+        pkgId,
+        pkgName,
+        sessionNum
       })
     });
   } catch(e) {}
   hideSpinner();
   // Refresh profile to show new visit
+  await acOpenProfile(c);
+}
+
+/* ── Link an existing manual visit to a package ── */
+function acShowLinkVisitToPkg(visitDate, rowIndex) {
+  const c = acProfileClient;
+  if (!c) return;
+  const pkgs = (c._packages || []).filter(p => (p.status||p['Status']||'').toLowerCase() === 'active');
+  if (!pkgs.length) return;
+
+  const pkgOpts = pkgs.map(p => {
+    const pid   = escHtml(p.packageId || p['Package ID'] || '');
+    const pname = escHtml(p.packageName || p['Package Name'] || '');
+    const done  = Number(p['Sessions Done'] ?? p.sessionsDone ?? 0);
+    const total = p['Sessions Total'] ?? p.sessionsTotal ?? 0;
+    const left  = p['Sessions Left'] ?? p.sessionsLeft ?? '?';
+    return `<option value="${pid}" data-done="${done}" data-name="${pname}">${pname} (${done}/${total} used · ${left} left)</option>`;
+  }).join('');
+
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-link-pkg-modal" onclick="if(event.target.id==='ac-link-pkg-modal')document.getElementById('ac-link-pkg-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--teal);margin-bottom:4px;">Link Visit to Package</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Visit: ${escHtml(visitDate)}</div>
+      <div class="field"><label>Select Package</label>
+        <select id="al-pkg-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${pkgOpts}
+        </select>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px;">This will decrement one session from the selected package and log this visit in Sessions &amp; Signatures.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="acSaveLinkVisitToPkg('${escHtml(visitDate)}',${rowIndex})" style="flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Link & Decrement</button>
+        <button onclick="document.getElementById('ac-link-pkg-modal').remove()" style="padding:10px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function acSaveLinkVisitToPkg(visitDate, rowIndex) {
+  const c = acProfileClient;
+  if (!c) return;
+  const pkgSel = document.getElementById('al-pkg-select');
+  if (!pkgSel) return;
+  const pkgId   = pkgSel.value;
+  const selOpt  = pkgSel.selectedOptions[0];
+  const pkgName = selOpt ? (selOpt.dataset.name || '') : '';
+  const done    = selOpt ? parseInt(selOpt.dataset.done || '0', 10) : 0;
+  const sessionNum = done + 1;
+
+  document.getElementById('ac-link-pkg-modal').remove();
+  showSpinner('Linking visit to package…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'add_visit_manual',
+        clientName: c.name,
+        clientPhone: c.phone || '',
+        clientId: c.clientId || '',
+        date: visitDate,
+        service: '',
+        therapist: '',
+        notes: '',
+        next: '',
+        isPackageSession: true,
+        pkgId,
+        pkgName,
+        sessionNum,
+        linkExisting: true   // flag: don't write a new VISITS row — just decrement + log PKG_SESSION_SIGS
+      })
+    });
+  } catch(e) {}
+  hideSpinner();
   await acOpenProfile(c);
 }
 
