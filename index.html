@@ -295,6 +295,61 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn" id="pkg-btn" onclick="nextScreen()">Continue →</button>
   </div>
 
+  <!-- SCREEN 2c: PACKAGE SESSION CONFIRMATION (when using package) -->
+  <div class="screen" id="screen-pkgsign">
+    <button class="btn-back" onclick="prevScreen()">← Back</button>
+    <div class="screen-title">Package Session Confirmation</div>
+    <div class="screen-sub" id="pkgsign-sub">Please review your package and sign to confirm today's session.</div>
+
+    <!-- Package summary card -->
+    <div id="pkgsign-summary" style="background:#edf5f3;border:1.5px solid #b0cec9;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--teal);margin-bottom:8px;" id="pkgsign-pkg-name">Package</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+        <div style="text-align:center;flex:1;background:#fff;border-radius:8px;padding:8px 4px;">
+          <div style="font-size:1.4rem;font-weight:500;color:var(--teal);" id="pkgsign-done">0</div>
+          <div style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sessions Used</div>
+        </div>
+        <div style="text-align:center;flex:1;background:#fff;border-radius:8px;padding:8px 4px;">
+          <div style="font-size:1.4rem;font-weight:500;color:var(--teal);" id="pkgsign-left">0</div>
+          <div style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sessions Left</div>
+        </div>
+        <div style="text-align:center;flex:1;background:#fff;border-radius:8px;padding:8px 4px;">
+          <div style="font-size:1.4rem;font-weight:500;color:var(--teal);" id="pkgsign-total">0</div>
+          <div style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Total</div>
+        </div>
+      </div>
+      <!-- Session history list -->
+      <div id="pkgsign-history" style="font-size:.78rem;color:var(--muted);max-height:120px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Inactive packages (collapsed) -->
+    <div id="pkgsign-inactive-wrap" style="display:none;margin-bottom:16px;">
+      <button onclick="pkgsignToggleHistory()" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;text-align:left;">
+        ▸ <span id="pkgsign-inactive-label">Previous packages</span>
+      </button>
+      <div id="pkgsign-inactive-list" style="display:none;padding:10px 4px;font-size:.75rem;color:var(--muted);line-height:1.7;"></div>
+    </div>
+
+    <!-- Session confirmation statement -->
+    <div style="background:#fff8ed;border:1.5px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:.78rem;font-weight:500;color:#7a5c1e;margin-bottom:6px;">Session Confirmation</div>
+      <div style="font-size:.85rem;color:#5a4010;line-height:1.5;" id="pkgsign-statement">I confirm the use of session #X from my package for today's appointment at Bossa.</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Please sign below:</div>
+    </div>
+
+    <!-- Signature canvas -->
+    <div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;margin-bottom:8px;position:relative;">
+      <canvas id="pkgsign-canvas" width="600" height="160" style="width:100%;display:block;touch-action:none;cursor:crosshair;"></canvas>
+      <div id="pkgsign-sig-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+        <span style="font-size:.8rem;color:#c8bfb0;letter-spacing:.04em;">Sign here</span>
+      </div>
+    </div>
+    <button onclick="pkgsignClear()" style="background:none;border:none;font-size:.72rem;color:var(--muted);cursor:pointer;margin-bottom:16px;padding:0;text-decoration:underline;">Clear signature</button>
+
+    <div id="pkgsign-err" class="err-msg" style="margin-bottom:10px;display:none;color:var(--error);font-size:.8rem;">Please sign to confirm this session.</div>
+    <button class="btn" onclick="nextScreen()">Confirm Session →</button>
+  </div>
+
   <!-- SCREEN 3: SERVICE SELECTION -->
   <div class="screen" id="screen-service">
     <button class="btn-back" onclick="prevScreen()">← Back</button>
@@ -541,13 +596,10 @@ function prevScreen() {
 function buildScreenFlow() {
   screenFlow = ['welcome'];
   if (isNewClient) screenFlow.push('register');
-  // Show history/package screen for returning clients
-  // Only show if: has active package OR has actual visit history
-  // (don't show if only inactive packages with no visits — nothing useful to display)
   const hasActiveNow = activePackage && activePackage.sessionsLeft > 0;
-  // Show profile/package screen for ALL returning clients so they can confirm their info
   if (!isNewClient) {
     screenFlow.push('package');
+    // pkgsign added dynamically after package screen when usePackageToday is set
   }
   screenFlow.push('service');
   screenFlow.push('info');
@@ -555,6 +607,17 @@ function buildScreenFlow() {
   screenFlow.push('health');
   if (isNewClient) screenFlow.push('waiver');
   screenFlow.push('thanks');
+}
+
+function rebuildScreenFlowWithPkgSign(usePkg) {
+  // Insert or remove pkgsign screen right after package
+  const pkgIdx = screenFlow.indexOf('package');
+  const pgIdx  = screenFlow.indexOf('pkgsign');
+  if (usePkg && pkgIdx >= 0 && pgIdx < 0) {
+    screenFlow.splice(pkgIdx + 1, 0, 'pkgsign');
+  } else if (!usePkg && pgIdx >= 0) {
+    screenFlow.splice(pgIdx, 1);
+  }
 }
 
 // ── CLIENT LOOKUP ──
@@ -740,9 +803,18 @@ async function nextScreen() {
       return;
     }
     document.getElementById('pkg-err').classList.remove('show');
-    // If using package, skip service screen — service already auto-selected
+    // If using package, pkgsign screen is next (already in flow via rebuildScreenFlowWithPkgSign)
+    // If NOT using package, service screen is next — service selection still needed
+  }
+
+  if (current === 'pkgsign') {
+    if (!pkgsignHasSig) {
+      document.getElementById('pkgsign-err').style.display = 'block';
+      return;
+    }
+    document.getElementById('pkgsign-err').style.display = 'none';
+    // Skip service screen — service already auto-selected from package
     if (usePackageToday === true && selectedService) {
-      // Jump past 'service' in the flow
       const svcIdx = screenFlow.indexOf('service');
       if (svcIdx !== -1) {
         currentStep = svcIdx; // nextStep() below will go to svcIdx+1
@@ -807,6 +879,14 @@ async function nextScreen() {
       ];
       if (usePackageToday && activePackage) {
         calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
+        const sig = getPkgSignature();
+        if (sig) {
+          const sessionNum = (activePackage.sessionsDone || 0) + 1;
+          calls.push(sendToSheets('pkg_session_sig', {
+            phone, pkgId: activePackage.pkgId, clientName: name,
+            pkgName: activePackage.name, sessionNum, date: today, signature: sig
+          }));
+        }
       }
       await Promise.all(calls);
       hideSpinner();
@@ -839,6 +919,14 @@ async function nextScreen() {
       ];
       if (usePackageToday && activePackage) {
         calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
+        const sig = getPkgSignature();
+        if (sig) {
+          const sessionNum = (activePackage.sessionsDone || 0) + 1;
+          calls.push(sendToSheets('pkg_session_sig', {
+            phone, pkgId: activePackage.pkgId, clientName: name,
+            pkgName: activePackage.name, sessionNum, date: today, signature: sig
+          }));
+        }
       }
       await Promise.all(calls);
       hideSpinner();
@@ -1879,10 +1967,140 @@ function selectPkgUse(useIt) {
       selectedService  = match;
       selectedDuration = match.durs && match.durs.length === 1 ? match.durs[0] : (match.durs.length === 0 ? '' : null);
     }
+    // Populate pkg sign screen
+    populatePkgSignScreen();
   } else if (!useIt) {
     selectedService  = null;
     selectedDuration = null;
   }
+  rebuildScreenFlowWithPkgSign(!!useIt);
+  updateStepBar();
+}
+
+// ── PACKAGE SIGN SCREEN ──
+let pkgsignCanvas = null, pkgsignCtx = null, pkgsignDrawing = false, pkgsignHasSig = false;
+
+function populatePkgSignScreen() {
+  if (!activePackage) return;
+  const pkg = activePackage;
+  const sessionNum = (pkg.sessionsDone || 0) + 1;
+  document.getElementById('pkgsign-pkg-name').textContent = pkg.name || 'Package';
+  document.getElementById('pkgsign-done').textContent = pkg.sessionsDone || 0;
+  document.getElementById('pkgsign-left').textContent = pkg.sessionsLeft || 0;
+  document.getElementById('pkgsign-total').textContent = pkg.sessionsTotal || 0;
+  document.getElementById('pkgsign-statement').textContent =
+    `I confirm the use of session #${sessionNum} from my "${pkg.name}" package for today's appointment at Bossa.`;
+  document.getElementById('pkgsign-sub').textContent =
+    `Please review your package and sign to confirm session #${sessionNum}.`;
+
+  // Session history from visitHistory (filtered to package service)
+  const histEl = document.getElementById('pkgsign-history');
+  const svcMatch = matchServiceFromPackage(pkg.name);
+  const svcName  = svcMatch ? svcMatch.name.toLowerCase() : '';
+  const pkgVisits = visitHistory.filter(v => {
+    const vs = (v.service||'').toLowerCase();
+    return svcName ? vs.includes(svcName.split(' ')[0]) : true;
+  }).slice(-10);
+  if (pkgVisits.length) {
+    histEl.innerHTML = pkgVisits.map((v, i) => {
+      const dateStr = v.date ? new Date(v.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : v.date;
+      return `<div style="padding:3px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;">
+        <span>Session ${i+1} · ${escHtml(v.service||'')}</span>
+        <span>${escHtml(dateStr||'')}</span>
+      </div>`;
+    }).join('');
+  } else {
+    histEl.innerHTML = '<div style="font-style:italic;">No previous sessions recorded.</div>';
+  }
+
+  // Inactive packages
+  const inactWrap = document.getElementById('pkgsign-inactive-wrap');
+  if (inactivePackages && inactivePackages.length) {
+    inactWrap.style.display = 'block';
+    document.getElementById('pkgsign-inactive-label').textContent = `Previous packages (${inactivePackages.length})`;
+    document.getElementById('pkgsign-inactive-list').innerHTML = inactivePackages.map(p => {
+      const status = (p.status||'inactive').toLowerCase();
+      const end = p.expiry ? ` · ended ${p.expiry}` : '';
+      return `<div>📦 ${escHtml(p.name||'Package')} · ${p.sessionsTotal||'?'} sessions · ${status}${end}</div>`;
+    }).join('');
+  } else {
+    inactWrap.style.display = 'none';
+  }
+
+  // Reset canvas
+  pkgsignHasSig = false;
+  document.getElementById('pkgsign-err').style.display = 'none';
+  setTimeout(() => {
+    const canvas = document.getElementById('pkgsign-canvas');
+    pkgsignCanvas = canvas;
+    const ctx = canvas.getContext('2d');
+    pkgsignCtx = ctx;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('pkgsign-sig-placeholder').style.display = 'flex';
+    pkgsignSetup(canvas, ctx);
+  }, 100);
+}
+
+function pkgsignToggleHistory() {
+  const list = document.getElementById('pkgsign-inactive-list');
+  const btn  = list.previousElementSibling;
+  const show = list.style.display === 'none';
+  list.style.display = show ? 'block' : 'none';
+  btn.querySelector('span').parentElement.childNodes[0].textContent = show ? '▾ ' : '▸ ';
+}
+
+function pkgsignSetup(canvas, ctx) {
+  ctx.strokeStyle = '#1a2820';
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  }
+  function start(e) {
+    e.preventDefault();
+    pkgsignDrawing = true;
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    document.getElementById('pkgsign-sig-placeholder').style.display = 'none';
+  }
+  function move(e) {
+    if (!pkgsignDrawing) return; e.preventDefault();
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    pkgsignHasSig = true;
+  }
+  function end(e) { pkgsignDrawing = false; }
+  canvas.removeEventListener('mousedown', canvas._psstart);
+  canvas.removeEventListener('mousemove', canvas._psmove);
+  canvas.removeEventListener('mouseup',   canvas._psend);
+  canvas.removeEventListener('touchstart',canvas._pststart);
+  canvas.removeEventListener('touchmove', canvas._pstmove);
+  canvas.removeEventListener('touchend',  canvas._pstend);
+  canvas._psstart = start; canvas._psmove = move; canvas._psend = end;
+  canvas._pststart= start; canvas._pstmove= move; canvas._pstend= end;
+  canvas.addEventListener('mousedown',  start);
+  canvas.addEventListener('mousemove',  move);
+  canvas.addEventListener('mouseup',    end);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove',  move,  {passive:false});
+  canvas.addEventListener('touchend',   end);
+}
+
+function pkgsignClear() {
+  if (!pkgsignCtx || !pkgsignCanvas) return;
+  pkgsignCtx.clearRect(0, 0, pkgsignCanvas.width, pkgsignCanvas.height);
+  pkgsignHasSig = false;
+  document.getElementById('pkgsign-sig-placeholder').style.display = 'flex';
+}
+
+function getPkgSignature() {
+  if (!pkgsignCanvas || !pkgsignHasSig) return null;
+  return pkgsignCanvas.toDataURL('image/png');
 }
 
 // ── SERVICE-SPECIFIC FORM ──
