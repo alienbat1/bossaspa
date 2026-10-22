@@ -135,6 +135,36 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner-text{margin-top:14px;font-size:.85rem;color:var(--muted);}
 </style>
+<style>
+/* ── Check-in auth overlay ── */
+#ci-auth{position:fixed;inset:0;background:var(--cream);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#ci-auth[hidden]{display:none!important;}
+.ci-auth-box{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:36px 28px;width:92%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(44,74,67,.10);}
+.ci-auth-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:300;letter-spacing:.08em;margin-bottom:4px;}
+.ci-auth-sub{font-size:.68rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:26px;}
+.ci-auth-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:left;}
+.ci-auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--beige);color:var(--ink);font-family:'Jost',sans-serif;font-size:1.4rem;letter-spacing:.3em;outline:none;text-align:center;margin-bottom:6px;}
+.ci-auth-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.ci-auth-input.shake{animation:ci-shake .35s;}
+@keyframes ci-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.ci-auth-err{font-size:.73rem;color:var(--error);min-height:18px;margin-bottom:10px;}
+.ci-auth-btn{width:100%;padding:13px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.9rem;letter-spacing:.06em;cursor:pointer;}
+.ci-auth-btn:hover{opacity:.92;}
+</style>
+
+<!-- Check-in auth overlay -->
+<div id="ci-auth">
+  <div class="ci-auth-box">
+    <div class="ci-auth-logo">Bossa</div>
+    <div class="ci-auth-sub">Check-In · Beverly Hills</div>
+    <div class="ci-auth-label">Staff password</div>
+    <input id="ci-auth-input" class="ci-auth-input" type="password" placeholder="••••"
+      autocomplete="current-password" inputmode="numeric"
+      onkeydown="if(event.key==='Enter')ciAuthSubmit()">
+    <div class="ci-auth-err" id="ci-auth-err"></div>
+    <button class="ci-auth-btn" onclick="ciAuthSubmit()">Unlock</button>
+  </div>
+</div>
 
 <div class="ipad-frame">
   <div class="ipad-bar">
@@ -2704,6 +2734,46 @@ updateStepBar();
 updateOptInToggle();
 document.getElementById('discount-none').classList.add('selected');
 showScreen('welcome');
+
+/* ── Check-in password ──
+   Uses sessionStorage so the password persists across F5 refreshes
+   but is forgotten when the tab/browser is closed.
+   To change password: update the string in btoa(encodeURIComponent('...')) below. */
+const CI_HASH = btoa(encodeURIComponent('bossa1234'));   // ← change password here
+
+(function ciInitAuth(){
+  try {
+    const stored = sessionStorage.getItem('bossa_ci_auth');
+    if (stored === CI_HASH) {
+      document.getElementById('ci-auth').hidden = true;
+    } else {
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => document.getElementById('ci-auth-input').focus(), 80);
+    }
+  } catch(e) {
+    document.getElementById('ci-auth').hidden = true; // fail open if storage blocked
+  }
+})();
+
+function ciAuthSubmit() {
+  const val  = document.getElementById('ci-auth-input').value;
+  const hash = btoa(encodeURIComponent(val));
+  if (hash === CI_HASH) {
+    try { sessionStorage.setItem('bossa_ci_auth', CI_HASH); } catch(e){}
+    document.getElementById('ci-auth').hidden = true;
+    document.body.style.overflow = '';
+  } else {
+    const inp = document.getElementById('ci-auth-input');
+    const err = document.getElementById('ci-auth-err');
+    err.textContent = 'Wrong password.';
+    inp.value = '';
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    inp.focus();
+    setTimeout(() => err.textContent = '', 2500);
+  }
+}
 </script>
 
 </body></html>
