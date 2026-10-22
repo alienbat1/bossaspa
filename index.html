@@ -516,7 +516,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <div class="thanks-name" id="thanks-name">Thank you!</div>
     <div class="thanks-sub">Your check-in is complete. Please let our team know you're ready.</div>
     <div class="thanks-detail" id="thanks-detail"></div>
-    <button class="btn btn-outline" onclick="resetApp()" style="margin-top:16px;">New Check-In</button>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-outline" onclick="resetApp()" style="flex:1;">New Check-In</button>
+      <button class="btn" onclick="printCheckinSheet()" style="flex:1;background:var(--teal);color:#fff;border-color:var(--teal);">🖨️ Print Form</button>
+    </div>
   </div>
 </div>
 
@@ -616,6 +619,7 @@ let healthConfirmed = false; // true when returning client taps "confirm unchang
 let svcFormAnswers = {};     // answers from the service-specific form
 let svcFormConfirmed = false;// true when returning client confirms svc form unchanged
 let lastSvcForm = null;      // previous svc form answers from lookup
+let _printData   = null;     // captured at submission for print sheet
 
 function prevScreen() {
   if (currentStep <= 0) return;
@@ -960,7 +964,14 @@ async function nextScreen() {
       }
       await Promise.all(calls);
       hideSpinner();
-      if (!isNewClient) populateThanks();
+      if (!isNewClient) {
+        _printData = { name, phone, date: today,
+          service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
+          serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+          health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
+          sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
+        populateThanks();
+      }
     }
   }
 
@@ -971,13 +982,19 @@ async function nextScreen() {
     const name = getClientName();
     const phone = getClientPhone();
     const sigImage = canvas.toDataURL('image/png');
+    const today2 = new Date().toLocaleDateString('en-US');
     await sendToSheets('waiver', {
       clientName: name, clientPhone: phone,
       service: selectedService.name,
-      date: new Date().toLocaleDateString('en-US'),
+      date: today2,
       signatureImage: sigImage, waiverVersion: '2024-v1'
     });
     hideSpinner();
+    _printData = { name, phone, date: today2,
+      service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
+      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+      health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
+      sigImage: sigImage, pkg: (usePackageToday && activePackage) ? activePackage : null };
     populateThanks();
   }
 
@@ -1024,6 +1041,7 @@ function resetApp() {
   visitHistory     = [];
   usePackageToday  = null;
   clientHasWaiver  = false;
+  _printData       = null;
   ['inp-name2','inp-phone2','inp-dob2','inp-email','inp-phone','inp-referral','inp-discount-code'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -2734,6 +2752,103 @@ updateStepBar();
 updateOptInToggle();
 document.getElementById('discount-none').classList.add('selected');
 showScreen('welcome');
+
+/* ── Print check-in sheet ── */
+function printCheckinSheet() {
+  const d = _printData;
+  if (!d) { alert('No check-in data to print.'); return; }
+
+  // Build service info block
+  let svcInfoHtml = '';
+  if (d.serviceInfo) {
+    const si = d.serviceInfo;
+    const items = [];
+    if (si.preparation)   items.push({ label: 'Preparation',   val: si.preparation });
+    if (si.benefits)      items.push({ label: 'Benefits',      val: si.benefits });
+    if (si.contraindications) items.push({ label: 'Contraindications', val: si.contraindications });
+    if (si.aftercare)     items.push({ label: 'Aftercare',     val: si.aftercare });
+    if (si.notes)         items.push({ label: 'Notes',         val: si.notes });
+    if (items.length) {
+      svcInfoHtml = `<div class="p-section"><div class="p-section-title">Service Information</div>` +
+        items.map(i => `<div class="p-qa"><div class="p-q">${i.label}</div><div class="p-a">${escHtml(i.val)}</div></div>`).join('') +
+        `</div>`;
+    }
+  }
+
+  // Build health answers
+  const ha = d.health || {};
+  const healthRows = HEALTH_QUESTIONS.map(item => {
+    const ans = ha[item.q] || '—';
+    const note = ha[item.q + ' — notes'] || ha[item.q + '_note'] || '';
+    return `<div class="p-qa"><div class="p-q">${escHtml(item.q)}</div><div class="p-a">${escHtml(ans)}${note ? ' — ' + escHtml(note) : ''}</div></div>`;
+  }).join('');
+
+  // Build service form answers
+  let svcFormHtml = '';
+  const sf = d.svcForm || {};
+  const sfKeys = Object.keys(sf).filter(k => sf[k]);
+  if (sfKeys.length) {
+    svcFormHtml = `<div class="p-section"><div class="p-section-title">Service Form</div>` +
+      sfKeys.map(k => `<div class="p-qa"><div class="p-q">${escHtml(k)}</div><div class="p-a">${escHtml(sf[k])}</div></div>`).join('') +
+      `</div>`;
+  }
+
+  // Signature
+  const sigHtml = d.sigImage
+    ? `<div class="p-section"><div class="p-section-title">Waiver Signature</div><img src="${d.sigImage}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;" /></div>`
+    : `<div class="p-section"><div class="p-section-title">Waiver</div><div class="p-a">Waiver on file (returning client)</div></div>`;
+
+  // Package row
+  const pkgHtml = d.pkg
+    ? `<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(d.pkg.name)} — 1 session used</span></div>` : '';
+
+  const html = `<!doctype html><html><head><meta charset=utf8>
+<title>Bossa Spa — Check-In · ${escHtml(d.name)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Jost',sans-serif;font-weight:300;color:#1a2820;background:#fff;padding:32px 40px;max-width:720px;margin:0 auto;}
+  .p-header{border-bottom:2px solid #2C4A43;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .p-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#2C4A43;font-weight:300;letter-spacing:.06em;}
+  .p-header-right{text-align:right;font-size:.75rem;color:#6b7f79;}
+  .p-client{font-size:1.25rem;font-family:'Cormorant Garamond',serif;color:#2C4A43;margin-bottom:4px;}
+  .p-meta{margin-bottom:18px;background:#F2EDE1;border-radius:8px;padding:12px 16px;}
+  .p-meta-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px;}
+  .p-meta-key{color:#6b7f79;}
+  .p-meta-val{font-weight:500;}
+  .p-section{margin-bottom:18px;}
+  .p-section-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7f79;border-bottom:1px solid #d4cbbe;padding-bottom:4px;margin-bottom:10px;font-weight:500;}
+  .p-qa{margin-bottom:7px;}
+  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.05em;}
+  .p-a{font-size:.88rem;color:#1a2820;}
+  @media print{body{padding:16px 20px;}button{display:none!important;}}
+</style></head><body>
+<div class="p-header">
+  <div class="p-logo">Bossa Spa</div>
+  <div class="p-header-right">Check-In Record<br>${escHtml(d.date)}</div>
+</div>
+<div class="p-client">${escHtml(d.name)}</div>
+<div class="p-meta">
+  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}${d.duration ? ' · ' + escHtml(d.duration) : ''}</span></div>
+  <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(d.date)}</span></div>
+  ${pkgHtml}
+</div>
+${svcInfoHtml}
+<div class="p-section"><div class="p-section-title">Health Form</div>${healthRows}</div>
+${svcFormHtml}
+${sigHtml}
+<div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">
+  Bossa Spa · Beverly Hills · bossaspa.com
+</div>
+<div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;letter-spacing:.04em;">🖨️ Print</button></div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 600);
+}
 
 /* ── Check-in password ──
    Uses sessionStorage so the password persists across F5 refreshes
