@@ -2241,6 +2241,9 @@ function acRenderVisitCards(visits, limit) {
         <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
+        <button onclick="acPrintVisitForm('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}')" style="font-size:.68rem;color:#5a6;cursor:pointer;border:1px solid #5a6;border-radius:4px;padding:3px 10px;background:#f2f7f2;font-family:'Jost',sans-serif;">
+          🖨️ Print
+        </button>
         ${((source === 'Manual' || source === 'Manual Import') && acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
           ? `<button onclick="acShowLinkVisitToPkg('${escHtml(date)}',${rowIndex})" style="font-size:.68rem;color:#6a5;cursor:pointer;border:1px solid #6a5;border-radius:4px;padding:3px 10px;background:#f0f7f0;font-family:'Jost',sans-serif;">📦 Link to Package</button>`
           : ''}
@@ -2335,6 +2338,96 @@ async function acToggleVisitForm(key, phone, date, category) {
   } catch(err) {
     detail.innerHTML = `<span style="color:var(--muted);font-size:.75rem;">Erro ao carregar: ${escHtml(err.message)}</span>`;
   }
+}
+
+// ── Print visit form (admin) ─────────────────────────────────────────────────
+async function acPrintVisitForm(phone, date, service, category) {
+  const c = acProfileClient;
+  const clientName = c ? (c.name || '') : '';
+
+  // Fetch check-in answers, health form, and waiver in parallel
+  const base = WEBAPP_URL;
+  const [answersRes, healthRes, waiverRes] = await Promise.all([
+    fetch(`${base}?action=get_checkin_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
+    fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
+    fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
+  ]);
+
+  const qa      = answersRes.answers || [];
+  const health  = (healthRes.forms || [])[0] || null;
+  const waivers = waiverRes.waivers || [];
+
+  // Find waiver closest to this visit's date
+  let waiverSigUrl = null;
+  if (waivers.length) {
+    const w = waivers[0]; // most recent
+    if (w.waiverId) {
+      try {
+        const sigRes = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(w.waiverId)}`, { mode:'cors' });
+        const sigData = await sigRes.json();
+        waiverSigUrl = sigData.signature || null;
+      } catch(e) {}
+    }
+  }
+
+  // Build service form HTML
+  const svcFormHtml = qa.length
+    ? qa.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
+    : '<div class="p-a" style="color:#6b7f79;">No service form recorded for this visit.</div>';
+
+  // Build health form HTML
+  const healthHtml = health && health.answers && health.answers.length
+    ? health.answers.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
+    : '<div class="p-a" style="color:#6b7f79;">No health form on record.</div>';
+
+  // Waiver
+  const sigHtml = waiverSigUrl
+    ? `<img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;" />`
+    : `<div class="p-a" style="color:#6b7f79;">${waivers.length ? 'Signature image not available.' : 'No waiver on record.'}</div>`;
+
+  const html = `<!doctype html><html><head><meta charset=utf8>
+<title>Bossa Spa — ${escHtml(clientName)} · ${escHtml(date)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Jost',sans-serif;font-weight:300;color:#1a2820;background:#fff;padding:32px 40px;max-width:720px;margin:0 auto;}
+  .p-header{border-bottom:2px solid #2C4A43;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .p-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#2C4A43;font-weight:300;letter-spacing:.06em;}
+  .p-header-right{text-align:right;font-size:.75rem;color:#6b7f79;}
+  .p-client{font-size:1.25rem;font-family:'Cormorant Garamond',serif;color:#2C4A43;margin-bottom:4px;}
+  .p-meta{margin-bottom:18px;background:#F2EDE1;border-radius:8px;padding:12px 16px;}
+  .p-meta-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px;}
+  .p-meta-key{color:#6b7f79;}
+  .p-meta-val{font-weight:500;}
+  .p-section{margin-bottom:18px;}
+  .p-section-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7f79;border-bottom:1px solid #d4cbbe;padding-bottom:4px;margin-bottom:10px;font-weight:500;}
+  .p-qa{margin-bottom:7px;}
+  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.05em;}
+  .p-a{font-size:.88rem;color:#1a2820;}
+  @media print{button{display:none!important;}}
+</style></head><body>
+<div class="p-header">
+  <div class="p-logo">Bossa Spa</div>
+  <div class="p-header-right">Check-In Record<br>${escHtml(date)}</div>
+</div>
+<div class="p-client">${escHtml(clientName)}</div>
+<div class="p-meta">
+  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(service || category || '—')}</span></div>
+  <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(date)}</span></div>
+  <div class="p-meta-row"><span class="p-meta-key">Phone</span><span class="p-meta-val">${escHtml(phone)}</span></div>
+</div>
+<div class="p-section"><div class="p-section-title">Service Form</div>${svcFormHtml}</div>
+<div class="p-section"><div class="p-section-title">Health Form</div>${healthHtml}</div>
+<div class="p-section"><div class="p-section-title">Waiver Signature</div>${sigHtml}</div>
+<div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">Bossa Spa · Beverly Hills</div>
+<div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;">🖨️ Print</button></div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 800);
 }
 
 // ── Referral / Indicação ─────────────────────────────────────────────────────
