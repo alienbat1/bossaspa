@@ -245,8 +245,38 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .fu-badge-wax{background:var(--gold);color:#fff;}
 .fu-tag-waxclub{background:#fff3d0;color:#7a5c1e;}
 </style>
+<style>
+/* ── Auth overlay ── */
+#auth-overlay{position:fixed;inset:0;background:var(--cream);z-index:9999;display:flex;align-items:center;justify-content:center;}
+#auth-overlay[hidden]{display:none!important;}
+.auth-box{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:340px;text-align:center;box-shadow:0 8px 32px rgba(44,74,67,.10);}
+.auth-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--teal);font-weight:300;letter-spacing:.08em;margin-bottom:4px;}
+.auth-sub{font-size:.7rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:28px;}
+.auth-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:left;}
+.auth-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--beige);color:var(--ink);font-family:'Jost',sans-serif;font-size:1.1rem;letter-spacing:.2em;outline:none;text-align:center;margin-bottom:6px;}
+.auth-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(44,74,67,.1);}
+.auth-input.shake{animation:shake .35s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.auth-err{font-size:.75rem;color:var(--error);min-height:18px;margin-bottom:10px;}
+.auth-btn{width:100%;padding:12px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:.9rem;letter-spacing:.06em;cursor:pointer;margin-top:4px;}
+.auth-btn:hover{background:var(--teal-mid);}
+</style>
 </head>
 <body>
+
+<!-- Auth overlay (admin) -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">Bossa</div>
+    <div class="auth-sub">Admin · Beverly Hills</div>
+    <div class="auth-label">Password</div>
+    <input id="auth-input" class="auth-input" type="password" placeholder="••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')authSubmit()">
+    <div class="auth-err" id="auth-err"></div>
+    <button class="auth-btn" onclick="authSubmit()">Enter</button>
+  </div>
+</div>
+
 <div class="frame">
   <div class="top-bar">
     <span class="logo">Bossa</span>
@@ -2211,7 +2241,7 @@ function acRenderVisitCards(visits, limit) {
         <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
-        ${(source === 'Manual' && acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
+        ${((source === 'Manual' || source === 'Manual Import') && acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
           ? `<button onclick="acShowLinkVisitToPkg('${escHtml(date)}',${rowIndex})" style="font-size:.68rem;color:#6a5;cursor:pointer;border:1px solid #6a5;border-radius:4px;padding:3px 10px;background:#f0f7f0;font-family:'Jost',sans-serif;">📦 Link to Package</button>`
           : ''}
       </div>
@@ -3579,6 +3609,40 @@ async function loadTodayCheckins(force) {
 
   } catch(err) {
     listEl.innerHTML = `<div class="empty"><div class="empty-text">Error loading check-ins.<br><small>${escHtml(err.message)}</small></div></div>`;
+  }
+}
+
+/* ── Admin password ── */
+// To change the password, update the string inside btoa(encodeURIComponent('...')) below.
+const ADMIN_HASH = btoa(encodeURIComponent('bossa2024'));   // ← change password here
+
+(function initAuth(){
+  const stored = sessionStorage.getItem('bossa_admin_auth');
+  if (stored === ADMIN_HASH) {
+    document.getElementById('auth-overlay').hidden = true;
+  } else {
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('auth-input').focus(), 80);
+  }
+})();
+
+function authSubmit() {
+  const val  = document.getElementById('auth-input').value;
+  const hash = btoa(encodeURIComponent(val));
+  if (hash === ADMIN_HASH) {
+    sessionStorage.setItem('bossa_admin_auth', ADMIN_HASH);
+    document.getElementById('auth-overlay').hidden = true;
+    document.body.style.overflow = '';
+  } else {
+    const inp = document.getElementById('auth-input');
+    const err = document.getElementById('auth-err');
+    err.textContent = 'Incorrect password.';
+    inp.value = '';
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    inp.focus();
+    setTimeout(() => err.textContent = '', 2500);
   }
 }
 </script>
