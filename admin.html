@@ -2341,85 +2341,263 @@ async function acToggleVisitForm(key, phone, date, category) {
 }
 
 // ── Print visit form (admin) ─────────────────────────────────────────────────
+// ── Service info for print ───────────────────────────────────────────────────
+const _PRINT_SERVICE_INFO = {
+  'lymphatic-drainage':{'name':'Lymphatic Drainage','what':'Manual lymphatic drainage using gentle, rhythmic movements to stimulate the body\'s lymphatic system. Helps reduce fluid retention, bloating, inflammation, and the feeling of heaviness.','before':'Drink at least 1L of water before your session. Avoid heavy meals 1 hour before.','after':'Drink 2L of water. Avoid alcohol for 24h. Light movement encouraged.','contra':'Not recommended during active infections, with a pacemaker, or during chemotherapy.'},
+  'lymphatic-brazil':{'name':'Lymphatic + Body Shape','what':'A combination of Lymphatic Drainage and Brazilian Body Shape to help reduce fluid-related puffiness and sculpt body contours.','before':'Stay normally hydrated. Avoid a heavy meal immediately before your appointment.','after':'Follow your therapist\'s personalized aftercare instructions.','contra':'Not recommended during pregnancy, active infections, or with a pacemaker.'},
+  'lymphatic-body-face':{'name':'Body + Face Lymphatic','what':'A combination session pairing facial lymphatic drainage with body drainage.','before':'Drink at least 1L of water before. Remove makeup.','after':'Drink 2L of water. Avoid alcohol for 24h.','contra':'Not recommended during active infections, with a pacemaker, or during chemotherapy.'},
+  'lymphatic-facial':{'name':'Facial Lymphatic Drainage','what':'A dedicated facial lymphatic drainage session focused on the face, jaw, neck, and décolleté. Reduces puffiness, under-eye bags, jaw tension, and facial bloating.','before':'Remove makeup. Drink water.','after':'Avoid heavy creams immediately after. Drink water.','contra':'Not recommended during active skin infection or open wounds on the face.'},
+  'lymphatic-cav':{'name':'Lymphatic + Cavitation','what':'Lymphatic drainage and deep-tissue vibration that breaks down localized fat in the same session.','before':'Eat something light at least 1h before. Drink 2L of water daily.','after':'Light movement afterward helps the body eliminate. Drink 2L of water. Avoid alcohol and excess sodium for 48h.','contra':'Not performed during pregnancy, with a pacemaker, or active tumor.'},
+  'lymphatic-post1':{'name':'Post-Surgery Lymphatic (Area)','what':'Specialized lymphatic drainage for post-surgery recovery. Extremely gentle, precise movements that respect the healing process.','before':'Bring your surgeon\'s guidance to the first session. Wear your compression garment as directed.','after':'Stay hydrated. Continue wearing your compression garment as directed.','contra':'Does not replace medical follow-up. Not performed with active infection, fever, or open drain.'},
+  'lymphatic-post-full':{'name':'Post-Surgery Lymphatic (Full Body)','what':'Specialized lymphatic drainage for post-surgery recovery. Extremely gentle, precise movements that respect the healing process and help the body eliminate excess fluid throughout the body.','before':'Bring your surgeon\'s guidance to the first session. Wear your compression garment as directed.','after':'Stay hydrated. Continue wearing your compression garment as directed.','contra':'Does not replace medical follow-up. Not performed with active infection, fever, or open drain.'},
+  'body-shape':{'name':'Brazilian Body Shape','what':'Brazilian body sculpting — firm, intentional manual movements working directly on the body\'s contours. No machines. Performed by hand from start to finish.','before':'Avoid heavy meals 1 hour before.','after':'Drink 2L of water. Some redness is normal.','contra':'Not recommended during pregnancy, with open skin, or active infections.'},
+  'wood-therapy':{'name':'Wood Therapy','what':'Shaped wood tools applied with rhythmic, targeted pressure over the tissue. Designed to break down fat deposits, improve circulation, and reduce the appearance of cellulite.','before':'Avoid heavy meals 1 hour before. Stay hydrated.','after':'Drink 2L of water. Light bruising is possible and normal.','contra':'Not recommended during pregnancy or over varicose veins.'},
+  'cavitation':{'name':'Cavitation','what':'High-frequency deep vibration that penetrates the fat tissue and disrupts fat cell membranes. A non-invasive, no-downtime treatment for localized fat reduction.','before':'Drink 2L of water before. Avoid alcohol 48h before.','after':'Drink 2L of water. Avoid alcohol 48h. Lymphatic drainage recommended after for best results.','contra':'Not during pregnancy, with pacemaker, or active tumor.'},
+  'lllt':{'name':'Red Light Therapy (LLLT)','what':'Low-level red light that penetrates fat tissue, creating temporary openings in fat cell membranes. Painless, no downtime.','before':'No preparation needed.','after':'Drink water. Light activity encouraged.','contra':'Not during pregnancy, with active cancer, or epilepsy.'},
+  'vacuum':{'name':'Vacuum Therapy','what':'Vacuum massage using suction cups in a rhythmic pump-and-release motion, paired with red light and gentle vibration.','before':'No tight clothing over area.','after':'Some redness normal. Avoid tight clothing for 24h.','contra':'Not during pregnancy, with pacemaker, or active skin infection.'},
+  'rf':{'name':'Radiofrequency (RF)','what':'Radiofrequency energy heats the deeper layers of the skin in a controlled way, stimulating new collagen and elastin production — firming and tightening the skin over time.','before':'Clean skin, no heavy creams.','after':'Stay hydrated. Avoid sun exposure on treated area.','contra':'Not with pacemaker, metal implants, or during pregnancy.'},
+  'ems':{'name':'EMS (Electrical Muscle Stimulation)','what':'Low-frequency electrical impulses that induce deep, controlled muscle contractions — like exercise, but precisely targeted to the area of your choice.','before':'No metallic jewelry over area.','after':'Mild muscle soreness normal, like after exercise.','contra':'Not with pacemaker, epilepsy, pregnancy, or metal implants.'},
+  'cryo':{'name':'Cryotherapy','what':'Body cryotherapy with controlled cooling that targets fat cells. Combines cold, suction, deep vibration, firming energy, and light. Localized fat reduction and body contouring.','before':'Avoid anti-inflammatories 48h before. Drink water.','after':'Mild redness or temporary numbness. No downtime. Lymphatic drainage recommended after.','contra':'Not during pregnancy, with cryoglobulinemia, or Raynaud\'s disease.'},
+  'body-wrap':{'name':'Body Wrap','what':'A full-body wrap treatment applied with a specialized formula chosen at booking. Designed to detoxify, hydrate, and slim the silhouette through thermal activity and active ingredients.','before':'Avoid eating a heavy meal 1h before. Shower if possible.','after':'Drink 2L of water. Avoid heavy creams for a few hours to allow the formula to finish absorbing.','contra':'Not during pregnancy or with sensitive skin conditions.'},
+  'massage-swedish':{'name':'Swedish Massage','what':'Long, smooth, flowing strokes across the full body. Ideal for total relaxation, mild muscle tension relief, and improved circulation. The classic massage experience.','before':'Arrive relaxed. Avoid heavy meals.','after':'Drink water. Rest if possible.','contra':'Not during fever or active infection.'},
+  'massage-deep':{'name':'Deep Tissue Massage','what':'Deep pressure and slow strokes that reach the deeper muscle layers. Designed for chronic knots, accumulated tension, and persistent muscle pain.','before':'Stay hydrated.','after':'Drink water. Some soreness normal for 24–48h.','contra':'Not over bruised or inflamed skin.'},
+  'massage-hot-stones':{'name':'Hot Stones Massage','what':'Heated volcanic stones are placed on and glided over the body, delivering deep muscle warmth before any manual pressure even begins.','before':'Avoid heavy meals. Let us know if you\'re sensitive to heat.','after':'Drink water. Avoid cold showers immediately after.','contra':'Not during pregnancy or with heat sensitivity.'},
+  'massage-hot-bamboo':{'name':'Hot Bamboo Massage','what':'Heated bamboo sticks used to roll and press the muscles with firm pressure and deep muscle warmth. More intense than Hot Stones.','before':'Arrive hydrated.','after':'Drink water.','contra':'Not during pregnancy or with skin conditions.'},
+  'massage-sports':{'name':'Sports Massage','what':'Specific techniques for athletes and active people: friction, percussion, and passive stretching to release adhesions, speed up recovery, and prevent injury.','before':'Arrive hydrated. Inform therapist of recent activity or injuries.','after':'Drink water. Light activity encouraged.','contra':'Not over acute injuries or inflamed joints.'},
+  'massage-prenatal':{'name':'Prenatal Massage','what':'A gentle, nurturing massage designed specifically for pregnant clients. Focuses on reducing muscle tension, lower back pain, swelling, and the physical strain that comes with pregnancy.','before':'Please inform us of your trimester and any OB/GYN guidance.','after':'Rest. Drink water.','contra':'Always consult your doctor before booking. Avoid in the first trimester without OB clearance.'},
+  'massage-cupping':{'name':'Cupping Massage','what':'Silicone or glass cups create suction on the skin, lifting the tissue rather than compressing it. Promotes circulation, relieves deep muscle tension, and helps break down adhesions.','before':'Stay hydrated.','after':'Drink water. Avoid sun exposure on marked areas.','contra':'Not over varicose veins, broken skin, or during pregnancy.'},
+  'sauna-30':{'name':'Sauna 30 min','what':'A 30-minute infrared or steam sauna session. Supports detoxification, improved circulation, muscle relaxation, and skin health through deep heat exposure.','before':'Hydrate well before. Avoid heavy meals.','after':'Drink 2L of water. Avoid alcohol.','contra':'Not recommended with heart conditions, during pregnancy, or with severe heat sensitivity.'},
+  'sauna-60':{'name':'Sauna 60 min','what':'A 60-minute infrared or steam sauna session. Extended heat exposure for deeper detoxification, muscle recovery, and a more complete relaxation experience.','before':'Hydrate well before. Avoid heavy meals.','after':'Drink 2L of water. Avoid alcohol.','contra':'Not recommended with heart conditions, during pregnancy, or with severe heat sensitivity.'},
+  'facial-dermaplaning':{'name':'Dermaplaning + Hydration','what':'Dermaplaning uses a sterile surgical blade to physically remove the top layer of dead skin cells and fine vellus hair from the face, followed by a targeted hydration protocol.','before':'Come with clean, makeup-free skin. Avoid strong exfoliating actives for 5 days before.','after':'Sun protection is essential. Avoid retinol and strong acids for 48h.','contra':'Not over active acne, rosacea flare-ups, open wounds, or sunburned skin. Not if on Accutane.'},
+  'facial-hydra':{'name':'HydraFacial','what':'A multi-step machine facial that cleanses, exfoliates, extracts, and infuses the skin with targeted serums in one session using a vortex suction tip.','before':'Arrive with clean skin. Avoid waxing or laser treatments 2 weeks before.','after':'Avoid active ingredients for 24h. No heavy makeup immediately after. Use SPF.','contra':'Not during active rosacea flare-ups, if you have used Accutane in the past 6 months, or over open wounds.'},
+  'facial-extraction':{'name':'Deep Cleansing + Extraction','what':'A focused treatment dedicated to deep pore cleansing and manual extraction of blackheads, whiteheads, and congestion.','before':'Do not attempt to extract at home before. Arrive with clean skin.','after':'Avoid touching your face. Skip makeup for a few hours. Use SPF.','contra':'Not over highly inflamed active acne. Not recommended if on Accutane.'},
+  'facial-sculpt':{'name':'Sculpting Facial (RF + Massage)','what':'A treatment combining Radio Frequency (RF) and a sculpting facial massage protocol to simultaneously firm, lift, and add glow.','before':'Remove makeup. Come with clean, dry skin. Avoid active skincare the night before.','after':'Avoid sun exposure on face for 24h. Use SPF daily. Skip heavy actives for 48h.','contra':'Not with a pacemaker, metal implants in the face, or during pregnancy.'},
+  'facial-signature':{'name':'Signature Facial','what':'A complete facial treatment combining deep cleansing, exfoliation, extraction, a customized mask, and hydration. Adapted to your skin type and concerns.','before':'Remove makeup before arrival. Avoid waxing or strong actives 3 days before.','after':'Avoid direct sun for 24h. Skip strong actives for 48h.','contra':'Not over active cold sores or open wounds on the face.'},
+  'facial-anti-age':{'name':'Anti-Aging Facial','what':'A results-oriented facial focused on firming, lifting, and reducing the appearance of fine lines and wrinkles. Combines advanced techniques with targeted products.','before':'Avoid strong actives 48h before.','after':'Protect skin from sun. Use SPF daily.','contra':'Not over active skin conditions or recent cosmetic procedures.'},
+  'facial-bundle':{'name':'Facial Lymphatic + RF Bundle','what':'A combined session pairing Facial Lymphatic Drainage with Radio Frequency on the face. Addresses both fluid retention/puffiness and skin laxity/firming in a single session.','before':'Remove makeup. Clean skin, no heavy creams.','after':'Avoid sun exposure on face. Stay hydrated.','contra':'Not with pacemaker, metal facial implants, or active skin infection.'},
+  'wax-brazilian':{'name':'Brazilian Wax','what':'Brazilian wax removes all hair from the front, back, and everything in between — including the labia, the strip, and the gluteal fold.','before':'Let hair grow to at least ¼ inch — no shaving for at least 3–4 weeks before. Exfoliate gently 24–48h before.','after':'Avoid tight clothing, sweating, swimming pools, hot tubs, and direct sun for 24–48h.','contra':'Not during active skin irritation, open cuts, or sunburned skin. Not recommended on Accutane or strong retinoids.'},
+  'wax-bikini':{'name':'Bikini Wax','what':'Bikini wax removes hair along the sides of the bikini line — the areas that would show outside a standard swimsuit.','before':'Let hair grow for at least 3–4 weeks. No shaving before. Exfoliate gently 24–48h before.','after':'Avoid tight underwear, sweating, and swimming for 24h.','contra':'Not over irritated or broken skin. Not on Accutane or strong retinoids.'},
+  'wax-full-leg':{'name':'Full Leg Wax','what':'Full leg wax removes all hair from the ankle to the upper thigh — both lower and upper leg in one session.','before':'Let hair grow to at least ¼ inch. No shaving for 3–4 weeks. Exfoliate 24–48h before.','after':'Avoid tight clothing and sweating for 24h. No sun exposure on waxed skin for 24h.','contra':'Not over varicose veins, broken skin, or recent sunburn. Not on Accutane or strong retinoids.'},
+  'wax-half-leg':{'name':'Half Leg Wax','what':'Half leg wax covers either the lower leg (knee to ankle) or the upper leg (knee to upper thigh).','before':'At least ¼ inch of growth. No shaving for 3–4 weeks. Exfoliate 24–48h before.','after':'Avoid tight clothing and sun for 24h.','contra':'Not over varicose veins, broken skin, or irritated skin.'},
+  'wax-underarm':{'name':'Underarm Wax','what':'Underarm wax removes all hair from both underarms in one quick session.','before':'Let hair grow to at least ¼ inch. Do not apply deodorant on the day of your appointment.','after':'Avoid deodorant, sweating, and tight clothing for 24h.','contra':'Not over irritated or broken skin.'},
+  'wax-full-face':{'name':'Full Face Wax','what':'Full face wax addresses all facial hair areas at once: upper lip, chin, sides of the face, and between the brows.','before':'Come with clean, makeup-free skin. Avoid strong actives for 3 days before.','after':'Avoid makeup, direct sun, and strong skincare actives for 24h.','contra':'Not over active breakouts, rosacea flare-ups, or recent chemical peels.'},
+  'wax-eyebrows':{'name':'Eyebrow Wax','what':'Eyebrow wax shapes and defines the brows by removing stray hairs above, below, and between them.','before':'Come with clean skin. Avoid retinol or acids near the brow area for 2–3 days before.','after':'Avoid makeup and direct sun on the brow area for 12–24h.','contra':'Not over irritated or broken skin near the brows.'},
+  'wax-upper-lip':{'name':'Upper Lip Wax','what':'Upper lip wax removes fine or coarse hair along the upper lip area in one quick pass.','before':'Clean, makeup-free skin. Avoid lip exfoliants and retinoids near the lip area for 2–3 days before.','after':'Avoid lipstick or lip products for a few hours. No direct sun on the area for 24h.','contra':'Not over cold sores or irritated skin. Not on Accutane or strong retinoids near the lip area.'},
+  'wax-full-body':{'name':'Full Body Wax','what':'A comprehensive full-body wax covering legs, arms, underarms, bikini line, and back or stomach.','before':'Hair at ¼ inch throughout. No shaving for 3–4 weeks. Exfoliate gently 24–48h before.','after':'Loose clothing. Avoid sweating, swimming, and sun for 24–48h.','contra':'Not recommended during pregnancy (some areas). Not on Accutane or strong retinoids.'},
+  'wax-full-back':{'name':'Full Back Wax','what':'Full back wax removes all hair from the upper and lower back, including the shoulders if needed.','before':'Let hair grow to at least ¼ inch. Exfoliate 24–48h before if possible.','after':'Wear a loose shirt. Avoid sweating and sun on the back for 24h.','contra':'Not over irritated, sunburned, or broken skin. Not on Accutane or strong retinoids.'},
+  'wax-chest':{'name':'Chest Wax','what':'Chest wax removes hair from the chest area.','before':'At least ¼ inch of growth. Exfoliate 24–48h before.','after':'Avoid tight shirts and sweating for 24h.','contra':'Not over irritated or broken skin. Not on Accutane or strong retinoids.'},
+  'wax-arms':{'name':'Arm Wax','what':'Arm wax removes hair from the full arm or just the forearm.','before':'At least ¼ inch of growth. Exfoliate 24–48h before.','after':'Avoid tight sleeves and sun for 24h.','contra':'Not over irritated or broken skin.'},
+  'wax-stomach':{'name':'Stomach Wax','what':'Stomach wax removes hair from the abdominal area.','before':'At least ¼ inch of growth. Exfoliate 24–48h before.','after':'Avoid tight waistbands and sweating for 24h.','contra':'Not recommended during pregnancy. Not over irritated or broken skin.'},
+  'wax-manzilian':{'name':'Manzilian Wax','what':'The male equivalent of the Brazilian Wax — complete hair removal from the front, back, and everything in between for male clients.','before':'At least ¼ inch of growth — no shaving for 3–4 weeks. Shower before your appointment.','after':'Wear loose underwear. Avoid sweating, swimming, and sun for 24–48h.','contra':'Not over irritated or broken skin. Not on Accutane or strong retinoids.'},
+  'couples-essencial':{'name':'Couples Massage (Essencial)','what':'A relaxing Swedish Massage for two — both guests receive a full 60-minute session side by side in the private couples room.','before':'Arrive a few minutes early. Avoid heavy meals beforehand.','after':'Drink water. Take your time.','contra':'Let us know of any injuries, skin conditions, or health considerations.'},
+  'couples-relaxing':{'name':'Couples Massage (Relaxing)','what':'An extended 90-minute Swedish Massage for two in the private couples room.','before':'Arrive relaxed. Avoid heavy meals.','after':'Drink water. Rest if possible.','contra':'Let us know of any injuries, skin conditions, or health considerations.'},
+  'couples-relaxing-sauna':{'name':'Couples Massage + Sauna','what':'A Swedish Massage followed by time in our infrared sauna — for two. 60-minute massage then 30 minutes of sauna.','before':'Hydrate well. Avoid a heavy meal. Bring comfortable clothing for after the sauna.','after':'Drink water — the sauna increases fluid loss. Avoid alcohol for a few hours after.','contra':'Infrared sauna not recommended during pregnancy or with certain heart conditions.'},
+  'couples-love-rio':{'name':'Love Rio Package','what':'Premium couples experience: 90-minute Swedish Massage + 30-minute sauna + beverage + tray of premium fruits and Brazilian sweets.','before':'Hydrate before arriving. Avoid a heavy meal. Arrive a few minutes early.','after':'Drink water. Enjoy the refreshments included.','contra':'Sauna not recommended during pregnancy or with certain heart conditions.'},
+  'couples-rio-romance':{'name':'Rio Romance Package','what':'The most complete couples experience: body treatment (massage or lymphatic) + facial lymphatic drainage + infrared sauna + flowers + romantic décor + refreshments and sweets.','before':'Arrive a few minutes early. Drink at least 1L of water if choosing lymphatic drainage. Remove makeup before the facial portion.','after':'Drink plenty of water. Take your time enjoying the room.','contra':'Sauna not recommended during pregnancy or with certain heart conditions. Lymphatic drainage not recommended during active infections.'}
+};
+
+// Map service display names → SERVICE_INFO keys
+const _PRINT_SVC_NAME_MAP = {};
+Object.entries(_PRINT_SERVICE_INFO).forEach(([k,v]) => { _PRINT_SVC_NAME_MAP[v.name.toLowerCase()] = k; });
+
+function _getServiceInfoByName(name) {
+  if (!name) return null;
+  const key = _PRINT_SVC_NAME_MAP[name.toLowerCase()] || null;
+  return key ? _PRINT_SERVICE_INFO[key] : null;
+}
+
 async function acPrintVisitForm(phone, date, service, category) {
   const c = acProfileClient;
-  const clientName = c ? (c.name || '') : '';
+  const clientName  = c ? (c.name  || '') : '';
+  const clientEmail = c ? (c.email || '') : '';
+  const clientDob   = c ? (c.dob   || c['Date of Birth'] || '') : '';
+  const clientNotes = c ? (c.notes || c['Notes'] || '') : '';
 
-  // Fetch check-in answers, health form, and waiver in parallel
+  // Fetch service form (SESSION sheet), health form (HEALTH sheet), and waiver in parallel
   const base = WEBAPP_URL;
-  const [answersRes, healthRes, waiverRes] = await Promise.all([
-    fetch(`${base}?action=get_checkin_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
+  const [svcRes, healthRes, waiverRes] = await Promise.all([
+    fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
     fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
     fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
   ]);
 
-  const qa      = answersRes.answers || [];
-  const health  = (healthRes.forms || [])[0] || null;
-  const waivers = waiverRes.waivers || [];
+  const qa       = svcRes.answers  || [];
+  const svcName  = svcRes.service  || service || category || '';
+  const svcDur   = svcRes.duration || '';
+  const health   = (healthRes.forms || [])[0] || null;
+  const waivers  = waiverRes.waivers || [];
 
-  // Find waiver closest to this visit's date
+  // Find waiver matching this visit date (or most recent)
+  let waiverRecord = null;
   let waiverSigUrl = null;
   if (waivers.length) {
-    const w = waivers[0]; // most recent
-    if (w.waiverId) {
+    // Try to find one for this date; fall back to most recent
+    waiverRecord = waivers.find(w => w.date === date) || waivers[0];
+    if (waiverRecord && waiverRecord.waiverId) {
       try {
-        const sigRes = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(w.waiverId)}`, { mode:'cors' });
+        const sigRes  = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(waiverRecord.waiverId)}`, { mode:'cors' });
         const sigData = await sigRes.json();
-        waiverSigUrl = sigData.signature || null;
+        waiverSigUrl  = sigData.signature || null;
       } catch(e) {}
     }
   }
 
-  // Build service form HTML
+  // ── Build client profile block (data that was shown during check-in) ──
+  let clientProfileHtml = '';
+  if (c) {
+    const rows = [];
+    if (clientEmail) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Email</span><span class="p-meta-val">${escHtml(clientEmail)}</span></div>`);
+    if (clientDob)   rows.push(`<div class="p-meta-row"><span class="p-meta-key">Date of Birth</span><span class="p-meta-val">${escHtml(clientDob)}</span></div>`);
+    const totalVisits = c.totalVisits || c['Total Visits'] || '';
+    if (totalVisits) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Total Visits</span><span class="p-meta-val">${escHtml(String(totalVisits))}</span></div>`);
+    const lastVisit = c.lastVisit || c['Last Visit'] || '';
+    if (lastVisit)   rows.push(`<div class="p-meta-row"><span class="p-meta-key">Last Visit</span><span class="p-meta-val">${escHtml(String(lastVisit))}</span></div>`);
+    // Packages
+    const pkgs = c._packages || [];
+    pkgs.forEach(pkg => {
+      const pkgName = pkg['Service Name'] || pkg.serviceName || '';
+      const pkgDone = pkg['Sessions Done'] || pkg.sessionsDone || 0;
+      const pkgTotal = pkg['Total Sessions'] || pkg.totalSessions || '';
+      const pkgStatus = pkg.status || '';
+      if (pkgName) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(pkgName)}${pkgTotal ? ` · ${escHtml(String(pkgDone))}/${escHtml(String(pkgTotal))} sessions` : ''}${pkgStatus ? ` · ${escHtml(pkgStatus)}` : ''}</span></div>`);
+    });
+    if (clientNotes) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Notes</span><span class="p-meta-val">${escHtml(clientNotes)}</span></div>`);
+    if (rows.length) {
+      clientProfileHtml = `<div class="p-section"><div class="p-section-title">Client Profile</div><div class="p-meta">${rows.join('')}</div></div>`;
+    }
+  }
+
+  // Build service info block
+  const svcInfo = _getServiceInfoByName(svcName || service || category || '');
+  const svcInfoHtml = svcInfo ? `
+    ${svcInfo.what ? `<div class="p-si-block"><div class="p-si-label">About this service</div><div class="p-si-text">${escHtml(svcInfo.what)}</div></div>` : ''}
+    <div class="p-si-row">
+      ${svcInfo.before ? `<div class="p-si-col"><div class="p-si-label">Before</div><div class="p-si-text">${escHtml(svcInfo.before)}</div></div>` : ''}
+      ${svcInfo.after  ? `<div class="p-si-col"><div class="p-si-label">After</div><div class="p-si-text">${escHtml(svcInfo.after)}</div></div>` : ''}
+    </div>
+    ${svcInfo.contra ? `<div class="p-si-block p-si-contra"><div class="p-si-label">Contraindications</div><div class="p-si-text">${escHtml(svcInfo.contra)}</div></div>` : ''}
+  ` : '';
+
+  // Build service form HTML (from SESSION sheet via get_session_answers)
   const svcFormHtml = qa.length
     ? qa.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
-    : '<div class="p-a" style="color:#6b7f79;">No service form recorded for this visit.</div>';
+    : '<div class="p-none">No session questions recorded for this visit.</div>';
 
-  // Build health form HTML
+  // Build health form HTML (from HEALTH sheet via get_forms)
   const healthHtml = health && health.answers && health.answers.length
     ? health.answers.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
-    : '<div class="p-a" style="color:#6b7f79;">No health form on record.</div>';
+    : '<div class="p-none">No health form on record.</div>';
 
-  // Waiver
+  // Waiver text (full text embedded here since it's not stored in the sheet)
+  const _WAIVER_TEXT = `BOSSA SPA — INFORMED CONSENT & LIABILITY WAIVER
+
+By signing this waiver, I acknowledge and agree to the following:
+
+SERVICES & INFORMED CONSENT
+I understand that the services provided at Bossa Spa (including but not limited to lymphatic drainage, body contouring, massage therapy, and aesthetic treatments) are wellness and relaxation services, not medical treatments. I confirm that I have disclosed any relevant medical conditions, medications, or contraindications to my therapist prior to my session.
+
+HEALTH CONDITIONS
+I declare that I do not have any contraindications to the service(s) I am receiving. I have been informed of the specific contraindications for my selected treatment(s) and confirm that none apply to me, or that I have received clearance from my physician.
+
+ASSUMPTION OF RISK
+I understand that all physical treatments carry an inherent risk of minor side effects such as temporary redness, mild soreness, or bruising. I accept these risks and agree that Bossa Spa, its therapists, and staff are not liable for any adverse reactions that may occur as a result of my session.
+
+RESULTS
+I understand that results from body contouring, lymphatic drainage, and other wellness services vary from person to person. No specific outcome or result has been guaranteed to me.
+
+MEDICAL DISCLAIMER
+I acknowledge that Bossa Spa does not provide medical advice or diagnosis. The services received are not intended to treat, cure, or prevent any medical condition. I am encouraged to consult a licensed healthcare provider for any medical concerns.
+
+PHOTOGRAPHY & MEDIA
+I agree that Bossa Spa may take before-and-after photos for professional documentation. These photos will not be shared publicly without my explicit written consent.
+
+CANCELLATION & POLICY
+I acknowledge that I have been informed of Bossa Spa's cancellation and rescheduling policy and agree to comply with it.
+
+By signing below, I confirm that I have read, understood, and agree to all terms stated in this waiver. I am signing voluntarily and of my own free will.`;
+
+  const waiverInfoHtml = waiverRecord ? `<div class="p-waiver-meta">
+    ${waiverRecord.service ? `<div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(waiverRecord.service)}</span></div>` : ''}
+    ${waiverRecord.date    ? `<div class="p-meta-row"><span class="p-meta-key">Date Signed</span><span class="p-meta-val">${escHtml(waiverRecord.date)}</span></div>` : ''}
+    ${waiverRecord.waiverId ? `<div class="p-meta-row"><span class="p-meta-key">Waiver ID</span><span class="p-meta-val" style="font-size:.72rem;color:#9aaa9f;">${escHtml(waiverRecord.waiverId)}</span></div>` : ''}
+  </div>` : '';
+
+  const waiverTextHtml = `<div class="p-waiver-text">${escHtml(_WAIVER_TEXT).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/^/,'<p>').replace(/$/,'</p>')}</div>`;
+
   const sigHtml = waiverSigUrl
-    ? `<img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;" />`
-    : `<div class="p-a" style="color:#6b7f79;">${waivers.length ? 'Signature image not available.' : 'No waiver on record.'}</div>`;
+    ? `<div class="p-sig-label">Client Signature</div><img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`
+    : `<div class="p-none">${waivers.length ? 'Signature image not available.' : 'No waiver on record.'}</div>`;
 
   const html = `<!doctype html><html><head><meta charset=utf8>
 <title>Bossa Spa — ${escHtml(clientName)} · ${escHtml(date)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Jost',sans-serif;font-weight:300;color:#1a2820;background:#fff;padding:32px 40px;max-width:720px;margin:0 auto;}
+  body{font-family:'Jost',sans-serif;font-weight:300;color:#1a2820;background:#fff;padding:32px 40px;max-width:760px;margin:0 auto;}
   .p-header{border-bottom:2px solid #2C4A43;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
   .p-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#2C4A43;font-weight:300;letter-spacing:.06em;}
   .p-header-right{text-align:right;font-size:.75rem;color:#6b7f79;}
   .p-client{font-size:1.25rem;font-family:'Cormorant Garamond',serif;color:#2C4A43;margin-bottom:4px;}
-  .p-meta{margin-bottom:18px;background:#F2EDE1;border-radius:8px;padding:12px 16px;}
+  .p-meta{margin-bottom:12px;background:#F2EDE1;border-radius:8px;padding:12px 16px;}
   .p-meta-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px;}
   .p-meta-key{color:#6b7f79;}
-  .p-meta-val{font-weight:500;}
-  .p-section{margin-bottom:18px;}
+  .p-meta-val{font-weight:500;text-align:right;}
+  .p-section{margin-bottom:22px;}
   .p-section-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7f79;border-bottom:1px solid #d4cbbe;padding-bottom:4px;margin-bottom:10px;font-weight:500;}
-  .p-qa{margin-bottom:7px;}
-  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.05em;}
+  .p-qa{margin-bottom:8px;}
+  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.03em;}
   .p-a{font-size:.88rem;color:#1a2820;}
-  @media print{button{display:none!important;}}
+  .p-none{font-size:.82rem;color:#9aaa9f;font-style:italic;}
+  /* Service info */
+  .p-si-block{margin-bottom:10px;}
+  .p-si-row{display:flex;gap:16px;margin-bottom:10px;}
+  .p-si-col{flex:1;}
+  .p-si-label{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#6b7f79;margin-bottom:3px;font-weight:500;}
+  .p-si-text{font-size:.84rem;color:#1a2820;line-height:1.5;}
+  .p-si-contra{background:#fff8ee;border-left:3px solid #e8c47a;padding:8px 12px;border-radius:0 6px 6px 0;}
+  .p-si-contra .p-si-label{color:#a07820;}
+  /* Waiver */
+  .p-waiver-meta{background:#F2EDE1;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+  .p-waiver-text{font-size:.75rem;color:#4a5a52;line-height:1.65;border:1px solid #d4cbbe;border-radius:8px;padding:14px 16px;background:#fafaf8;margin-bottom:14px;}
+  .p-waiver-text p{margin-bottom:8px;}
+  .p-waiver-text p:first-child{font-weight:600;font-size:.82rem;color:#2C4A43;margin-bottom:12px;}
+  .p-sig-label{font-size:.7rem;color:#6b7f79;margin-bottom:4px;}
+  @media print{
+    button{display:none!important;}
+    body{padding:16px 20px;}
+    .p-waiver-text{font-size:.68rem;}
+  }
 </style></head><body>
 <div class="p-header">
   <div class="p-logo">Bossa Spa</div>
   <div class="p-header-right">Check-In Record<br>${escHtml(date)}</div>
 </div>
+
 <div class="p-client">${escHtml(clientName)}</div>
 <div class="p-meta">
-  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(service || category || '—')}</span></div>
-  <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(date)}</span></div>
   <div class="p-meta-row"><span class="p-meta-key">Phone</span><span class="p-meta-val">${escHtml(phone)}</span></div>
+  ${clientEmail ? `<div class="p-meta-row"><span class="p-meta-key">Email</span><span class="p-meta-val">${escHtml(clientEmail)}</span></div>` : ''}
+  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(svcName || service || category || '—')}</span></div>
+  ${svcDur ? `<div class="p-meta-row"><span class="p-meta-key">Duration</span><span class="p-meta-val">${escHtml(svcDur)}</span></div>` : ''}
+  <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(date)}</span></div>
 </div>
-<div class="p-section"><div class="p-section-title">Service Form</div>${svcFormHtml}</div>
+
+${clientProfileHtml}
+
+${svcInfoHtml ? `<div class="p-section"><div class="p-section-title">Service Information</div>${svcInfoHtml}</div>` : ''}
+
+${qa.length ? `<div class="p-section"><div class="p-section-title">Session Questions</div>${svcFormHtml}</div>` : ''}
+
 <div class="p-section"><div class="p-section-title">Health Form</div>${healthHtml}</div>
-<div class="p-section"><div class="p-section-title">Waiver Signature</div>${sigHtml}</div>
-<div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">Bossa Spa · Beverly Hills</div>
+
+<div class="p-section">
+  <div class="p-section-title">Informed Consent &amp; Liability Waiver</div>
+  ${waiverInfoHtml}
+  ${waiverTextHtml}
+  ${sigHtml}
+</div>
+
+<div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">Bossa Spa · Beverly Hills · ${escHtml(date)}</div>
 <div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;">🖨️ Print</button></div>
 </body></html>`;
 
@@ -3636,29 +3814,28 @@ async function loadTodayCheckins(force) {
       const todayKey = 'td-' + i + '-' + (c.phone || '').replace(/\D/g,'');
       const todayDate = new Date().toLocaleDateString('en-US');
 
-      // Build session answers section inline (only if data already in c.session)
-      let sessionHtml = '';
+      // Pre-populate the toggle cache with session answers that came from get_today_checkins
+      // This avoids a second fetch when the user clicks the toggle
       if (session && session.allAnswers && session.allAnswers.length) {
-        const rows = session.allAnswers.map(qa => {
+        let inner = '';
+        const svcLine = [session.service, session.duration].filter(Boolean).join(' · ');
+        if (svcLine) inner += `<div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:8px;">${escHtml(svcLine)}</div>`;
+        session.allAnswers.forEach(qa => {
           const val = (qa.a || '').toString();
-          if (!val || val === '—') return '';
-          return `<div style="margin-bottom:6px;">
+          if (!val || val === '—') return;
+          inner += `<div style="margin-bottom:7px;">
             <div style="font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:1px;">${escHtml(qa.q||'')}</div>
-            <div style="font-size:.82rem;color:var(--ink);">${escHtml(val)}</div>
+            <div style="font-size:.83rem;color:var(--ink);">${escHtml(val)}</div>
           </div>`;
-        }).filter(Boolean).join('');
-        if (rows) {
-          sessionHtml = `<div style="margin-top:10px;padding:10px 12px;background:var(--beige);border-radius:8px;">
-            <div style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Session Questions</div>
-            ${rows}
-          </div>`;
-        }
+        });
+        if (inner) _visitFormCache[todayKey] = inner;
       }
 
-      // Always show a clickable button to fetch/toggle session answers
+      // Toggle button to show/hide session questions
+      const hasSessionData = !!(session && session.allAnswers && session.allAnswers.length);
       const svcBtnHtml = `<div id="${todayKey}-wrap" style="margin-top:8px;">
         <button onclick="acToggleVisitForm('${todayKey}','${escHtml(c.phone||'')}','${escHtml(todayDate)}','${escHtml(c.category||c.service||'')}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
-          📋 Check-in answers
+          ${hasSessionData ? '▼ Session Questions' : '📋 Session Questions'}
         </button>
         <div id="${todayKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
       </div>`;
@@ -3695,7 +3872,6 @@ async function loadTodayCheckins(force) {
           ${newBadge}${therapistStr}
         </div>
         ${notesHtml}${nextHtml}
-        ${sessionHtml}
         ${svcBtnHtml}
       </div>`;
     }).join('');
