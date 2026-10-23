@@ -2427,19 +2427,34 @@ async function acPrintVisitForm(phone, date, service, category) {
   const health   = (healthRes.forms || [])[0] || null;
   const waivers  = waiverRes.waivers || [];
 
-  // Find waiver matching this visit date (or most recent)
+  // Find waiver matching this visit date (or most recent with signature)
   let waiverRecord = null;
   let waiverSigUrl = null;
   if (waivers.length) {
-    // Try to find one for this date; fall back to most recent
-    waiverRecord = waivers.find(w => w.date === date) || waivers[0];
-    if (waiverRecord && waiverRecord.waiverId) {
+    // 1) Exact date match with signature
+    // 2) Any date match (no sig requirement)
+    // 3) Any waiver with signature
+    // 4) First waiver (last resort)
+    waiverRecord = waivers.find(w => w.date === date && w.hasSig)
+                || waivers.find(w => w.date === date)
+                || waivers.find(w => w.hasSig)
+                || waivers[0];
+    // Try to fetch signature: if selected record has none, iterate all with hasSig
+    const waiverCandidates = waiverRecord ? [waiverRecord, ...waivers.filter(w => w !== waiverRecord && w.hasSig)] : waivers.filter(w => w.hasSig);
+    for (const cand of waiverCandidates) {
+      if (!cand.waiverId) continue;
       try {
-        const sigRes  = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(waiverRecord.waiverId)}`, { mode:'cors' });
+        const sigRes  = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(cand.waiverId)}`, { mode:'cors' });
         const sigData = await sigRes.json();
-        waiverSigUrl  = sigData.signature || null;
+        if (sigData.signature && sigData.signature.startsWith('data:image')) {
+          waiverSigUrl = sigData.signature;
+          waiverRecord = cand; // use this record for metadata too
+          break;
+        }
       } catch(e) {}
     }
+    // If we still don't have a record, fallback
+    if (!waiverRecord) waiverRecord = waivers[0];
   }
 
   // ── Build client profile block (data that was shown during check-in) ──
