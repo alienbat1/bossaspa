@@ -2069,7 +2069,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
 
 let manualMergeTarget = null; // the client to be deleted (duplicate)
 
-function acShowManualMerge() {
+async function acShowManualMerge() {
   const panel = document.getElementById('manual-merge-panel');
   panel.removeAttribute('hidden');
   const inp = document.getElementById('manual-merge-search');
@@ -2078,6 +2078,22 @@ function acShowManualMerge() {
   document.getElementById('manual-merge-selected').setAttribute('hidden','');
   document.getElementById('manual-merge-confirm').setAttribute('hidden','');
   manualMergeTarget = null;
+
+  // If client list not yet loaded, load it now (needed for search)
+  if (acAllClients.length === 0) {
+    const resultsEl = document.getElementById('manual-merge-results');
+    resultsEl.innerHTML = `<div style="font-size:.78rem;color:var(--muted);padding:6px;">Loading clients…</div>`;
+    try {
+      const res = await fetch(WEBAPP_URL + '?action=get_all_clients', { mode: 'cors' });
+      const data = await res.json();
+      acAllClients = data.clients || [];
+      resultsEl.innerHTML = '';
+    } catch(e) {
+      resultsEl.innerHTML = `<div style="font-size:.78rem;color:var(--error);padding:6px;">Could not load clients. Check connection.</div>`;
+      return;
+    }
+  }
+
   // Attach listener fresh each time (avoids issues with innerHTML rebuild)
   inp.oninput = null;
   inp.addEventListener('input', function() { acManualMergeSearch(this.value); });
