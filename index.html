@@ -625,6 +625,9 @@ let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
 let clientEmail = '';        // email from client profile (from lookup)
+let clientDob   = '';        // date of birth from client profile
+let clientTotalVisits = null;// total visit count from lookup
+let clientLastVisit = '';    // last visit date from lookup
 let clientNotes = '';        // notes from client profile (from lookup)
 let lastHealth = null;       // previous health answers from lookup
 let clientHasWaiver = false; // true if returning client already has a waiver on file
@@ -766,15 +769,18 @@ async function nextScreen() {
       hideSpinner();
       if (found) {
         // Client exists — proceed as returning
-        clientName       = found.name || '';
-        clientEmail      = found.email || '';
-        clientNotes      = found.clientNotes || '';
-        lastHealth       = found.lastHealth || null;
-        lastSvcForm      = found.lastSvcForm || null;
-        activePackage    = found.activePackage || null;
-        inactivePackages = found.inactivePackages || [];
-        visitHistory     = found.visitHistory || [];
-        clientHasWaiver  = !!found.hasWaiver;
+        clientName        = found.name || '';
+        clientEmail       = found.email || '';
+        clientDob         = found.dob || '';
+        clientTotalVisits = (found.visitHistory || []).length || (found.totalVisits ?? null);
+        clientLastVisit   = found.lastVisit || ((found.visitHistory||[]).length ? (found.visitHistory[found.visitHistory.length-1].date || '') : '');
+        clientNotes       = found.clientNotes || '';
+        lastHealth        = found.lastHealth || null;
+        lastSvcForm       = found.lastSvcForm || null;
+        activePackage     = found.activePackage || null;
+        inactivePackages  = found.inactivePackages || [];
+        visitHistory      = found.visitHistory || [];
+        clientHasWaiver   = !!found.hasWaiver;
         usePackageToday  = null;
         buildScreenFlow();
         updateStepBar();
@@ -942,6 +948,7 @@ async function nextScreen() {
         const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
         _printData = { name: _name2, phone: _phone2, date: _today2,
           email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
+          dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
           service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
           serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
           health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
@@ -990,6 +997,7 @@ async function nextScreen() {
       if (!isNewClient) {
         _printData = { name, phone, date: today,
           email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
+          dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
           service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
           serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
           health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
@@ -1016,6 +1024,7 @@ async function nextScreen() {
     hideSpinner();
     _printData = { name, phone, date: today2,
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
+      dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
       service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
       health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
@@ -1061,8 +1070,11 @@ function resetApp() {
   healthConfirmed = false;
   svcFormConfirmed = false;
   svcFormAnswers = {};
-  clientEmail      = '';
-  activePackage    = null;
+  clientEmail       = '';
+  clientDob         = '';
+  clientTotalVisits = null;
+  clientLastVisit   = '';
+  activePackage     = null;
   inactivePackages = [];
   visitHistory     = [];
   usePackageToday  = null;
@@ -2820,28 +2832,44 @@ document.getElementById('discount-none').classList.add('selected');
 showScreen('welcome');
 
 /* ── Print check-in sheet ── */
-function printCheckinSheet() {
-  const d = _printData;
-  if (!d) { alert('No check-in data to print.'); return; }
+function buildCheckinHtml(d) {
+  // ── CLIENT PROFILE block ──
+  const profileRows = [
+    d.phone ? `<div class="p-meta-row"><span class="p-meta-key">Phone</span><span class="p-meta-val">${escHtml(d.phone)}</span></div>` : '',
+    d.email ? `<div class="p-meta-row"><span class="p-meta-key">Email</span><span class="p-meta-val">${escHtml(d.email)}</span></div>` : '',
+    d.dob   ? `<div class="p-meta-row"><span class="p-meta-key">Date of Birth</span><span class="p-meta-val">${escHtml(d.dob)}</span></div>` : '',
+    (d.totalVisits != null) ? `<div class="p-meta-row"><span class="p-meta-key">Total Visits</span><span class="p-meta-val">${escHtml(String(d.totalVisits))}</span></div>` : '',
+    d.lastVisit ? `<div class="p-meta-row"><span class="p-meta-key">Last Visit</span><span class="p-meta-val">${escHtml(d.lastVisit)}</span></div>` : '',
+  ].filter(Boolean).join('');
+  const profileHtml = profileRows
+    ? `<div class="p-section"><div class="p-section-title">Client Profile</div><div class="p-meta" style="margin-bottom:0;">${profileRows}</div></div>`
+    : '';
 
-  // Build service info block
+  // ── SERVICE INFORMATION block (About / Before / After / Contra) ──
   let svcInfoHtml = '';
   if (d.serviceInfo) {
     const si = d.serviceInfo;
-    const items = [];
-    if (si.preparation)   items.push({ label: 'Preparation',   val: si.preparation });
-    if (si.benefits)      items.push({ label: 'Benefits',      val: si.benefits });
-    if (si.contraindications) items.push({ label: 'Contraindications', val: si.contraindications });
-    if (si.aftercare)     items.push({ label: 'Aftercare',     val: si.aftercare });
-    if (si.notes)         items.push({ label: 'Notes',         val: si.notes });
-    if (items.length) {
-      svcInfoHtml = `<div class="p-section"><div class="p-section-title">Service Information</div>` +
-        items.map(i => `<div class="p-qa"><div class="p-q">${i.label}</div><div class="p-a">${escHtml(i.val)}</div></div>`).join('') +
-        `</div>`;
+    const cols = [
+      si.what  ? `<div class="p-info-col"><div class="p-info-label">ABOUT THIS SERVICE</div><div class="p-info-text">${escHtml(si.what)}</div></div>` : '',
+      (si.before || si.after) ? `<div class="p-info-2col">${si.before ? `<div><div class="p-info-label">BEFORE</div><div class="p-info-text">${escHtml(si.before)}</div></div>` : ''}${si.after ? `<div><div class="p-info-label">AFTER</div><div class="p-info-text">${escHtml(si.after)}</div></div>` : ''}</div>` : '',
+      si.contra ? `<div class="p-info-col p-info-contra"><div class="p-info-label" style="color:#b94040;">CONTRAINDICATIONS</div><div class="p-info-text">${escHtml(si.contra)}</div></div>` : '',
+    ].filter(Boolean).join('');
+    if (cols) {
+      svcInfoHtml = `<div class="p-section"><div class="p-section-title">S E R V I C E &nbsp; I N F O R M A T I O N</div>${cols}</div>`;
     }
   }
 
-  // Build health answers
+  // ── SERVICE FORM (session questions) ──
+  let svcFormHtml = '';
+  const sf = d.svcForm || {};
+  const sfKeys = Object.keys(sf).filter(k => sf[k]);
+  if (sfKeys.length) {
+    svcFormHtml = `<div class="p-section"><div class="p-section-title">SESSION QUESTIONS</div>` +
+      sfKeys.map(k => `<div class="p-qa"><div class="p-q">${escHtml(k)}</div><div class="p-a">${escHtml(sf[k])}</div></div>`).join('') +
+      `</div>`;
+  }
+
+  // ── HEALTH FORM ──
   const ha = d.health || {};
   const healthRows = HEALTH_QUESTIONS.map(item => {
     const ans = ha[item.q] || '—';
@@ -2849,20 +2877,42 @@ function printCheckinSheet() {
     return `<div class="p-qa"><div class="p-q">${escHtml(item.q)}</div><div class="p-a">${escHtml(ans)}${note ? ' — ' + escHtml(note) : ''}</div></div>`;
   }).join('');
 
-  // Build service form answers
-  let svcFormHtml = '';
-  const sf = d.svcForm || {};
-  const sfKeys = Object.keys(sf).filter(k => sf[k]);
-  if (sfKeys.length) {
-    svcFormHtml = `<div class="p-section"><div class="p-section-title">Service Form</div>` +
-      sfKeys.map(k => `<div class="p-qa"><div class="p-q">${escHtml(k)}</div><div class="p-a">${escHtml(sf[k])}</div></div>`).join('') +
-      `</div>`;
-  }
-
-  // Signature
-  const sigHtml = d.sigImage
-    ? `<div class="p-section"><div class="p-section-title">Waiver Signature</div><img src="${d.sigImage}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;" /></div>`
-    : `<div class="p-section"><div class="p-section-title">Waiver</div><div class="p-a">Waiver on file (returning client)</div></div>`;
+  // ── WAIVER ──
+  const waiverDate = d.date || '';
+  const waiverText = `
+<div class="p-section">
+  <div class="p-section-title">I N F O R M E D &nbsp; C O N S E N T &nbsp; &amp; &nbsp; L I A B I L I T Y &nbsp; W A I V E R</div>
+  <div class="p-meta" style="margin-bottom:12px;">
+    <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}</span></div>
+    <div class="p-meta-row"><span class="p-meta-key">Date Signed</span><span class="p-meta-val">${escHtml(waiverDate)}</span></div>
+  </div>
+  <div style="font-size:.75rem;color:#1a2820;line-height:1.55;margin-bottom:14px;">
+    <div style="font-size:.7rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#2C4A43;margin-bottom:4px;">BOSSA SPA — INFORMED CONSENT &amp; LIABILITY WAIVER</div>
+    <p style="margin-bottom:6px;">By signing this waiver, I acknowledge and agree to the following:</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">SERVICES &amp; INFORMED CONSENT</div>
+    <p style="margin-bottom:6px;">I understand that the services provided at Bossa Spa (including but not limited to lymphatic drainage, body contouring, massage therapy, and aesthetic treatments) are wellness and relaxation services, not medical treatments. I confirm that I have disclosed any relevant medical conditions, medications, or contraindications to my therapist prior to my session.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">HEALTH CONDITIONS</div>
+    <p style="margin-bottom:6px;">I declare that I do not have any contraindications to the service(s) I am receiving. I have been informed of the specific contraindications for my selected treatment(s) and confirm that none apply to me, or that I have received clearance from my physician.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">ASSUMPTION OF RISK</div>
+    <p style="margin-bottom:6px;">I understand that all physical treatments carry an inherent risk of minor side effects such as temporary redness, mild soreness, or bruising. I accept these risks and agree that Bossa Spa, its therapists, and staff are not liable for any adverse reactions that may occur as a result of my session.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">RESULTS</div>
+    <p style="margin-bottom:6px;">I understand that results from body contouring, lymphatic drainage, and other wellness services vary from person to person. No specific outcome or result has been guaranteed to me.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">MEDICAL DISCLAIMER</div>
+    <p style="margin-bottom:6px;">I acknowledge that Bossa Spa does not provide medical advice or diagnosis. The services received are not intended to treat, cure, or prevent any medical condition. I am encouraged to consult a licensed healthcare provider for any medical concerns.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">PHOTOGRAPHY &amp; MEDIA</div>
+    <p style="margin-bottom:6px;">I agree that Bossa Spa may take before-and-after photos for professional documentation. These photos will not be shared publicly without my explicit written consent.</p>
+    <div style="font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px;">CANCELLATION &amp; POLICY</div>
+    <p style="margin-bottom:6px;">I acknowledge that I have been informed of Bossa Spa's cancellation and rescheduling policy and agree to comply with it.</p>
+    <p style="margin-top:10px;">By signing below, I confirm that I have read, understood, and agree to all terms stated in this waiver. I am signing voluntarily and of my own free will.</p>
+  </div>
+  <div style="margin-top:10px;">
+    <div class="p-q" style="margin-bottom:6px;">WAIVER SIGNATURE</div>
+    ${d.sigImage
+      ? `<img src="${d.sigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />`
+      : `<div style="font-size:.8rem;color:#6b7f79;font-style:italic;">Waiver previously signed — on file</div>`
+    }
+  </div>
+</div>`;
 
   // Package row
   const pkgHtml = d.pkg
@@ -2877,16 +2927,21 @@ function printCheckinSheet() {
   .p-header{border-bottom:2px solid #2C4A43;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}
   .p-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:#2C4A43;font-weight:300;letter-spacing:.06em;}
   .p-header-right{text-align:right;font-size:.75rem;color:#6b7f79;}
-  .p-client{font-size:1.25rem;font-family:'Cormorant Garamond',serif;color:#2C4A43;margin-bottom:4px;}
+  .p-client{font-size:1.3rem;font-family:'Cormorant Garamond',serif;color:#2C4A43;margin-bottom:12px;}
   .p-meta{margin-bottom:18px;background:#F2EDE1;border-radius:8px;padding:12px 16px;}
   .p-meta-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px;}
   .p-meta-key{color:#6b7f79;}
   .p-meta-val{font-weight:500;}
   .p-section{margin-bottom:18px;}
-  .p-section-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7f79;border-bottom:1px solid #d4cbbe;padding-bottom:4px;margin-bottom:10px;font-weight:500;}
-  .p-qa{margin-bottom:7px;}
-  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.05em;}
+  .p-section-title{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:#6b7f79;border-bottom:1px solid #d4cbbe;padding-bottom:4px;margin-bottom:10px;font-weight:500;}
+  .p-qa{margin-bottom:8px;}
+  .p-q{font-size:.72rem;color:#6b7f79;letter-spacing:.04em;}
   .p-a{font-size:.88rem;color:#1a2820;}
+  .p-info-col{margin-bottom:10px;}
+  .p-info-label{font-size:.65rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#6b7f79;margin-bottom:3px;}
+  .p-info-text{font-size:.82rem;color:#1a2820;line-height:1.5;}
+  .p-info-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;}
+  .p-info-contra{background:#fff8f5;border-left:3px solid #b94040;padding:8px 10px;border-radius:4px;}
   @media print{body{padding:16px 20px;}button{display:none!important;}}
 </style></head><body>
 <div class="p-header">
@@ -2895,21 +2950,30 @@ function printCheckinSheet() {
 </div>
 <div class="p-client">${escHtml(d.name)}</div>
 <div class="p-meta">
-  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}${d.duration ? ' · ' + escHtml(d.duration) : ''}</span></div>
+  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}${d.duration ? ' — ' + escHtml(d.duration) : ''}</span></div>
   <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(d.date)}</span></div>
   ${pkgHtml}
 </div>
+${profileHtml}
 ${svcInfoHtml}
-<div class="p-section"><div class="p-section-title">Health Form</div>${healthRows}</div>
 ${svcFormHtml}
-${sigHtml}
+<div class="p-section"><div class="p-section-title">H E A L T H &nbsp; F O R M</div>${healthRows}</div>
+${waiverText}
 <div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">
   Bossa Spa · Beverly Hills · bossaspa.com
 </div>
 <div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;letter-spacing:.04em;">🖨️ Print</button></div>
 </body></html>`;
 
-  // Inject into a hidden print container and print inline (avoids pop-up blockers on iPad)
+  return html;
+}
+
+function printCheckinSheet() {
+  const d = _printData;
+  if (!d) { alert('No check-in data to print.'); return; }
+  const html = buildCheckinHtml(d);
+
+  // Inject into a hidden print container and trigger print (avoids pop-up blockers on iPad)
   let printDiv = document.getElementById('_print_container');
   if (!printDiv) {
     printDiv = document.createElement('div');
@@ -2978,14 +3042,12 @@ function emailModalSend() {
 async function sendCheckinEmail(toEmail, d) {
   showSpinner('Sending email…');
   try {
+    const html = buildCheckinHtml(d);
     const body = {
-      action: 'send_checkin_email',
+      type: 'send_email_html',
       toEmail,
-      clientName: d.name,
-      service: d.service,
-      duration: d.duration || '',
-      date: d.date,
-      phone: d.phone || ''
+      subject: 'Bossa Spa — Check-In · ' + (d.name || ''),
+      htmlBody: html
     };
     const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
     await fetch(base, { method:'POST', mode:'no-cors', body: JSON.stringify(body) });
