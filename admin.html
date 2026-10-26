@@ -2431,6 +2431,8 @@ async function acPrintVisitForm(phone, date, service, category) {
   let waiverRecord = null;
   let waiverSigUrl = null;
   if (waivers.length) {
+    console.log('[PRINT DEBUG] waivers from get_waivers:', JSON.stringify(waivers.map(w=>({id:w.waiverId,date:w.date,hasSig:w.hasSig,svc:w.service}))));
+    console.log('[PRINT DEBUG] looking for date:', date, '| phone:', phone);
     // 1) Exact date match with signature
     // 2) Any date match (no sig requirement)
     // 3) Any waiver with signature
@@ -2439,22 +2441,26 @@ async function acPrintVisitForm(phone, date, service, category) {
                 || waivers.find(w => w.date === date)
                 || waivers.find(w => w.hasSig)
                 || waivers[0];
+    console.log('[PRINT DEBUG] selected waiverRecord:', JSON.stringify(waiverRecord));
     // Try to fetch signature: if selected record has none, iterate all with hasSig
     const waiverCandidates = waiverRecord ? [waiverRecord, ...waivers.filter(w => w !== waiverRecord && w.hasSig)] : waivers.filter(w => w.hasSig);
     for (const cand of waiverCandidates) {
-      if (!cand.waiverId) continue;
+      if (!cand.waiverId) { console.log('[PRINT DEBUG] skipping cand (no waiverId):', JSON.stringify(cand)); continue; }
       try {
+        console.log('[PRINT DEBUG] fetching sig for waiverId:', cand.waiverId);
         const sigRes  = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(cand.waiverId)}`, { mode:'cors' });
         const sigData = await sigRes.json();
+        console.log('[PRINT DEBUG] sigData.signature starts with:', sigData.signature ? sigData.signature.substring(0,30) : '(empty)');
         if (sigData.signature && sigData.signature.startsWith('data:image')) {
           waiverSigUrl = sigData.signature;
-          waiverRecord = cand; // use this record for metadata too
+          waiverRecord = cand;
           break;
         }
-      } catch(e) {}
+      } catch(e) { console.log('[PRINT DEBUG] sig fetch error:', e.message); }
     }
     // If we still don't have a record, fallback
     if (!waiverRecord) waiverRecord = waivers[0];
+    console.log('[PRINT DEBUG] final waiverSigUrl:', waiverSigUrl ? 'GOT IMAGE' : 'null');
   }
 
   // ── Build client profile block (data that was shown during check-in) ──
@@ -3085,16 +3091,11 @@ const AC_SERVICES = [
   // ── Faciais ──
   'Dermaplaning + Hydration','Anti-Aging Facial','Signature Facial','Hydrafacial',
   'Facial Extraction','Sculpt & Glow Combo','Facial Lymphatic + RF',
-  // ── Depilação Feminino ──
-  'Wax – Full Body (F)','Wax – Brazilian (F)','Wax – Bikini (F)','Wax – Full Leg (F)',
-  'Wax – Half Leg (F)','Wax – Underarm (F)','Wax – Full Face (F)','Wax – Eyebrows (F)',
-  'Wax – Upper Lip (F)','Wax – Chin (F)','Wax – Full Stomach (F)','Wax – Chest (F)',
-  'Wax – Full Back (F)','Wax – Full Butt (F)','Wax – Arms (F)',
-  // ── Depilação Masculino ──
-  'Wax – Full Body (M)','Wax – Brazilian (M)','Wax – Full Butt (M)','Wax – Full Back (M)',
-  'Wax – Chest (M)','Wax – Stomach (M)','Wax – Neck (M)','Wax – Half Leg (M)',
-  'Wax – Full Leg (M)','Wax – Half Arm (M)','Wax – Full Arm (M)','Wax – Underarm (M)',
-  'Wax – Ear (M)','Wax – Eyebrow (M)','Wax – Full Face (M)','Manzilian Shaving',
+  // ── Wax ──
+  'Full Body Wax','Brazilian Wax','Bikini Wax','Full Leg Wax',
+  'Half Leg Wax','Underarm Wax','Full Face Wax','Eyebrow Wax',
+  'Upper Lip Wax','Chin Wax','Stomach Wax','Chest Wax',
+  'Full Back Wax','Arms Wax','Manzilian Shaving',
   // ── Casais ──
   'Couples Essencial (60min)','Couples Relaxing (90min)','Couples Signature (60min)',
   'Love in Rio (90min)','Rio Romance (180min)',
