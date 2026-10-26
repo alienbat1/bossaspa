@@ -1988,9 +1988,18 @@ function checkWaxClub(svc) {
   if (!visitHistory || visitHistory.length === 0) return;
   const now = new Date();
   const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  // Normalize service names for comparison:
+  // "Wax – Upper Lip (F)" and "Upper Lip Wax" should both resolve to "upper lip"
+  function normWaxSvc(s) {
+    return (s || '').toLowerCase()
+      .replace(/^wax\s*[–\-]\s*/i, '')  // remove leading "Wax – "
+      .replace(/\s*\([fm]\)\s*$/i, '')   // remove trailing "(F)" or "(M)"
+      .replace(/\bwax\b/g, '')           // remove standalone "wax" word
+      .replace(/\s+/g, ' ').trim();
+  }
+  const svcNorm = normWaxSvc(svc.name);
   const match = visitHistory.find(v => {
-    // Match exact name or close enough (case-insensitive)
-    if ((v.service || '').trim().toLowerCase() !== svc.name.toLowerCase()) return false;
+    if (normWaxSvc(v.service) !== svcNorm) return false;
     const d = new Date(v.date);
     return !isNaN(d.getTime()) && d >= cutoff;
   });
