@@ -516,9 +516,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <div class="thanks-name" id="thanks-name">Thank you!</div>
     <div class="thanks-sub">Your check-in is complete. Please let our team know you're ready.</div>
     <div class="thanks-detail" id="thanks-detail"></div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="btn btn-outline" onclick="resetApp()" style="flex:1;">New Check-In</button>
-      <button class="btn" onclick="printCheckinSheet()" style="flex:1;background:var(--teal);color:#fff;border-color:var(--teal);">🖨️ Print Form</button>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-outline" onclick="resetApp()" style="flex:1;min-width:120px;">New Check-In</button>
+      <button class="btn" onclick="printCheckinSheet()" style="flex:1;min-width:120px;background:var(--teal);color:#fff;border-color:var(--teal);">🖨️ Print Form</button>
+      <button class="btn btn-outline" onclick="emailCheckinSheet()" style="flex:1;min-width:120px;">✉️ Send by Email</button>
     </div>
   </div>
 </div>
@@ -612,6 +613,7 @@ let selectedDuration = null;
 let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
+let clientEmail = '';        // email from client profile (from lookup)
 let clientNotes = '';        // notes from client profile (from lookup)
 let lastHealth = null;       // previous health answers from lookup
 let clientHasWaiver = false; // true if returning client already has a waiver on file
@@ -754,6 +756,7 @@ async function nextScreen() {
       if (found) {
         // Client exists — proceed as returning
         clientName       = found.name || '';
+        clientEmail      = found.email || '';
         clientNotes      = found.clientNotes || '';
         lastHealth       = found.lastHealth || null;
         lastSvcForm      = found.lastSvcForm || null;
@@ -924,7 +927,16 @@ async function nextScreen() {
       }
       await Promise.all(calls);
       hideSpinner();
-      if (!isNewClient) populateThanks();
+      if (!isNewClient) {
+        const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
+        _printData = { name: _name2, phone: _phone2, date: _today2,
+          email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
+          service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
+          serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+          health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
+          sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
+        populateThanks();
+      }
     } else {
       // New client or returning client who updated answers — validate all answered
       const groups = document.querySelectorAll('#healthForm .health-q');
@@ -966,6 +978,7 @@ async function nextScreen() {
       hideSpinner();
       if (!isNewClient) {
         _printData = { name, phone, date: today,
+          email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
           service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
           serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
           health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
@@ -991,6 +1004,7 @@ async function nextScreen() {
     });
     hideSpinner();
     _printData = { name, phone, date: today2,
+      email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
       health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
@@ -1036,6 +1050,7 @@ function resetApp() {
   healthConfirmed = false;
   svcFormConfirmed = false;
   svcFormAnswers = {};
+  clientEmail      = '';
   activePackage    = null;
   inactivePackages = [];
   visitHistory     = [];
@@ -1809,6 +1824,9 @@ function populatePackageScreen() {
   // Welcome banner with client name
   document.getElementById('pkg-welcome-name').textContent = 'Welcome back, ' + (clientName || 'there') + '! 👋';
 
+  // Wax Club notice
+  checkWaxClubOnPackageScreen();
+
   // Reset package use selection
   usePackageToday = null;
   document.getElementById('pkg-yes').classList.remove('selected');
@@ -1955,13 +1973,24 @@ function checkWaxClub(svc) {
   banner.style.display = 'none';
   msg.textContent = '';
   if (!svc || svc.cat !== 'Wax') return;
-  if (!visitHistory || visitHistory.length === 0) return;
 
-  // Find most recent visit of the EXACT same service within 30 days
+  // Check 1: active Wax Club package
+  const waxClubPkg = activePackage && /wax.?club/i.test(activePackage.name || '') && activePackage.sessionsLeft > 0 ? activePackage : null;
+  const waxClubInactive = !waxClubPkg && [...inactivePackages].find(p => /wax.?club/i.test(p.name || '') && (p.status || '').toLowerCase() === 'active' && (p.sessionsLeft || 0) > 0);
+  const waxPkg = waxClubPkg || waxClubInactive;
+  if (waxPkg) {
+    msg.textContent = 'Wax Club member — ' + (waxPkg.sessionsLeft || '') + ' session' + (waxPkg.sessionsLeft !== 1 ? 's' : '') + ' remaining. Wax Club price applies! 💛';
+    banner.style.display = 'block';
+    return;
+  }
+
+  // Check 2: recent visit of same service within 30 days
+  if (!visitHistory || visitHistory.length === 0) return;
   const now = new Date();
   const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const match = visitHistory.find(v => {
-    if (v.service !== svc.name) return false;
+    // Match exact name or close enough (case-insensitive)
+    if ((v.service || '').trim().toLowerCase() !== svc.name.toLowerCase()) return false;
     const d = new Date(v.date);
     return !isNaN(d.getTime()) && d >= cutoff;
   });
@@ -1970,6 +1999,23 @@ function checkWaxClub(svc) {
     const days = Math.round((now - new Date(match.date)) / (1000 * 60 * 60 * 24));
     msg.textContent = 'You visited ' + days + (days === 1 ? ' day' : ' days') + ' ago for ' + svc.name + '. Wax Club price applies! 💛';
     banner.style.display = 'block';
+  }
+}
+
+// Also check wax club in the package screen (before service is selected)
+function checkWaxClubOnPackageScreen() {
+  const banner = document.getElementById('pkg-waxclub-banner');
+  const msg    = document.getElementById('pkg-waxclub-msg');
+  if (!banner || !msg) return;
+  // Look for active Wax Club package
+  const waxPkg = (activePackage && /wax.?club/i.test(activePackage.name || '') && activePackage.sessionsLeft > 0)
+               ? activePackage
+               : inactivePackages.find(p => /wax.?club/i.test(p.name || '') && (p.status || '').toLowerCase() === 'active' && (p.sessionsLeft || 0) > 0);
+  if (waxPkg) {
+    msg.textContent = 'You have an active Wax Club membership with ' + (waxPkg.sessionsLeft || '') + ' session' + (waxPkg.sessionsLeft !== 1 ? 's' : '') + ' remaining. Wax Club pricing will apply to your wax service today.';
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
   }
 }
 
@@ -2848,6 +2894,46 @@ ${sigHtml}
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 600);
+}
+
+/* ── Email check-in sheet ── */
+function emailCheckinSheet() {
+  const d = _printData;
+  if (!d) { alert('No check-in data to email.'); return; }
+  const email = d.email || '';
+  if (!email) {
+    // Ask for email address
+    const addr = prompt('Enter email address to send the check-in summary:');
+    if (!addr || !addr.includes('@')) { alert('Invalid email address.'); return; }
+    sendCheckinEmail(addr, d);
+  } else {
+    // Pre-fill with client's email, allow editing
+    const addr = prompt('Send to:', email);
+    if (!addr) return;
+    sendCheckinEmail(addr, d);
+  }
+}
+
+async function sendCheckinEmail(toEmail, d) {
+  showSpinner('Sending email…');
+  try {
+    const body = {
+      action: 'send_checkin_email',
+      toEmail,
+      clientName: d.name,
+      service: d.service,
+      duration: d.duration || '',
+      date: d.date,
+      phone: d.phone || ''
+    };
+    const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
+    await fetch(base, { method:'POST', mode:'no-cors', body: JSON.stringify(body) });
+    hideSpinner();
+    alert('✅ Email sent to ' + toEmail);
+  } catch(e) {
+    hideSpinner();
+    alert('Could not send email. Please try again.');
+  }
 }
 
 /* ── Check-in password ──
