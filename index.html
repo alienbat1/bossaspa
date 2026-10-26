@@ -541,6 +541,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // Client history state
 let activePackage    = null;  // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration }
 let inactivePackages = [];    // [{ pkgId, name, status, expiry, purchased, sessionsTotal, sessDone, sessLeft, duration }]
