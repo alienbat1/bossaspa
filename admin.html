@@ -1478,14 +1478,16 @@ async function saveNote() {
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
-        type: 'visit',
+        type: 'add_visit_note',
         phone: notesClient.phone,
+        clientPhone: notesClient.phone,
         clientName: notesClient.name,
         clientId: notesClient.clientId,
         service: service,
         notes: fullNote,
         nextRecommendation: next,
         visitDate: date,
+        date: date,
         timestamp: new Date().toISOString()
       })
     });
@@ -1845,21 +1847,24 @@ async function acOpenProfile(c) {
   contentEl.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto;"></div><div class="spinner-text" style="margin-top:12px;">Loading profile…</div></div>`;
 
   // Fetch full profile: visits, packages, forms, referrals
-  let visits = [], packages = [], forms = [], referrals = [], referredBy = '', referredByPhone = '';
+  let visits = [], packages = [], forms = [], referrals = [], referredBy = '', referredByPhone = '', contactHistory = [];
   try {
     const phone = c.phone || '';
     if (phone) {
-      const [vRes, pRes, rRes] = await Promise.all([
+      const [vRes, pRes, rRes, fcRes] = await Promise.all([
         fetch(WEBAPP_URL + '?action=get_visits&phone=' + encodeURIComponent(phone) + '&limit=200', { mode:'cors' }),
         fetch(WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone), { mode:'cors' }),
-        fetch(WEBAPP_URL + '?action=get_referrals&phone=' + encodeURIComponent(phone), { mode:'cors' })
+        fetch(WEBAPP_URL + '?action=get_referrals&phone=' + encodeURIComponent(phone), { mode:'cors' }),
+        fetch(WEBAPP_URL + '?action=get_follow_up_contacts&phone=' + encodeURIComponent(phone), { mode:'cors' })
       ]);
       const vData = await vRes.json();
       const pData = await pRes.json();
       const rData = await rRes.json();
+      const fcData = await fcRes.json().catch(() => ({ contacts: [] }));
       visits   = vData.visits   || [];
       packages = pData.packages || [];
       referrals = rData.referrals || [];
+      contactHistory = fcData.contacts || [];
     } else {
       // No phone — try by clientId
       if (c.clientId) {
@@ -1886,7 +1891,7 @@ async function acOpenProfile(c) {
     } catch(e) {}
   } catch(e) {}
 
-  acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone);
+  acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory);
 }
 
 function acShowList() {
@@ -1895,11 +1900,11 @@ function acShowList() {
 }
 
 let acVisitsShowing = 5;
-function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone) {
-  referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || '';
+function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory) {
+  referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || ''; contactHistory = contactHistory || [];
   acVisitsShowing = 5;
-  // Store packages on client for Add Visit modal
-  if (acProfileClient) acProfileClient._packages = packages || [];
+  // Store packages and visits on client for Add Visit modal / duplicate-detection
+  if (acProfileClient) { acProfileClient._packages = packages || []; acProfileClient._visits = visits || []; }
   const initials = (c.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const phone = c.phone || '';
 
@@ -1913,6 +1918,12 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         ${c.email ? `✉️ ${escHtml(c.email)}<br>` : ''}
         ${c.clientId ? `ID: ${escHtml(c.clientId)}` : ''}
       </div>
+      ${(phone || c.email) ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
+        ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
+        ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
+        ${phone ? `<a class="fu-btn-sms" href="sms:${phone}">💬 Text</a>` : ''}
+        ${c.email ? `<a class="fu-btn-email" href="mailto:${escHtml(c.email)}" target="_blank">✉️ Email</a>` : ''}
+      </div>` : ''}
     </div>
   </div>
 
@@ -1972,6 +1983,26 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
     if (visits.length > acVisitsShowing) {
       html += `<button class="cp-visits-more" id="cp-more-btn" onclick="acShowMoreVisits(${JSON.stringify(visits).replace(/"/g,'&quot;')})">Show more (${visits.length - acVisitsShowing} remaining)</button>`;
     }
+  }
+  html += `</div>`;
+
+  // Contact History (from Follow-Up dashboard's "✓ Contacted" notes — FOLLOW_UP_CONTACTS sheet)
+  html += `<div class="cp-section"><div class="cp-section-title">Contact History (${contactHistory.length})</div>`;
+  if (!contactHistory.length) {
+    html += `<div style="font-size:.8rem;color:var(--muted);padding:8px 0;">No follow-up contacts logged yet.</div>`;
+  } else {
+    const catLabels = { recent: 'Recent Visit', package: 'Active Package', warm: 'Warm Lead', inactive: 'Inactive' };
+    contactHistory.forEach(ct => {
+      const catLabel = catLabels[ct.category] || ct.category || '';
+      html += `<div style="border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px;background:var(--beige);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span style="font-size:.78rem;font-weight:600;color:var(--ink);">${escHtml(ct.date || '—')}</span>
+          ${catLabel ? `<span style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">${escHtml(catLabel)}</span>` : ''}
+        </div>
+        ${ct.detail ? `<div style="font-size:.74rem;color:var(--muted);margin-top:2px;">${escHtml(ct.detail)}</div>` : ''}
+        ${ct.note ? `<div style="font-size:.8rem;color:#7c5c2e;background:#fff8ee;border-left:3px solid #e8c47a;padding:4px 8px;border-radius:0 4px 4px 0;margin-top:5px;">📝 ${escHtml(ct.note)}</div>` : ''}
+      </div>`;
+    });
   }
   html += `</div>`;
 
@@ -2257,11 +2288,15 @@ function acRenderVisitCards(visits, limit) {
         <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
-        <button onclick="acPrintVisitForm('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}')" style="font-size:.68rem;color:#5a6;cursor:pointer;border:1px solid #5a6;border-radius:4px;padding:3px 10px;background:#f2f7f2;font-family:'Jost',sans-serif;">
+        <button onclick="acPrintVisitForm('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}','${escHtml(notes)}')" style="font-size:.68rem;color:#5a6;cursor:pointer;border:1px solid #5a6;border-radius:4px;padding:3px 10px;background:#f2f7f2;font-family:'Jost',sans-serif;">
           🖨️ Print
         </button>
-        ${((source === 'Manual' || source === 'Manual Import') && acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
-          ? `<button onclick="acShowLinkVisitToPkg('${escHtml(date)}',${rowIndex})" style="font-size:.68rem;color:#6a5;cursor:pointer;border:1px solid #6a5;border-radius:4px;padding:3px 10px;background:#f0f7f0;font-family:'Jost',sans-serif;">📦 Link to Package</button>`
+        <button onclick="acShowEmailVisitForm('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}','${escHtml(notes)}')" style="font-size:.68rem;color:#2C4A43;cursor:pointer;border:1px solid #2C4A43;border-radius:4px;padding:3px 10px;background:#f2f5f4;font-family:'Jost',sans-serif;">
+          ✉️ Email
+        </button>
+        ${rowIndex ? `<button onclick="acShowEditVisit(${rowIndex},'${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}','${escHtml(notes)}','${escHtml(next)}','${escHtml(therapist)}')" style="font-size:.68rem;color:#a67c00;cursor:pointer;border:1px solid #a67c00;border-radius:4px;padding:3px 10px;background:#fbf4e3;font-family:'Jost',sans-serif;">✏️ Edit</button>` : ''}
+        ${(acProfileClient && acProfileClient._packages && acProfileClient._packages.some(p => (p.status||p['Status']||'').toLowerCase()==='active'))
+          ? `<button onclick="acShowLinkVisitToPkg('${escHtml(date)}',${rowIndex},'${escHtml(service)}')" style="font-size:.68rem;color:#6a5;cursor:pointer;border:1px solid #6a5;border-radius:4px;padding:3px 10px;background:#f0f7f0;font-family:'Jost',sans-serif;">📦 Link to Package</button>`
           : ''}
       </div>
       <div id="${visitKey}-detail" hidden style="margin-top:8px;background:var(--beige);border-radius:6px;padding:10px 12px;font-size:.78rem;line-height:1.5;color:var(--ink);"></div>
@@ -2422,7 +2457,7 @@ function _getServiceInfoByName(name) {
   return key ? _PRINT_SERVICE_INFO[key] : null;
 }
 
-async function acPrintVisitForm(phone, date, service, category) {
+async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
   const c = acProfileClient;
   const clientName  = c ? (c.name  || '') : '';
   const clientEmail = c ? (c.email || '') : '';
@@ -2447,8 +2482,6 @@ async function acPrintVisitForm(phone, date, service, category) {
   let waiverRecord = null;
   let waiverSigUrl = null;
   if (waivers.length) {
-    console.log('[PRINT DEBUG] waivers from get_waivers:', JSON.stringify(waivers.map(w=>({id:w.waiverId,date:w.date,hasSig:w.hasSig,svc:w.service}))));
-    console.log('[PRINT DEBUG] looking for date:', date, '| phone:', phone);
     // 1) Exact date match with signature
     // 2) Any date match (no sig requirement)
     // 3) Any waiver with signature
@@ -2457,26 +2490,22 @@ async function acPrintVisitForm(phone, date, service, category) {
                 || waivers.find(w => w.date === date)
                 || waivers.find(w => w.hasSig)
                 || waivers[0];
-    console.log('[PRINT DEBUG] selected waiverRecord:', JSON.stringify(waiverRecord));
     // Try to fetch signature: if selected record has none, iterate all with hasSig
     const waiverCandidates = waiverRecord ? [waiverRecord, ...waivers.filter(w => w !== waiverRecord && w.hasSig)] : waivers.filter(w => w.hasSig);
     for (const cand of waiverCandidates) {
-      if (!cand.waiverId) { console.log('[PRINT DEBUG] skipping cand (no waiverId):', JSON.stringify(cand)); continue; }
+      if (!cand.waiverId) continue;
       try {
-        console.log('[PRINT DEBUG] fetching sig for waiverId:', cand.waiverId);
         const sigRes  = await fetch(`${base}?action=get_waiver_sig&waiverId=${encodeURIComponent(cand.waiverId)}`, { mode:'cors' });
         const sigData = await sigRes.json();
-        console.log('[PRINT DEBUG] sigData.signature starts with:', sigData.signature ? sigData.signature.substring(0,30) : '(empty)');
         if (sigData.signature && sigData.signature.startsWith('data:image')) {
           waiverSigUrl = sigData.signature;
           waiverRecord = cand;
           break;
         }
-      } catch(e) { console.log('[PRINT DEBUG] sig fetch error:', e.message); }
+      } catch(e) { /* keep trying other candidates */ }
     }
     // If we still don't have a record, fallback
     if (!waiverRecord) waiverRecord = waivers[0];
-    console.log('[PRINT DEBUG] final waiverSigUrl:', waiverSigUrl ? 'GOT IMAGE' : 'null');
   }
 
   // ── Build client profile block (data that was shown during check-in) ──
@@ -2625,6 +2654,8 @@ ${svcInfoHtml ? `<div class="p-section"><div class="p-section-title">Service Inf
 
 ${qa.length ? `<div class="p-section"><div class="p-section-title">Session Questions</div>${svcFormHtml}</div>` : ''}
 
+${visitNotes ? `<div class="p-section"><div class="p-section-title">Visit Notes</div><div class="p-a" style="white-space:pre-wrap;">${escHtml(visitNotes)}</div></div>` : ''}
+
 <div class="p-section"><div class="p-section-title">Health Form</div>${healthHtml}</div>
 
 <div class="p-section">
@@ -2638,11 +2669,81 @@ ${qa.length ? `<div class="p-section"><div class="p-section-title">Session Quest
 <div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;">🖨️ Print</button></div>
 </body></html>`;
 
+  return { html, clientName, clientEmail };
+}
+
+async function acPrintVisitForm(phone, date, service, category, visitNotes) {
+  showSpinner('Preparing form…');
+  let result;
+  try {
+    result = await acBuildVisitHtml(phone, date, service, category, visitNotes);
+  } catch(e) {
+    hideSpinner();
+    alert('Could not build the form: ' + e.message);
+    return;
+  }
+  hideSpinner();
   const w = window.open('', '_blank');
   if (!w) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
-  w.document.write(html);
+  w.document.write(result.html);
   w.document.close();
   setTimeout(() => w.print(), 800);
+}
+
+/* ── Email the visit form (with service info, health form, notes & signature) ── */
+function acShowEmailVisitForm(phone, date, service, category, visitNotes) {
+  const c = acProfileClient;
+  const savedEmail = c ? (c.email || '') : '';
+  const existing = document.getElementById('ac-email-visit-modal');
+  if (existing) existing.remove();
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-email-visit-modal" onclick="if(event.target.id==='ac-email-visit-modal')document.getElementById('ac-email-visit-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--teal);margin-bottom:4px;">Send by Email</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Visit form for ${escHtml(date)}</div>
+      <div class="field" style="margin-bottom:14px;"><label>Email address</label>
+        <input id="ev-email-input" type="email" value="${escHtml(savedEmail)}" placeholder="email@example.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="acSendVisitEmail('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}','${escHtml(visitNotes||'')}')" style="flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">✉️ Send</button>
+        <button onclick="document.getElementById('ac-email-visit-modal').remove()" style="padding:10px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  setTimeout(() => { const inp = document.getElementById('ev-email-input'); if (inp) { inp.focus(); inp.select(); } }, 100);
+}
+
+async function acSendVisitEmail(phone, date, service, category, visitNotes) {
+  const inp = document.getElementById('ev-email-input');
+  const addr = inp ? inp.value.trim() : '';
+  if (!addr || !addr.includes('@')) { if (inp) { inp.style.borderColor = '#d00'; inp.focus(); } return; }
+  const modal = document.getElementById('ac-email-visit-modal');
+  if (modal) modal.remove();
+
+  showSpinner('Sending email…');
+  try {
+    const result = await acBuildVisitHtml(phone, date, service, category, visitNotes);
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'send_email_html',
+        toEmail: addr,
+        subject: 'Bossa Spa — Visit Record · ' + (result.clientName || '') + ' · ' + date,
+        htmlBody: result.html
+      })
+    });
+    hideSpinner();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:12px 24px;border-radius:24px;font-family:\'Jost\',sans-serif;font-size:.9rem;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.2);';
+    toast.textContent = '✅ Email sent to ' + addr;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  } catch(e) {
+    hideSpinner();
+    alert('Could not send email: ' + e.message);
+  }
 }
 
 // ── Referral / Indicação ─────────────────────────────────────────────────────
@@ -2865,7 +2966,8 @@ function acRenderPkgSessionRows(el, sessions, pkgId) {
           ${sigId
             ? `<button onclick="acEditPkgSession('${rowId}','${sigId}','${sDate}')" title="Edit date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
                <button onclick="acDeletePkgSession('${rowId}','${sigId}','${sNum}','${escHtml(pkgId)}')" title="Delete session" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`
-            : `<button onclick="acEditPkgSessionNoSig('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Set date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>`}
+            : `<button onclick="acEditPkgSessionNoSig('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Set date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
+               <button onclick="acDeletePkgPlaceholder('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Delete this empty session slot" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`}
         </div>
       </div>
       <div id="${rowId}-edit" style="display:none;margin-top:6px;"></div>
@@ -2998,6 +3100,24 @@ async function acDeletePkgSession(rowId, sigId, sessionNum, pkgId) {
       body: JSON.stringify({ type: 'delete_pkg_session', sigId })
     });
     // Reload profile to update session counts
+    const c = acProfileClient;
+    if (c) setTimeout(() => acOpenProfile(c), 600);
+  } catch(e) {
+    if (rowEl) { rowEl.style.opacity = '1'; rowEl.style.pointerEvents = ''; }
+    alert('Error deleting. Try again.');
+  }
+}
+
+async function acDeletePkgPlaceholder(rowId, sessionNum, pkgId) {
+  if (!confirm(`Delete this empty Session #${sessionNum} slot?\n\nThis only removes the placeholder — it will NOT touch any real visit already on your calendar. One session will be added back to the package counter.`)) return;
+  const rowEl = document.getElementById(rowId);
+  if (rowEl) { rowEl.style.opacity = '.4'; rowEl.style.pointerEvents = 'none'; }
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'decrement_package_placeholder', pkgId })
+    });
     const c = acProfileClient;
     if (c) setTimeout(() => acOpenProfile(c), 600);
   } catch(e) {
@@ -3178,10 +3298,16 @@ function acShowAddVisit(prefillPkgId) {
       <div class="field"><label>Date</label>
         <input type="date" id="av-date" value="${today}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
       </div>
-      <div class="field"><label>Service</label>
-        <select id="av-service" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
-          ${serviceOpts}
-        </select>
+      <div class="field"><label>Service(s)</label>
+        <div id="av-services-list">
+          <div class="av-service-row" style="display:flex;gap:6px;margin-bottom:6px;">
+            <select class="av-service-select" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+              ${serviceOpts}
+            </select>
+          </div>
+        </div>
+        <button type="button" onclick="avAddServiceRow()" style="font-size:.74rem;color:var(--teal);background:none;border:1px dashed var(--teal);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add another service</button>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">Each service is logged as its own visit entry.</div>
       </div>
       <div class="field"><label>Therapist</label>
         <select id="av-therapist" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
@@ -3201,6 +3327,21 @@ function acShowAddVisit(prefillPkgId) {
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function avAddServiceRow() {
+  const list = document.getElementById('av-services-list');
+  if (!list) return;
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'av-service-row';
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
+  row.innerHTML = `
+    <select class="av-service-select" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+      ${serviceOpts}
+    </select>
+    <button type="button" onclick="this.parentElement.remove()" style="padding:0 10px;background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-family:'Jost',sans-serif;">✕</button>`;
+  list.appendChild(row);
 }
 
 function avSetType(type) {
@@ -3225,12 +3366,13 @@ async function acSaveVisit() {
   const c = acProfileClient;
   if (!c) return;
   const date      = document.getElementById('av-date').value;
-  const service   = document.getElementById('av-service').value;
+  const serviceSelects = Array.from(document.querySelectorAll('.av-service-select'));
+  const services  = serviceSelects.map(s => s.value).filter(Boolean);
   const therapist = document.getElementById('av-therapist').value;
   const notes     = document.getElementById('av-notes').value.trim();
   const next      = document.getElementById('av-next').value.trim();
 
-  if (!date || !service) { alert('Date and service are required.'); return; }
+  if (!date || !services.length) { alert('Date and at least one service are required.'); return; }
 
   // Detect if this is a package session
   const pkgBtn = document.getElementById('av-type-package');
@@ -3247,37 +3389,75 @@ async function acSaveVisit() {
     }
   }
 
+  // Duplicate check: if this is a package session, see if a visit already exists on this
+  // date for the (first) service — offer to link to the package instead of duplicating.
+  if (isPackageSession && services[0]) {
+    const dispDate = date ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }) : '';
+    const existingVisits = (c._visits || []);
+    const match = existingVisits.find(v => {
+      const vDate = v.date || v['Visit Date'] || v['Date'] || '';
+      const vSvc  = (v.service || v['Service'] || '').toString().trim();
+      return vDate === dispDate && vSvc === services[0].trim();
+    });
+    if (match) {
+      const link = confirm(`A visit already exists on ${dispDate} for "${services[0]}".\n\nClick OK to LINK this existing visit to the package instead of creating a duplicate.\nClick Cancel to create a new visit anyway.`);
+      if (link) {
+        document.getElementById('ac-visit-modal').remove();
+        showSpinner('Linking visit to package…');
+        try {
+          await fetch(WEBAPP_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              type: 'add_visit_manual',
+              clientName: c.name, clientPhone: c.phone || '', clientId: c.clientId || '',
+              date, service: '', therapist: '', notes: '', next: '',
+              isPackageSession: true, pkgId, pkgName, sessionNum, linkExisting: true
+            })
+          });
+        } catch(e) {}
+        hideSpinner();
+        await acOpenProfile(c);
+        return;
+      }
+      // else fall through and create a new visit as usual
+    }
+  }
+
   document.getElementById('ac-visit-modal').remove();
   showSpinner('Saving visit…');
   try {
-    await fetch(WEBAPP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        type: 'add_visit_manual',
-        clientName: c.name,
-        clientPhone: c.phone || '',
-        clientId: c.clientId || '',
-        date,
-        service,
-        therapist,
-        notes,
-        next,
-        isPackageSession: !!isPackageSession,
-        pkgId,
-        pkgName,
-        sessionNum
-      })
-    });
+    // Each service becomes its own visit row; only the first one carries the package link
+    for (let i = 0; i < services.length; i++) {
+      await fetch(WEBAPP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          type: 'add_visit_manual',
+          clientName: c.name,
+          clientPhone: c.phone || '',
+          clientId: c.clientId || '',
+          date,
+          service: services[i],
+          therapist,
+          notes,
+          next,
+          isPackageSession: i === 0 ? !!isPackageSession : false,
+          pkgId: i === 0 ? pkgId : '',
+          pkgName: i === 0 ? pkgName : '',
+          sessionNum: i === 0 ? sessionNum : ''
+        })
+      });
+    }
   } catch(e) {}
   hideSpinner();
-  // Refresh profile to show new visit
+  // Refresh profile to show new visit(s)
   await acOpenProfile(c);
 }
 
 /* ── Link an existing manual visit to a package ── */
-function acShowLinkVisitToPkg(visitDate, rowIndex) {
+function acShowLinkVisitToPkg(visitDate, rowIndex, visitService) {
   const c = acProfileClient;
   if (!c) return;
   const pkgs = (c._packages || []).filter(p => (p.status||p['Status']||'').toLowerCase() === 'active');
@@ -3292,11 +3472,19 @@ function acShowLinkVisitToPkg(visitDate, rowIndex) {
     return `<option value="${pid}" data-done="${done}" data-name="${pname}">${pname} (${done}/${total} used · ${left} left)</option>`;
   }).join('');
 
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}"${s===visitService?' selected':''}>${escHtml(s)}</option>`).join('');
+
   const html = `
   <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-link-pkg-modal" onclick="if(event.target.id==='ac-link-pkg-modal')document.getElementById('ac-link-pkg-modal').remove()">
     <div style="background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
       <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--teal);margin-bottom:4px;">Link Visit to Package</div>
       <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Visit: ${escHtml(visitDate)}</div>
+      <div class="field" style="margin-bottom:12px;"><label>Service on this visit</label>
+        <select id="al-service-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${serviceOpts}
+        </select>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">Fix this first if the client checked in with the wrong service — it'll update the visit record too.</div>
+      </div>
       <div class="field"><label>Select Package</label>
         <select id="al-pkg-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
           ${pkgOpts}
@@ -3316,16 +3504,26 @@ async function acSaveLinkVisitToPkg(visitDate, rowIndex) {
   const c = acProfileClient;
   if (!c) return;
   const pkgSel = document.getElementById('al-pkg-select');
+  const svcSel = document.getElementById('al-service-select');
   if (!pkgSel) return;
   const pkgId   = pkgSel.value;
   const selOpt  = pkgSel.selectedOptions[0];
   const pkgName = selOpt ? (selOpt.dataset.name || '') : '';
   const done    = selOpt ? parseInt(selOpt.dataset.done || '0', 10) : 0;
   const sessionNum = done + 1;
+  const newService = svcSel ? svcSel.value : '';
 
   document.getElementById('ac-link-pkg-modal').remove();
   showSpinner('Linking visit to package…');
   try {
+    // If the admin corrected the service name, update the existing VISITS row first
+    if (rowIndex && newService) {
+      await fetch(WEBAPP_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'edit_visit_row', rowIndex, clientPhone: c.phone || '', service: newService })
+      });
+    }
     await fetch(WEBAPP_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -3350,6 +3548,64 @@ async function acSaveLinkVisitToPkg(visitDate, rowIndex) {
   } catch(e) {}
   hideSpinner();
   await acOpenProfile(c);
+}
+
+/* ── Edit an existing visit (date / service / category / notes / next / therapist) ── */
+function acShowEditVisit(rowIndex, phone, date, service, category, notes, next, therapist) {
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}"${s===service?' selected':''}>${escHtml(s)}</option>`).join('');
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-edit-visit-modal" onclick="if(event.target.id==='ac-edit-visit-modal')document.getElementById('ac-edit-visit-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);max-height:85vh;overflow-y:auto;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--teal);margin-bottom:14px;">Edit Visit</div>
+      <div class="field" style="margin-bottom:10px;"><label>Date</label>
+        <input id="ev-date" type="text" value="${escHtml(date)}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div class="field" style="margin-bottom:10px;"><label>Service</label>
+        <select id="ev-service" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;">
+          ${serviceOpts}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:10px;"><label>Category</label>
+        <input id="ev-category" type="text" value="${escHtml(category)}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div class="field" style="margin-bottom:10px;"><label>Notes</label>
+        <textarea id="ev-notes" rows="3" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;outline:none;box-sizing:border-box;resize:vertical;">${escHtml(notes)}</textarea>
+      </div>
+      <div class="field" style="margin-bottom:10px;"><label>Next Recommendation</label>
+        <input id="ev-next" type="text" value="${escHtml(next)}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div class="field" style="margin-bottom:14px;"><label>Therapist</label>
+        <input id="ev-therapist" type="text" value="${escHtml(therapist)}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="acSaveEditVisit(${rowIndex},'${escHtml(phone)}')" style="flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Save Changes</button>
+        <button onclick="document.getElementById('ac-edit-visit-modal').remove()" style="padding:10px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function acSaveEditVisit(rowIndex, phone) {
+  const c = acProfileClient;
+  const date       = document.getElementById('ev-date').value.trim();
+  const service    = document.getElementById('ev-service').value;
+  const category   = document.getElementById('ev-category').value.trim();
+  const notes      = document.getElementById('ev-notes').value.trim();
+  const next       = document.getElementById('ev-next').value.trim();
+  const therapist  = document.getElementById('ev-therapist').value.trim();
+
+  document.getElementById('ac-edit-visit-modal').remove();
+  showSpinner('Saving visit…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'edit_visit_row', rowIndex, clientPhone: phone, date, service, category, notes, next, therapist })
+    });
+  } catch(e) {}
+  hideSpinner();
+  if (c) await acOpenProfile(c);
 }
 
 function acEditPkg(p) {
