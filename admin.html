@@ -593,6 +593,18 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
               <button class="note-tag" onclick="toggleTag(this,'Pain/discomfort reported')">Pain reported</button>
               <button class="note-tag" onclick="toggleTag(this,'Visible improvement')">Visible improvement</button>
               <button class="note-tag" onclick="toggleTag(this,'First session')">First session</button>
+              <button class="note-tag" onclick="toggleTag(this,'Service substituted')">Service substituted</button>
+              <button class="note-tag" onclick="toggleTag(this,'Rebooked')">Rebooked</button>
+              <button class="note-tag" onclick="toggleTag(this,'Needs follow-up')">Needs follow-up</button>
+              <button class="note-tag" onclick="toggleTag(this,'Mild reaction')">Mild reaction</button>
+              <button class="note-tag" onclick="toggleTag(this,'Bruising/redness')">Bruising/redness</button>
+              <button class="note-tag" onclick="toggleTag(this,'Requested stronger pressure')">Stronger pressure</button>
+              <button class="note-tag" onclick="toggleTag(this,'Requested lighter pressure')">Lighter pressure</button>
+              <button class="note-tag" onclick="toggleTag(this,'Product recommended')">Product recommended</button>
+              <button class="note-tag" onclick="toggleTag(this,'Running late / rushed')">Running late</button>
+              <button class="note-tag" onclick="toggleTag(this,'No improvement yet')">No improvement yet</button>
+              <button class="note-tag" onclick="toggleTag(this,'Referred a friend')">Referred a friend</button>
+              <button type="button" onclick="notesAddCustomTag()" style="padding:5px 10px;background:none;border:1.5px dashed var(--teal);border-radius:20px;font-family:'Jost',sans-serif;font-size:.72rem;color:var(--teal);cursor:pointer;letter-spacing:.03em;">+ Custom tag</button>
             </div>
           </div>
 
@@ -1489,6 +1501,19 @@ function toggleTag(btn, label) {
   btn.classList.toggle('selected');
   if (selectedTags.has(label)) selectedTags.delete(label);
   else selectedTags.add(label);
+}
+
+function notesAddCustomTag() {
+  const label = (prompt('New tag:') || '').trim();
+  if (!label) return;
+  const wrap = document.getElementById('notes-tags-wrap');
+  const addBtn = wrap.querySelector('button[onclick="notesAddCustomTag()"]');
+  const btn = document.createElement('button');
+  btn.className = 'note-tag selected';
+  btn.textContent = label;
+  btn.onclick = () => toggleTag(btn, label);
+  wrap.insertBefore(btn, addBtn);
+  selectedTags.add(label);
 }
 
 async function saveNote() {
