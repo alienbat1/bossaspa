@@ -12,6 +12,13 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;}
 body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
 
+/* Print container — hidden by default, shown only when printing */
+#_print_container { display:none; }
+@media print {
+  body > *:not(#_print_container) { display:none !important; }
+  #_print_container { display:block !important; }
+}
+
 /* iPad frame */
 .ipad-frame{max-width:680px;margin:0 auto;background:var(--cream);min-height:100vh;display:flex;flex-direction:column;}
 .ipad-bar{background:var(--teal);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -2898,29 +2905,70 @@ ${sigHtml}
 <div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;letter-spacing:.04em;">🖨️ Print</button></div>
 </body></html>`;
 
-  const w = window.open('', '_blank');
-  if (!w) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => w.print(), 600);
+  // Inject into a hidden print container and print inline (avoids pop-up blockers on iPad)
+  let printDiv = document.getElementById('_print_container');
+  if (!printDiv) {
+    printDiv = document.createElement('div');
+    printDiv.id = '_print_container';
+    document.body.appendChild(printDiv);
+  }
+  printDiv.innerHTML = html;
+  printDiv.style.display = 'block';
+  setTimeout(() => { window.print(); printDiv.style.display = 'none'; }, 400);
 }
 
 /* ── Email check-in sheet ── */
 function emailCheckinSheet() {
   const d = _printData;
   if (!d) { alert('No check-in data to email.'); return; }
-  const email = d.email || '';
-  if (!email) {
-    // Ask for email address
-    const addr = prompt('Enter email address to send the check-in summary:');
-    if (!addr || !addr.includes('@')) { alert('Invalid email address.'); return; }
-    sendCheckinEmail(addr, d);
-  } else {
-    // Pre-fill with client's email, allow editing
-    const addr = prompt('Send to:', email);
-    if (!addr) return;
-    sendCheckinEmail(addr, d);
+  const savedEmail = d.email || '';
+
+  // Remove any existing email modal
+  const existing = document.getElementById('_email_modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = '_email_modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--teal);margin-bottom:6px;">Send by Email</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:18px;">Check-in summary for <strong>${escHtml(d.name)}</strong></div>
+      ${savedEmail
+        ? `<div style="font-size:.78rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;">Send to</div>
+           <div style="background:var(--beige);border-radius:8px;padding:12px 14px;font-size:.95rem;color:var(--ink);margin-bottom:6px;">${escHtml(savedEmail)}</div>
+           <div style="font-size:.75rem;color:var(--muted);margin-bottom:16px;">Email on file — or enter a different address below</div>`
+        : `<div style="font-size:.78rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;">Email address</div>`
+      }
+      <input id="_email_input" type="email" placeholder="email@example.com"
+        value="${escHtml(savedEmail)}"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.95rem;outline:none;margin-bottom:18px;box-sizing:border-box;">
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('_email_modal').remove()"
+          style="flex:1;padding:11px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;color:var(--ink);">Cancel</button>
+        <button onclick="emailModalSend()"
+          style="flex:1;padding:11px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;font-weight:500;">✉️ Send</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Focus the input and select all so user can type a different address easily
+  setTimeout(() => {
+    const inp = document.getElementById('_email_input');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 100);
+}
+
+function emailModalSend() {
+  const d = _printData;
+  const inp = document.getElementById('_email_input');
+  const addr = inp ? inp.value.trim() : '';
+  if (!addr || !addr.includes('@')) {
+    inp.style.borderColor = 'var(--error)';
+    inp.focus();
+    return;
   }
+  document.getElementById('_email_modal').remove();
+  sendCheckinEmail(addr, d);
 }
 
 async function sendCheckinEmail(toEmail, d) {
@@ -2938,7 +2986,12 @@ async function sendCheckinEmail(toEmail, d) {
     const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
     await fetch(base, { method:'POST', mode:'no-cors', body: JSON.stringify(body) });
     hideSpinner();
-    alert('✅ Email sent to ' + toEmail);
+    // Show a nice in-page confirmation instead of alert
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:12px 24px;border-radius:24px;font-family:\'Jost\',sans-serif;font-size:.9rem;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.2);';
+    toast.textContent = '✅ Email sent to ' + toEmail;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
   } catch(e) {
     hideSpinner();
     alert('Could not send email. Please try again.');
