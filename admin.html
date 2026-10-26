@@ -1368,6 +1368,7 @@ async function savePkg() {
 ══════════════════════════════ */
 let notesClient = null;
 let selectedTags = new Set();
+let notesSelectedVisit = null; // { rowIndex, date, service } — the exact visit the note will attach to
 
 function notesSetStatus(msg, type) {
   const el = document.getElementById('notes-status');
@@ -1422,18 +1423,56 @@ async function notesLoadVisits(phone) {
       const db = parseVisitDate(b.date || b['Visit Date'] || '');
       return db - da;
     }).slice(0, 5);
-    list.innerHTML = sortedVisits.map(v => `
-      <div class="visit-card">
-        <div class="visit-card-date">${escHtml(v.date || v['Visit Date'] || '—')}</div>
-        ${v.service || v['Service'] ? `<div class="visit-card-service">${escHtml(v.service || v['Service'])}</div>` : ''}
+    list.innerHTML = sortedVisits.map(v => {
+      const rowIndex = v.rowIndex || 0;
+      const date = v.date || v['Visit Date'] || '—';
+      const service = v.service || v['Service'] || '';
+      const vData = JSON.stringify({rowIndex, date, service}).replace(/"/g,'&quot;');
+      return `
+      <div class="visit-card" id="notes-vcard-${rowIndex}" onclick="notesSelectVisit(${vData})" style="cursor:pointer;">
+        <div class="visit-card-date">${escHtml(date)}</div>
+        ${service ? `<div class="visit-card-service">${escHtml(service)}</div>` : ''}
         ${v.notes || v['Notes'] ? `<div class="visit-card-note">${escHtml(v.notes || v['Notes'])}</div>` : ''}
         ${v.next || v['Next Recommendation'] ? `<div class="visit-card-next">→ ${escHtml(v.next || v['Next Recommendation'])}</div>` : ''}
-      </div>`).join('');
+        <div style="font-size:.68rem;color:var(--teal);margin-top:4px;">👆 Tap to add a note to this visit</div>
+      </div>`;
+    }).join('');
   } catch(e) { /* silent */ }
+}
+
+function notesSelectVisit(v) {
+  notesSelectedVisit = v;
+  document.querySelectorAll('.visit-card').forEach(el => el.style.outline = '');
+  const el = document.getElementById('notes-vcard-' + v.rowIndex);
+  if (el) el.style.outline = '2px solid var(--teal)';
+  // Prefill date/service so the admin sees exactly what they're attaching to
+  if (v.date) {
+    const d = parseVisitDate(v.date);
+    if (d && !isNaN(d.getTime())) document.getElementById('notes-date').value = d.toISOString().slice(0,10);
+  }
+  document.getElementById('notes-service').value = v.service || '';
+  let banner = document.getElementById('notes-selected-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'notes-selected-banner';
+    banner.style.cssText = 'font-size:.78rem;color:var(--teal);background:#f0f5f4;border:1px solid var(--teal);border-radius:6px;padding:7px 10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;';
+    const form = document.querySelector('#notes-date').closest('.row-2') || document.getElementById('notes-date').parentElement;
+    form.parentElement.insertBefore(banner, form);
+  }
+  banner.innerHTML = `<span>📌 Adding note to: <strong>${escHtml(v.date)}${v.service ? ' — ' + escHtml(v.service) : ''}</strong></span>
+    <button type="button" onclick="notesClearSelectedVisit()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:.74rem;text-decoration:underline;">Clear</button>`;
+}
+
+function notesClearSelectedVisit() {
+  notesSelectedVisit = null;
+  document.querySelectorAll('.visit-card').forEach(el => el.style.outline = '');
+  const banner = document.getElementById('notes-selected-banner');
+  if (banner) banner.remove();
 }
 
 function notesClearClient() {
   notesClient = null;
+  notesClearSelectedVisit();
   selectedTags.clear();
   document.getElementById('notes-client-card').setAttribute('hidden','');
   document.getElementById('notes-phone-inp').value = '';
@@ -1479,6 +1518,7 @@ async function saveNote() {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         type: 'add_visit_note',
+        rowIndex: notesSelectedVisit ? notesSelectedVisit.rowIndex : undefined,
         phone: notesClient.phone,
         clientPhone: notesClient.phone,
         clientName: notesClient.name,
@@ -1493,7 +1533,9 @@ async function saveNote() {
     });
     hideSpinner();
     const saveStatus = document.getElementById('notes-save-status');
-    saveStatus.textContent = '✓ Visit note saved for ' + notesClient.name;
+    saveStatus.textContent = notesSelectedVisit
+      ? '✓ Note attached to the ' + (notesSelectedVisit.service ? notesSelectedVisit.service + ' ' : '') + 'visit on ' + notesSelectedVisit.date
+      : '✓ Visit note saved for ' + notesClient.name;
     saveStatus.className = 'status ok';
     saveStatus.removeAttribute('hidden');
 
@@ -1504,6 +1546,7 @@ async function saveNote() {
     document.getElementById('notes-date').value = new Date().toISOString().slice(0,10);
     selectedTags.clear();
     document.querySelectorAll('.note-tag').forEach(t => t.classList.remove('selected'));
+    notesClearSelectedVisit();
 
     // Refresh visits
     notesLoadVisits(notesClient.phone);
