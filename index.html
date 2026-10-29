@@ -687,17 +687,49 @@ async function lookupClient(phone) {
 }
 
 // ── SHEETS INTEGRATION ──
+// Uses mode:'cors' (not 'no-cors') so we can actually read the server's response and
+// know whether the save succeeded — a silent 'no-cors' fire-and-forget hides real backend
+// errors (quota issues, sheet errors, etc.) and data quietly fails to save with no trace.
 async function sendToSheets(type, data) {
   try {
-    await fetch(WEBAPP_URL, {
+    const res = await fetch(WEBAPP_URL, {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ type, timestamp: new Date().toISOString(), ...data })
     });
+    let json = null;
+    try { json = await res.json(); } catch(parseErr) { /* non-JSON response — treat as ok if HTTP ok */ }
+    if (json && json.error) {
+      console.error('[Bossa] Save failed for type="' + type + '":', json.error);
+      return { ok: false, type, error: json.error };
+    }
+    return { ok: true, type };
   } catch(e) {
     console.warn('[Bossa] Sync error:', e.message);
+    return { ok: false, type, error: e.message };
   }
+}
+
+// Shows a persistent, hard-to-miss warning banner when one or more sendToSheets() calls
+// failed — so a therapist on the iPad sees it immediately instead of data silently vanishing.
+// Does NOT auto-dismiss; staff must tap "OK" after reading, so it can't be missed mid-checkin.
+function reportSaveErrors(results) {
+  const failed = (results || []).filter(r => r && r.ok === false);
+  if (!failed.length) return;
+  const labels = { health_form: 'Health Form', visit: 'Service / Session Answers', use_package: 'Package Usage', pkg_session_sig: 'Package Signature', waiver: 'Waiver / Signature' };
+  const list = failed.map(f => '• ' + (labels[f.type] || f.type) + (f.error ? ': ' + f.error : '')).join('\n');
+  const modal = document.createElement('div');
+  modal.id = '_save_error_modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(80,20,20,.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:26px 24px;max-width:380px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);border:2px solid #c0392b;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:#c0392b;margin-bottom:10px;">⚠️ Some data did not save</div>
+      <div style="font-size:.85rem;color:#1a2820;margin-bottom:14px;white-space:pre-wrap;line-height:1.5;">${list}</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:18px;">Please let the manager know and re-enter this when possible.</div>
+      <button onclick="document.getElementById('_save_error_modal').remove()" style="width:100%;padding:11px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;">OK</button>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 // ── STEP BAR ──
@@ -841,7 +873,7 @@ async function nextScreen() {
     const discountChip = document.querySelector('#discount-chips .chip.selected');
     const discountCode = document.getElementById('inp-discount-code')?.value?.trim() || '';
     showSpinner();
-    await sendToSheets('new_client', {
+    const _newClientResult = await sendToSheets('new_client', {
       name, phone, dob, email,
       heardAboutUs: heard.textContent + (referral ? ' — ' + referral : ''),
       discount: discountChip ? discountChip.textContent.trim() : 'No discount',
@@ -850,6 +882,7 @@ async function nextScreen() {
       source: 'iPad Check-In'
     });
     hideSpinner();
+    reportSaveErrors([_newClientResult]);
   }
 
   if (current === 'package') {
@@ -942,8 +975,9 @@ async function nextScreen() {
           }));
         }
       }
-      await Promise.all(calls);
+      const _results1 = await Promise.all(calls);
       hideSpinner();
+      reportSaveErrors(_results1);
       if (!isNewClient) {
         const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
         _printData = { name: _name2, phone: _phone2, date: _today2,
@@ -992,8 +1026,9 @@ async function nextScreen() {
           }));
         }
       }
-      await Promise.all(calls);
+      const _results2 = await Promise.all(calls);
       hideSpinner();
+      reportSaveErrors(_results2);
       if (!isNewClient) {
         _printData = { name, phone, date: today,
           email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
@@ -1015,13 +1050,14 @@ async function nextScreen() {
     const phone = getClientPhone();
     const sigImage = canvas.toDataURL('image/png');
     const today2 = new Date().toLocaleDateString('en-US');
-    await sendToSheets('waiver', {
+    const _waiverResult = await sendToSheets('waiver', {
       clientName: name, clientPhone: phone,
       service: selectedService.name,
       date: today2,
       signatureImage: sigImage, waiverVersion: '2024-v1'
     });
     hideSpinner();
+    reportSaveErrors([_waiverResult]);
     _printData = { name, phone, date: today2,
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
