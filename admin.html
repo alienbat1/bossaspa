@@ -1941,9 +1941,10 @@ async function acOpenProfile(c) {
         visits = vData.visits || [];
       }
     }
-    // Forms (intake)
+    // Forms (intake) — pass clientId too, as a fallback for clients whose phone
+    // ended up blank on the saved row
     try {
-      const fRes = await fetch(WEBAPP_URL + '?action=get_forms&phone=' + encodeURIComponent(c.phone || ''), { mode:'cors' });
+      const fRes = await fetch(WEBAPP_URL + '?action=get_forms&phone=' + encodeURIComponent(c.phone || '') + (c.clientId ? '&clientId=' + encodeURIComponent(c.clientId) : ''), { mode:'cors' });
       const fData = await fRes.json();
       forms = fData.forms || [];
     } catch(e) {}
@@ -2431,8 +2432,9 @@ async function acToggleVisitForm(key, phone, date, category) {
   detail.innerHTML = '<span style="color:var(--muted);font-size:.75rem;">Carregando…</span>';
 
   try {
+    const clientIdQ = (acProfileClient && acProfileClient.clientId) ? '&clientId=' + encodeURIComponent(acProfileClient.clientId) : '';
     const res  = await fetch(
-      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date) + (category ? '&category=' + encodeURIComponent(category) : ''),
+      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date) + (category ? '&category=' + encodeURIComponent(category) : '') + clientIdQ,
       { mode: 'cors' }
     );
     const data = await res.json();
@@ -2532,11 +2534,14 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
   const clientDob   = c ? (c.dob   || c['Date of Birth'] || '') : '';
   const clientNotes = c ? (c.notes || c['Notes'] || '') : '';
 
-  // Fetch service form (SESSION sheet), health form (HEALTH sheet), and waiver in parallel
+  // Fetch service form (that service's own intake sheet), health form (HEALTH sheet),
+  // and waiver in parallel. Pass category so the right intake sheet is checked, and
+  // clientId as a fallback match for clients whose phone ended up blank on the row.
+  const clientIdQ = (c && c.clientId) ? `&clientId=${encodeURIComponent(c.clientId)}` : '';
   const base = WEBAPP_URL;
   const [svcRes, healthRes, waiverRes] = await Promise.all([
-    fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
-    fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
+    fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}${category ? '&category=' + encodeURIComponent(category) : ''}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
+    fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
     fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
   ]);
 
@@ -2658,9 +2663,16 @@ By signing below, I confirm that I have read, understood, and agree to all terms
 
   const waiverTextHtml = `<div class="p-waiver-text">${escHtml(_WAIVER_TEXT).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/^/,'<p>').replace(/$/,'</p>')}</div>`;
 
-  const sigHtml = waiverSigUrl
-    ? `<div class="p-sig-label">Client Signature</div><img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`
-    : `<div class="p-none">${waivers.length ? 'Signature image not available.' : 'No waiver on record.'}</div>`;
+  let sigHtml;
+  if (waiverSigUrl) {
+    sigHtml = `<div class="p-sig-label">Client Signature</div><img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`;
+  } else if (!waivers.length) {
+    sigHtml = `<div class="p-none">No waiver record found for this client (phone: ${escHtml(phone)}).</div>`;
+  } else if (!waivers.some(w => w.date === date)) {
+    sigHtml = `<div class="p-none">This client has ${waivers.length} waiver(s) on file, but none signed on ${escHtml(date)} — showing the closest match above, if any. Dates on file: ${escHtml(waivers.map(w=>w.date).join(', '))}.</div>`;
+  } else {
+    sigHtml = `<div class="p-none">A waiver was signed on ${escHtml(date)}, but no signature image was saved with it.</div>`;
+  }
 
   const html = `<!doctype html><html><head><meta charset=utf8>
 <title>Bossa Spa — ${escHtml(clientName)} · ${escHtml(date)}</title>
@@ -2722,7 +2734,7 @@ ${svcInfoHtml ? `<div class="p-section"><div class="p-section-title">Service Inf
 
 ${qa.length ? `<div class="p-section"><div class="p-section-title">Session Questions</div>${svcFormHtml}</div>` : ''}
 
-${visitNotes ? `<div class="p-section"><div class="p-section-title">Visit Notes</div><div class="p-a" style="white-space:pre-wrap;">${escHtml(visitNotes)}</div></div>` : ''}
+<div class="p-section"><div class="p-section-title">Visit Notes</div><div class="p-a" style="white-space:pre-wrap;">${visitNotes ? escHtml(visitNotes) : '<span class="p-none">No notes recorded for this visit.</span>'}</div></div>
 
 <div class="p-section"><div class="p-section-title">Health Form</div>${healthHtml}</div>
 
