@@ -636,6 +636,8 @@ let svcFormAnswers = {};     // answers from the service-specific form
 let svcFormConfirmed = false;// true when returning client confirms svc form unchanged
 let lastSvcForm = null;      // previous svc form answers from lookup
 let _printData   = null;     // captured at submission for print sheet
+let confirmedPhone   = '';   // phone captured once at lookup/registration — don't re-read live DOM after this is set
+let confirmedClientId = '';  // Client ID returned by the backend, so records for phoneless clients can still be found in admin
 
 function prevScreen() {
   if (currentStep <= 0) return;
@@ -704,7 +706,7 @@ async function sendToSheets(type, data) {
       console.error('[Bossa] Save failed for type="' + type + '":', json.error);
       return { ok: false, type, error: json.error };
     }
-    return { ok: true, type };
+    return { ok: true, type, data: json };
   } catch(e) {
     console.warn('[Bossa] Sync error:', e.message);
     return { ok: false, type, error: e.message };
@@ -782,8 +784,16 @@ function getClientName() {
   return clientName || 'Guest';
 }
 function getClientPhone() {
-  if (isNewClient) return document.getElementById('inp-phone2').value.trim();
-  return document.getElementById('inp-phone').value.trim();
+  // Prefer the phone we already confirmed at lookup/registration — re-reading the
+  // live DOM field at every call site risks picking up a blank value later in the
+  // flow (field cleared, wrong screen active, etc.) and silently losing the phone
+  // on health/session submissions.
+  if (confirmedPhone) return confirmedPhone;
+  const liveVal = isNewClient
+    ? document.getElementById('inp-phone2').value.trim()
+    : document.getElementById('inp-phone').value.trim();
+  if (liveVal) confirmedPhone = liveVal;
+  return liveVal;
 }
 
 async function nextScreen() {
@@ -801,6 +811,8 @@ async function nextScreen() {
       hideSpinner();
       if (found) {
         // Client exists — proceed as returning
+        confirmedPhone     = phone;
+        confirmedClientId  = found.clientId || '';
         clientName        = found.name || '';
         clientEmail       = found.email || '';
         clientDob         = found.dob || '';
@@ -856,6 +868,8 @@ async function nextScreen() {
     hideSpinner();
     if (existing) {
       // They're actually a returning client — switch flow
+      confirmedPhone    = phone;
+      confirmedClientId = existing.clientId || '';
       clientName = existing.name || name;
       isNewClient = false;
       buildScreenFlow();
@@ -883,6 +897,10 @@ async function nextScreen() {
     });
     hideSpinner();
     reportSaveErrors([_newClientResult]);
+    confirmedPhone = phone;
+    if (_newClientResult && _newClientResult.data && _newClientResult.data.clientId) {
+      confirmedClientId = _newClientResult.data.clientId;
+    }
   }
 
   if (current === 'package') {
@@ -952,25 +970,25 @@ async function nextScreen() {
       // Fire health_form + visit in parallel for speed
       const calls = [
         sendToSheets('health_form', {
-          clientName: name, clientPhone: phone,
+          clientName: name, clientPhone: phone, clientId: confirmedClientId,
           service: selectedService.name, duration: selectedDuration,
           date: today, healthConfirmedUnchanged: true, ...lastHealth,
           svcForm: svcFormAnswers
         }),
         sendToSheets('visit', {
-          clientName: name, clientPhone: phone,
+          clientName: name, clientPhone: phone, clientId: confirmedClientId,
           serviceName: selectedService.name, duration: selectedDuration,
           serviceCategory: selectedService.cat, isNew: false,
           date: today, svcForm: svcFormAnswers
         })
       ];
       if (usePackageToday && activePackage) {
-        calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
+        calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
         const sig = getPkgSignature();
         if (sig) {
           const sessionNum = (activePackage.sessionsDone || 0) + 1;
           calls.push(sendToSheets('pkg_session_sig', {
-            phone, pkgId: activePackage.pkgId, clientName: name,
+            phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
             pkgName: activePackage.name, sessionNum, date: today, signature: sig
           }));
         }
@@ -1004,24 +1022,24 @@ async function nextScreen() {
       // Fire health_form + visit in parallel for speed
       const calls = [
         sendToSheets('health_form', {
-          clientName: name, clientPhone: phone,
+          clientName: name, clientPhone: phone, clientId: confirmedClientId,
           service: selectedService.name, duration: selectedDuration,
           date: today, ...answers, svcForm: svcFormAnswers
         }),
         sendToSheets('visit', {
-          clientName: name, clientPhone: phone,
+          clientName: name, clientPhone: phone, clientId: confirmedClientId,
           serviceName: selectedService.name, duration: selectedDuration,
           serviceCategory: selectedService.cat, isNew: isNewClient,
           date: today, svcForm: svcFormAnswers
         })
       ];
       if (usePackageToday && activePackage) {
-        calls.push(sendToSheets('use_package', { phone, pkgId: activePackage.pkgId }));
+        calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
         const sig = getPkgSignature();
         if (sig) {
           const sessionNum = (activePackage.sessionsDone || 0) + 1;
           calls.push(sendToSheets('pkg_session_sig', {
-            phone, pkgId: activePackage.pkgId, clientName: name,
+            phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
             pkgName: activePackage.name, sessionNum, date: today, signature: sig
           }));
         }
@@ -1051,7 +1069,7 @@ async function nextScreen() {
     const sigImage = canvas.toDataURL('image/png');
     const today2 = new Date().toLocaleDateString('en-US');
     const _waiverResult = await sendToSheets('waiver', {
-      clientName: name, clientPhone: phone,
+      clientName: name, clientPhone: phone, clientId: confirmedClientId,
       service: selectedService.name,
       date: today2,
       signatureImage: sigImage, waiverVersion: '2024-v1'
