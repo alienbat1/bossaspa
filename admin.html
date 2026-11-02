@@ -3017,8 +3017,11 @@ async function acSendVisitEmail(phone, date, service, category, visitNotes) {
   showSpinner('Sending email…');
   try {
     const result = await acBuildVisitHtml(phone, date, service, category, visitNotes);
-    await fetch(WEBAPP_URL, {
-      method: 'POST', mode: 'no-cors',
+    // mode:'cors' (not 'no-cors') so we can actually read whether the send
+    // succeeded or failed server-side — a 'no-cors' request always looks like
+    // success to the browser even if Apps Script's MailApp throws underneath.
+    const res = await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         type: 'send_email_html',
@@ -3027,7 +3030,12 @@ async function acSendVisitEmail(phone, date, service, category, visitNotes) {
         htmlBody: result.html
       })
     });
+    const sendResult = await res.json();
     hideSpinner();
+    if (!sendResult.success) {
+      alert('Could not send the email: ' + (sendResult.error || 'unknown error'));
+      return;
+    }
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:12px 24px;border-radius:24px;font-family:\'Jost\',sans-serif;font-size:.9rem;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.2);';
     toast.textContent = '✅ Email sent to ' + addr;
@@ -3259,7 +3267,7 @@ function acRenderPkgSessionRows(el, sessions, pkgId) {
                 ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
                 : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`)}
           ${sigId
-            ? `<button onclick="acEditPkgSession('${rowId}','${sigId}','${sDate}')" title="Edit date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
+            ? `<button onclick="acEditPkgSession('${rowId}','${sigId}','${sDate}','${escHtml(pkgId)}','${sNum}')" title="Edit date / add service" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
                <button onclick="acDeletePkgSession('${rowId}','${sigId}','${sNum}','${escHtml(pkgId)}')" title="Delete session" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`
             : `<button onclick="acEditPkgSessionNoSig('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Set date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
                <button onclick="acDeletePkgPlaceholder('${rowId}','${sNum}','${escHtml(pkgId)}')" title="Delete this empty session slot" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`}
@@ -3293,7 +3301,7 @@ async function acFetchAndShowPkgSig(sigId, sessionNum, date, btn) {
 }
 
 /* ── Edit / Delete individual PKG_SESSION_SIGS rows ── */
-function acEditPkgSession(rowId, sigId, currentDate) {
+function acEditPkgSession(rowId, sigId, currentDate, pkgId, sessionNum) {
   const editEl = document.getElementById(rowId + '-edit');
   if (!editEl) return;
   if (editEl.style.display !== 'none') { editEl.style.display = 'none'; return; }
@@ -3303,11 +3311,24 @@ function acEditPkgSession(rowId, sigId, currentDate) {
     const d = new Date(currentDate);
     if (!isNaN(d)) isoDate = d.toISOString().slice(0,10);
   }
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
   editEl.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-      <input type="date" id="${rowId}-dateinp" value="${escHtml(isoDate)}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;">
-      <button onclick="acSavePkgSessionDate('${rowId}','${sigId}')" style="padding:5px 12px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Save</button>
-      <button onclick="document.getElementById('${rowId}-edit').style.display='none'" style="padding:5px 10px;background:none;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;">Cancel</button>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <input type="date" id="${rowId}-dateinp" value="${escHtml(isoDate)}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;width:fit-content;">
+      <div id="${rowId}-svc-list">
+        <div class="pkgsess-svc-row" style="display:flex;gap:6px;margin-bottom:4px;">
+          <select class="pkgsess-svc-select" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;outline:none;">
+            <option value="">— no visit record (date only) —</option>
+            ${serviceOpts}
+          </select>
+        </div>
+      </div>
+      <button type="button" onclick="acPkgSessAddServiceRow('${rowId}')" style="align-self:flex-start;font-size:.7rem;color:var(--teal);background:none;border:1px dashed var(--teal);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add another service</button>
+      <div style="font-size:.68rem;color:var(--muted);">This session has no visit record yet — pick the service(s) used and it'll create it. Leave as "date only" to just update the date.</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="acSavePkgSessionDate('${rowId}','${sigId}','${escHtml(pkgId||'')}','${escHtml(sessionNum||'')}')" style="padding:5px 12px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Save</button>
+        <button onclick="document.getElementById('${rowId}-edit').style.display='none'" style="padding:5px 10px;background:none;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
     </div>`;
   editEl.style.display = 'block';
 }
@@ -3358,12 +3379,18 @@ function acPkgSessAddServiceRow(rowId) {
   list.appendChild(row);
 }
 
-async function acSavePkgSessionDate(rowId, sigId) {
+async function acSavePkgSessionDate(rowId, sigId, pkgId, sessionNum) {
   const inp = document.getElementById(rowId + '-dateinp');
   if (!inp || !inp.value) { alert('Please select a date.'); return; }
   const dateVal = new Date(inp.value + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
   const editEl  = document.getElementById(rowId + '-edit');
   const dateDisp= document.getElementById(rowId + '-date');
+  // Services picked for this session (if any) — each becomes its own VISITS row,
+  // created WITHOUT touching the package counter, since this session already
+  // counts toward Sessions Done through the package's own fields.
+  const svcSelects = Array.from(document.querySelectorAll(`#${rowId}-svc-list .pkgsess-svc-select`));
+  const services = svcSelects.map(s => s.value).filter(Boolean);
+  const c = acProfileClient;
   if (editEl) editEl.innerHTML = '<span style="color:var(--muted);font-size:.75rem;">Saving…</span>';
   try {
     await fetch(WEBAPP_URL, {
@@ -3371,8 +3398,24 @@ async function acSavePkgSessionDate(rowId, sigId) {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ type: 'edit_pkg_session', sigId, date: dateVal })
     });
+    if (services.length && c) {
+      for (const svc of services) {
+        await fetch(WEBAPP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            type: 'add_visit_manual',
+            clientName: c.name, clientPhone: c.phone || '', clientId: c.clientId || '',
+            date: dateVal, service: svc, therapist: '', notes: 'Package session #' + (sessionNum||''), next: ''
+            // isPackageSession intentionally omitted — no package decrement here
+          })
+        });
+      }
+    }
     if (dateDisp) dateDisp.innerHTML = escHtml(dateVal);
     if (editEl)   editEl.style.display = 'none';
+    // If visits were created, refresh the whole profile so the Visits list picks them up
+    if (services.length && c) setTimeout(() => acOpenProfile(c), 600);
   } catch(e) {
     if (editEl) editEl.innerHTML = '<span style="color:#c0392b;font-size:.75rem;">Error saving. Try again.</span>';
   }
