@@ -2078,6 +2078,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="acEditPkg(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;font-family:'Jost',sans-serif;">Edit status/sessions</button>
           ${pkgId ? `<button onclick="acTogglePkgSessions('${safePkgId}',this,${Number(done)||0},'${escHtml(phone)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px 8px;background:var(--beige);font-family:'Jost',sans-serif;">▸ Sessions &amp; Signatures</button>` : ''}
+          ${(pkgId && statusClass === 'active' && (Number(left)||0) > 0) ? `<button onclick="acShowMarkNoShow('${safePkgId}','${escHtml(name).replace(/'/g,"\\'")}','${escHtml(phone)}','${escHtml(c.name||'').replace(/'/g,"\\'")}',${Number(done)||0})" style="font-size:.68rem;color:#c0392b;cursor:pointer;border:1px solid #f5c6cb;border-radius:4px;padding:2px 8px;background:#fff8f7;font-family:'Jost',sans-serif;">🚫 Mark No-Show</button>` : ''}
         </div>
         ${pkgId ? `<div id="pkg-sessions-${safePkgId}" style="display:none;margin-top:8px;"></div>` : ''}
       </div>`;
@@ -3167,9 +3168,11 @@ function acRenderPkgSessionRows(el, sessions, pkgId) {
           <span id="${rowId}-date" style="font-size:.72rem;color:var(--muted);margin-left:8px;">${sDate || '<em style="color:var(--muted);">no date</em>'}</span>
         </div>
         <div style="display:flex;gap:5px;align-items:center;">
-          ${s.hasSig && sigId
-            ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
-            : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`}
+          ${s.noShow
+            ? `<span style="font-size:.68rem;color:#c0392b;font-weight:600;">🚫 No-Show</span>`
+            : (s.hasSig && sigId
+                ? `<button onclick="acFetchAndShowPkgSig('${sigId}','${sNum}','${sDate}',this)" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🖊 View</button>`
+                : `<span style="font-size:.68rem;color:var(--muted);font-style:italic;">No signature</span>`)}
           ${sigId
             ? `<button onclick="acEditPkgSession('${rowId}','${sigId}','${sDate}')" title="Edit date" style="font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️</button>
                <button onclick="acDeletePkgSession('${rowId}','${sigId}','${sNum}','${escHtml(pkgId)}')" title="Delete session" style="font-size:.68rem;color:#c0392b;border:1px solid #f5c6cb;border-radius:4px;padding:2px 7px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">🗑️</button>`
@@ -3755,6 +3758,55 @@ async function acSaveLinkVisitToPkg(visitDate, rowIndex) {
   } catch(e) {}
   hideSpinner();
   await acOpenProfile(c);
+}
+
+/* ── Mark No-Show: client had a package session booked but didn't come — deduct
+     one session from the package without creating a visit record, since no service
+     actually happened. Logged in Sessions & Signatures as "🚫 No-Show". ── */
+function acShowMarkNoShow(pkgId, pkgName, phone, clientName, sessionsDone) {
+  const today = new Date().toISOString().slice(0,10);
+  const sessionNum = (sessionsDone || 0) + 1;
+  const html = `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-noshow-modal" onclick="if(event.target.id==='ac-noshow-modal')document.getElementById('ac-noshow-modal').remove()">
+    <div style="background:#fff;border-radius:12px;padding:22px;max-width:340px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:#c0392b;margin-bottom:4px;">Mark No-Show</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px;">${escHtml(clientName)} — ${escHtml(pkgName)}</div>
+      <div class="field" style="margin-bottom:12px;"><label>Appointment Date</label>
+        <input type="date" id="ns-date" value="${today}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">This will deduct Session #${sessionNum} from this package and log it as a no-show. No visit record is created.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="acConfirmMarkNoShow('${escHtml(pkgId)}','${escHtml(pkgName).replace(/'/g,"\\'")}','${escHtml(phone)}','${escHtml(clientName).replace(/'/g,"\\'")}',${sessionNum})" style="flex:1;padding:10px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">Confirm No-Show</button>
+        <button onclick="document.getElementById('ac-noshow-modal').remove()" style="padding:10px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function acConfirmMarkNoShow(pkgId, pkgName, phone, clientName, sessionNum) {
+  const inp = document.getElementById('ns-date');
+  if (!inp || !inp.value) { alert('Please select a date.'); return; }
+  const dateVal = new Date(inp.value + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+  const modal = document.getElementById('ac-noshow-modal');
+  if (modal) modal.remove();
+  const c = acProfileClient;
+  showSpinner('Marking no-show…');
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'add_visit_manual',
+        clientName, clientPhone: phone, clientId: (c && c.clientId) || '',
+        date: dateVal, service: '', therapist: '', notes: 'No-show — session deducted', next: '',
+        isPackageSession: true, pkgId, pkgName, sessionNum,
+        linkExisting: true, noShow: true
+      })
+    });
+  } catch(e) {}
+  hideSpinner();
+  if (c) await acOpenProfile(c);
 }
 
 /* ── Edit an existing visit (date / service / category / notes / next / therapist) ── */
