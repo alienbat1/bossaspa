@@ -411,6 +411,14 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <div class="screen-sub">Step <span id="svc-step">3</span> — What brings you in today?</div>
     <div class="cat-scroll" id="cat-scroll"></div>
     <div class="svc-grid" id="svc-grid"></div>
+
+    <!-- Multi-service: services already added to this visit -->
+    <div id="added-services-wrap" style="display:none;margin-top:16px;background:#edf5f3;border:1px solid #b0cec9;border-radius:var(--r);padding:12px 14px;">
+      <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:8px;">Added to this visit</div>
+      <div id="added-services-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <button type="button" id="add-another-svc-btn" onclick="addAnotherService()" style="display:none;width:100%;margin-top:12px;padding:12px;background:#fff;border:1.5px dashed var(--teal);border-radius:var(--r);color:var(--teal);font-family:'Jost',sans-serif;font-size:.88rem;cursor:pointer;">+ Add another service</button>
+
     <div class="err-msg" id="service-err">Please select a service to continue.</div>
     <button class="btn" id="svc-btn" onclick="nextScreen()" style="display:none;">Continue →</button>
   </div>
@@ -420,38 +428,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button class="btn-back" onclick="prevScreen()">← Back</button>
     <div class="screen-title" id="info-title">Service Information</div>
     <div class="screen-sub" id="info-sub">What to know before your session</div>
-    <div class="info-block">
-      <div class="info-heading">What it is</div>
-      <div class="info-text" id="info-what"></div>
-    </div>
-    <div class="info-block">
-      <div class="info-heading">What to expect</div>
-      <div class="info-text" id="info-expect"></div>
-    </div>
-    <div class="window-seal" id="info-window">
-      <div class="window-seal-num" id="window-num"></div>
-      <div class="window-seal-label" id="window-label"></div>
-    </div>
-    <div class="info-block" id="info-consistency-block" style="display:none;">
-      <div class="info-heading">Why consistency matters</div>
-      <div class="info-text" id="info-consistency"></div>
-    </div>
-    <div class="info-block">
-      <div class="info-heading">Before your session</div>
-      <div class="info-text" id="info-before"></div>
-    </div>
-    <div class="info-block">
-      <div class="info-heading">After your session</div>
-      <div class="info-text" id="info-after"></div>
-    </div>
-    <div class="info-block" id="info-contra-block">
-      <div class="info-heading" style="color:var(--error);">Contraindications</div>
-      <div class="info-text" id="info-contra"></div>
-    </div>
-    <div class="info-block" id="info-marks-block" style="display:none;">
-      <div class="info-heading">Marks that may appear (normal)</div>
-      <div class="info-text" id="info-marks"></div>
-    </div>
+    <div id="info-services-container"></div>
     <button class="btn" onclick="nextScreen()">I've read this — Continue →</button>
   </div>
 
@@ -621,6 +598,12 @@ let clientName = '';
 let isNewClient = true; // determined after welcome
 let selectedService = null;
 let selectedDuration = null;
+// Multi-service support (non-package visits only): each entry is { svc, duration }.
+// Package clients keep exactly one entry, auto-filled when their service is matched
+// from the package, so downstream code (info/svcform/save) can loop over this array
+// uniformly instead of branching on package-vs-not.
+let selectedServices = [];
+let svcFormAnswersByService = {}; // { [svc.id]: {...answers} } — one set per selected service
 let optInMarketing = true;
 let sigHasContent = false;
 let screenFlow = [];
@@ -812,6 +795,35 @@ function hasUsableHealthOnFile() {
     HEALTH_QUESTIONS.some(item => lastHealth[item.q] && lastHealth[item.q].trim() !== '');
 }
 
+// The list of services for this visit — selectedServices when multiple were picked,
+// falling back to the single selectedService (package clients, or anywhere this runs
+// before the 'service' screen's fold-in has happened).
+function visitServicesList() {
+  if (selectedServices && selectedServices.length) return selectedServices;
+  if (selectedService) return [{ svc: selectedService, duration: selectedDuration }];
+  return [];
+}
+
+// One 'visit' row per selected service — each keeps its own service/category so
+// reporting, Wax Club tracking, and visit history all stay accurate per service, even
+// though health/waiver/session-questions are shared once across the whole visit.
+function buildVisitSaveCalls(name, phone, today) {
+  return visitServicesList().map(({ svc, duration }) => sendToSheets('visit', {
+    clientName: name, clientPhone: phone, clientId: confirmedClientId,
+    serviceName: svc.name, duration: duration,
+    serviceCategory: svc.cat, isNew: isNewClient,
+    date: today, svcForm: svcFormAnswers
+  }));
+}
+
+// Summary used by _printData — list of { name, duration, serviceInfo } for every
+// service in this visit, so the printed/emailed form shows all of them.
+function buildServicesSummaryForPrint() {
+  return visitServicesList().map(({ svc, duration }) => ({
+    name: svc.name, duration: duration || '', serviceInfo: SERVICE_INFO[svc.id] || null
+  }));
+}
+
 // Saves health_form (marked "unchanged", reusing lastHealth) + the visit, using
 // whatever service/package was already selected — used both when the client taps
 // "confirm unchanged" on the Health Check screen, and when that screen is skipped
@@ -828,12 +840,7 @@ async function saveHealthUnchangedAndContinue() {
       date: today, healthConfirmedUnchanged: true, ...lastHealth,
       svcForm: svcFormAnswers
     }),
-    sendToSheets('visit', {
-      clientName: name, clientPhone: phone, clientId: confirmedClientId,
-      serviceName: selectedService.name, duration: selectedDuration,
-      serviceCategory: selectedService.cat, isNew: false,
-      date: today, svcForm: svcFormAnswers
-    })
+    ...buildVisitSaveCalls(name, phone, today)
   ];
   if (usePackageToday && activePackage) {
     calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
@@ -855,7 +862,8 @@ async function saveHealthUnchangedAndContinue() {
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
       service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
-      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
+      services: buildServicesSummaryForPrint(),
       health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
       sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
     populateThanks();
@@ -994,13 +1002,25 @@ async function nextScreen() {
   }
 
   if (current === 'service') {
-    if (!selectedService || selectedDuration === null) {
+    // Fold the currently-picked service into the multi-service list (if one is picked
+    // and not already in there), then require at least one service total — either the
+    // current pick or something added earlier via "+ Add another service".
+    if (selectedService && selectedDuration !== null) {
+      const dup = selectedServices.some(x => x.svc.id === selectedService.id && x.duration === selectedDuration);
+      if (!dup) selectedServices.push({ svc: selectedService, duration: selectedDuration });
+    }
+    if (!selectedServices.length) {
       const msg = !selectedService ? 'Please select a service to continue.' : 'Please select a duration to continue.';
       document.getElementById('service-err').textContent = msg;
       showErr('service-err');
       return;
     }
     hideErr('service-err');
+    // Keep the legacy single-service variables pointed at the first service — several
+    // existing single-service code paths (buildSvcForm, Wax Club check, package flow,
+    // the session-questions screen) still read these directly.
+    selectedService  = selectedServices[0].svc;
+    selectedDuration = selectedServices[0].duration;
     buildHealthForm();
     updateHealthStep();
   }
@@ -1048,12 +1068,7 @@ async function nextScreen() {
           service: selectedService.name, duration: selectedDuration,
           date: today, ...answers, svcForm: svcFormAnswers
         }),
-        sendToSheets('visit', {
-          clientName: name, clientPhone: phone, clientId: confirmedClientId,
-          serviceName: selectedService.name, duration: selectedDuration,
-          serviceCategory: selectedService.cat, isNew: isNewClient,
-          date: today, svcForm: svcFormAnswers
-        })
+        ...buildVisitSaveCalls(name, phone, today)
       ];
       if (usePackageToday && activePackage) {
         calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
@@ -1074,7 +1089,8 @@ async function nextScreen() {
           email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
           dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
           service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
-          serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+          serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
+          services: buildServicesSummaryForPrint(),
           health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
           sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
         populateThanks();
@@ -1083,12 +1099,33 @@ async function nextScreen() {
   }
 
   if (current === 'waiver') {
+    document.getElementById('waiver-err').textContent = 'Please sign to continue.';
     if (!sigHasContent) { showErr('waiver-err'); return; }
+    // Make sure the canvas was actually sized before anything was drawn on it — if the
+    // resize-on-show (showScreen's setTimeout(resizeCanvas, 50)) ran before the screen's
+    // layout settled, canvas.width/height can be left at a stale or default size, which
+    // produces a blank or mismatched signature image even though sigHasContent is true.
+    // Re-check right here, synchronously, before reading the pixels out.
+    if (canvas.width === 0 || canvas.height === 0 || canvas.getBoundingClientRect().width === 0) {
+      showErr('waiver-err');
+      document.getElementById('waiver-err').textContent = 'Signature pad wasn\'t ready — please clear and sign again.';
+      clearSig();
+      return;
+    }
+    const sigImage = canvas.toDataURL('image/png');
+    // A real signature PNG is never this short — a blank/zero-size canvas export is.
+    // Catch it here instead of silently saving a waiver record with no usable signature
+    // (which later makes the system think this client was never actually asked to sign).
+    if (!sigImage || !sigImage.startsWith('data:image/png;base64,') || sigImage.length < 1000) {
+      showErr('waiver-err');
+      document.getElementById('waiver-err').textContent = 'Signature didn\'t capture properly — please clear and sign again.';
+      clearSig();
+      return;
+    }
     hideErr('waiver-err');
     showSpinner();
     const name = getClientName();
     const phone = getClientPhone();
-    const sigImage = canvas.toDataURL('image/png');
     const today2 = new Date().toLocaleDateString('en-US');
     const _waiverResult = await sendToSheets('waiver', {
       clientName: name, clientPhone: phone, clientId: confirmedClientId,
@@ -1097,12 +1134,21 @@ async function nextScreen() {
       signatureImage: sigImage, waiverVersion: '2024-v1'
     });
     hideSpinner();
-    reportSaveErrors([_waiverResult]);
+    if (!_waiverResult.ok) {
+      // Don't let the client move on with an unsaved waiver — have them sign again now,
+      // while they're still here, instead of silently losing the record.
+      reportSaveErrors([_waiverResult]);
+      showErr('waiver-err');
+      document.getElementById('waiver-err').textContent = 'Could not save the waiver — please sign again.';
+      clearSig();
+      return;
+    }
     _printData = { name, phone, date: today2,
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
       service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
-      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
+      services: buildServicesSummaryForPrint(),
       health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
       sigImage: sigImage, pkg: (usePackageToday && activePackage) ? activePackage : null };
     populateThanks();
@@ -1146,6 +1192,8 @@ function resetApp() {
   isNewClient = true;
   selectedService = null;
   selectedDuration = null;
+  selectedServices = [];
+  svcFormAnswersByService = {};
   optInMarketing = true;
   sigHasContent = false;
   clientName = '';
@@ -1266,6 +1314,8 @@ function buildServiceScreen() {
     scroll.appendChild(chip);
   });
   buildServiceGrid();
+  ensureAddSvcObserver();
+  renderAddedServicesStrip();
 }
 
 // ── SERVICE INFO DATA ──
@@ -1722,50 +1772,31 @@ const SERVICE_INFO = {
 };
 
 function buildInfoScreen() {
-  const svc = selectedService;
-  if (!svc) return;
-  const info = SERVICE_INFO[svc.id] || {};
+  // Builds one stacked info block per selected service — selectedServices always has
+  // at least one entry by the time this screen shows (see nextScreen()'s 'service' step,
+  // which folds the currently-picked service in before moving on).
+  const list = (selectedServices && selectedServices.length) ? selectedServices : (selectedService ? [{ svc: selectedService, duration: selectedDuration }] : []);
+  if (!list.length) return;
 
-  document.getElementById('info-title').textContent = svc.name;
+  document.getElementById('info-title').textContent = list.length > 1 ? list.map(x => x.svc.name).join(' + ') : list[0].svc.name;
+  document.getElementById('info-sub').textContent = list.length > 1 ? `What to know before your session — ${list.length} services` : 'What to know before your session';
 
-  document.getElementById('info-what').textContent = info.what || 'Your therapist will explain the details of this service at the start of your session.';
-  document.getElementById('info-expect').textContent = info.expect || '';
-  document.getElementById('info-before').textContent = info.before || '';
-  document.getElementById('info-after').textContent = info.after || '';
-
-  const windowEl = document.getElementById('info-window');
-  if (info.window) {
-    document.getElementById('window-num').textContent = info.window;
-    document.getElementById('window-label').textContent = info.windowLabel || 'Maximum gap between sessions';
-    windowEl.style.display = '';
-  } else {
-    windowEl.style.display = 'none';
-  }
-
-  const consistencyBlock = document.getElementById('info-consistency-block');
-  if (info.consistency) {
-    document.getElementById('info-consistency').textContent = info.consistency;
-    consistencyBlock.style.display = '';
-  } else {
-    consistencyBlock.style.display = 'none';
-  }
-
-  const contraEl = document.getElementById('info-contra');
-  const contraBlock = document.getElementById('info-contra-block');
-  if (info.contra) {
-    contraEl.textContent = info.contra;
-    contraBlock.style.display = '';
-  } else {
-    contraBlock.style.display = 'none';
-  }
-
-  const marksBlock = document.getElementById('info-marks-block');
-  if (info.marks) {
-    document.getElementById('info-marks').textContent = info.marks;
-    marksBlock.style.display = '';
-  } else {
-    marksBlock.style.display = 'none';
-  }
+  const container = document.getElementById('info-services-container');
+  container.innerHTML = list.map(({ svc }) => {
+    const info = SERVICE_INFO[svc.id] || {};
+    const heading = list.length > 1 ? `<div class="info-heading" style="font-size:1rem;color:var(--teal);border-bottom:1px solid var(--border);padding-bottom:6px;margin-top:18px;margin-bottom:10px;">${escHtml(svc.name)}</div>` : '';
+    const blocks = [
+      `<div class="info-block"><div class="info-heading">What it is</div><div class="info-text">${escHtml(info.what || 'Your therapist will explain the details of this service at the start of your session.')}</div></div>`,
+      info.expect ? `<div class="info-block"><div class="info-heading">What to expect</div><div class="info-text">${escHtml(info.expect)}</div></div>` : '',
+      info.window ? `<div class="window-seal"><div class="window-seal-num">${escHtml(info.window)}</div><div class="window-seal-label">${escHtml(info.windowLabel || 'Maximum gap between sessions')}</div></div>` : '',
+      info.consistency ? `<div class="info-block"><div class="info-heading">Why consistency matters</div><div class="info-text">${escHtml(info.consistency)}</div></div>` : '',
+      info.before ? `<div class="info-block"><div class="info-heading">Before your session</div><div class="info-text">${escHtml(info.before)}</div></div>` : '',
+      info.after ? `<div class="info-block"><div class="info-heading">After your session</div><div class="info-text">${escHtml(info.after)}</div></div>` : '',
+      info.contra ? `<div class="info-block"><div class="info-heading" style="color:var(--error);">Contraindications</div><div class="info-text">${escHtml(info.contra)}</div></div>` : '',
+      info.marks ? `<div class="info-block"><div class="info-heading">Marks that may appear (normal)</div><div class="info-text">${escHtml(info.marks)}</div></div>` : '',
+    ].join('');
+    return heading + blocks;
+  }).join('');
 }
 
 // ── SERVICE GRID ──
@@ -1921,6 +1952,80 @@ function buildServiceGrid() {
     };
     grid.appendChild(card);
   });
+}
+
+// ── MULTI-SERVICE: "+ Add another service" strip ──
+// Lets a non-package client pick several services in one visit (e.g. a Wax +
+// Lymphatic Drainage). Each confirmed pick is pushed into selectedServices,
+// the card/duration selection is reset so the client can pick the next
+// service, and a small chip list shows everything added so far with a
+// remove (×) option.
+
+function addAnotherService() {
+  if (!selectedService || selectedDuration === null || selectedDuration === '') {
+    showErr('service-err');
+    document.getElementById('service-err').textContent = 'Please finish selecting a service and duration first.';
+    return;
+  }
+  const dup = selectedServices.some(x => x.svc.id === selectedService.id && x.duration === selectedDuration);
+  if (!dup) selectedServices.push({ svc: selectedService, duration: selectedDuration });
+
+  // Reset the current pick so the client can choose the next service.
+  selectedService = null;
+  selectedDuration = null;
+  document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.dur-row').forEach(r => r.remove());
+  document.getElementById('svc-btn').style.display = 'none';
+  hideErr('service-err');
+
+  renderAddedServicesStrip();
+}
+
+function removeAddedService(idx) {
+  selectedServices.splice(idx, 1);
+  renderAddedServicesStrip();
+}
+
+function renderAddedServicesStrip() {
+  const wrap = document.getElementById('added-services-wrap');
+  const list = document.getElementById('added-services-list');
+  list.innerHTML = '';
+  selectedServices.forEach((entry, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px;font-family:\'Jost\',sans-serif;font-size:.85rem;color:var(--ink);';
+    const label = document.createElement('span');
+    label.textContent = entry.svc.name + (entry.duration ? ' — ' + entry.duration : '');
+    const remove = document.createElement('span');
+    remove.textContent = '✕';
+    remove.style.cssText = 'cursor:pointer;color:#b05a5a;font-weight:bold;padding:0 4px;';
+    remove.onclick = () => removeAddedService(idx);
+    row.appendChild(label);
+    row.appendChild(remove);
+    list.appendChild(row);
+  });
+  wrap.style.display = selectedServices.length ? 'block' : 'none';
+  updateAddAnotherVisibility();
+}
+
+// Shows "+ Add another service" only once the client has a complete pick
+// ready to confirm (svc-btn visible) or already has at least one service
+// added — piggybacks on svc-btn's existing show/hide logic via the
+// MutationObserver below instead of touching that logic.
+function updateAddAnotherVisibility() {
+  const svcBtn = document.getElementById('svc-btn');
+  const addBtn = document.getElementById('add-another-svc-btn');
+  const ready = svcBtn && svcBtn.style.display === 'block';
+  addBtn.style.display = (ready || selectedServices.length > 0) ? 'block' : 'none';
+}
+
+let _addSvcObserverSet = false;
+function ensureAddSvcObserver() {
+  if (_addSvcObserverSet) return;
+  const svcBtn = document.getElementById('svc-btn');
+  if (!svcBtn) return;
+  const obs = new MutationObserver(() => updateAddAnotherVisibility());
+  obs.observe(svcBtn, { attributes: true, attributeFilter: ['style'] });
+  _addSvcObserverSet = true;
 }
 
 // ── PACKAGE / HISTORY SCREEN ──
@@ -2930,18 +3035,33 @@ function buildCheckinHtml(d) {
     : '';
 
   // ── SERVICE INFORMATION block (About / Before / After / Contra) ──
+  // Loops over d.services (one or more) so a multi-service visit shows every
+  // service's own info, each under its own sub-heading when there's more than one.
   let svcInfoHtml = '';
-  if (d.serviceInfo) {
-    const si = d.serviceInfo;
+  const svcList = (d.services && d.services.length) ? d.services : (d.serviceInfo ? [{ name: d.service, duration: d.duration, serviceInfo: d.serviceInfo }] : []);
+  const svcInfoBlocks = svcList.map(entry => {
+    const si = entry.serviceInfo;
+    if (!si) return '';
     const cols = [
       si.what  ? `<div class="p-info-col"><div class="p-info-label">ABOUT THIS SERVICE</div><div class="p-info-text">${escHtml(si.what)}</div></div>` : '',
       (si.before || si.after) ? `<div class="p-info-2col">${si.before ? `<div><div class="p-info-label">BEFORE</div><div class="p-info-text">${escHtml(si.before)}</div></div>` : ''}${si.after ? `<div><div class="p-info-label">AFTER</div><div class="p-info-text">${escHtml(si.after)}</div></div>` : ''}</div>` : '',
       si.contra ? `<div class="p-info-col p-info-contra"><div class="p-info-label" style="color:#b94040;">CONTRAINDICATIONS</div><div class="p-info-text">${escHtml(si.contra)}</div></div>` : '',
     ].filter(Boolean).join('');
-    if (cols) {
-      svcInfoHtml = `<div class="p-section"><div class="p-section-title">S E R V I C E &nbsp; I N F O R M A T I O N</div>${cols}</div>`;
-    }
+    if (!cols) return '';
+    const heading = svcList.length > 1
+      ? `<div class="p-info-label" style="font-size:.72rem;color:#2C4A43;margin-bottom:6px;">${escHtml(entry.name)}${entry.duration ? ' — ' + escHtml(entry.duration) : ''}</div>`
+      : '';
+    return heading + cols;
+  }).filter(Boolean).join('<div style="height:10px;"></div>');
+  if (svcInfoBlocks) {
+    svcInfoHtml = `<div class="p-section"><div class="p-section-title">S E R V I C E &nbsp; I N F O R M A T I O N</div>${svcInfoBlocks}</div>`;
   }
+
+  // All-services display string — e.g. "Lymphatic Drainage — 60 min, Brazilian Wax" —
+  // used wherever the record previously showed just d.service.
+  const servicesDisplay = svcList.length
+    ? svcList.map(e => e.name + (e.duration ? ' — ' + e.duration : '')).join(', ')
+    : (d.service || '') + (d.duration ? ' — ' + d.duration : '');
 
   // ── SERVICE FORM (session questions) ──
   let svcFormHtml = '';
@@ -2967,7 +3087,7 @@ function buildCheckinHtml(d) {
 <div class="p-section">
   <div class="p-section-title">I N F O R M E D &nbsp; C O N S E N T &nbsp; &amp; &nbsp; L I A B I L I T Y &nbsp; W A I V E R</div>
   <div class="p-meta" style="margin-bottom:12px;">
-    <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}</span></div>
+    <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(servicesDisplay)}</span></div>
     <div class="p-meta-row"><span class="p-meta-key">Date Signed</span><span class="p-meta-val">${escHtml(waiverDate)}</span></div>
   </div>
   <div style="font-size:.75rem;color:#1a2820;line-height:1.55;margin-bottom:14px;">
@@ -3034,7 +3154,7 @@ function buildCheckinHtml(d) {
 </div>
 <div class="p-client">${escHtml(d.name)}</div>
 <div class="p-meta">
-  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(d.service)}${d.duration ? ' — ' + escHtml(d.duration) : ''}</span></div>
+  <div class="p-meta-row"><span class="p-meta-key">Service</span><span class="p-meta-val">${escHtml(servicesDisplay)}</span></div>
   <div class="p-meta-row"><span class="p-meta-key">Date</span><span class="p-meta-val">${escHtml(d.date)}</span></div>
   ${pkgHtml}
 </div>
