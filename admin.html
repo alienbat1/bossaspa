@@ -3564,19 +3564,30 @@ async function acSaveField(field, c) {
   if (row) row.style.opacity = '.5';
 
   try {
-    await fetch(WEBAPP_URL, {
+    // mode:'cors' (not 'no-cors') so we can tell whether the save actually went
+    // through — phone is sent so the backend can find the right row by phone
+    // (the one identifier that doesn't shift) instead of trusting a rowIndex that
+    // can go stale the moment the sheet changes elsewhere.
+    const res = await fetch(WEBAPP_URL, {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         type: 'update_client_field',
         clientId: c.clientId,
         rowIndex: c.rowIndex,
+        phone: c.phone,
         name: c.name,
         field: field,
         value: newVal
       })
     });
+    const result = await res.json();
+    if (!result.success) {
+      if (row) row.style.opacity = '1';
+      alert('Could not save: ' + (result.error || 'unknown error'));
+      return;
+    }
     // Update local cache
     const idx = acAllClients.findIndex(x => x.rowIndex === c.rowIndex);
     if (idx >= 0) acAllClients[idx][field] = newVal;
