@@ -761,6 +761,22 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         </div>
       </div>
 
+      <!-- SECTION 5: Regulars — clients flagged to be contacted more often (open spots, promos) -->
+      <div class="fu-section" style="margin-top:18px;margin-bottom:18px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#fff3d6,#ffe6a8);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-regulars-list')">
+          <span class="fu-icon">⭐</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#7a5c1e;">Regulars</div>
+            <div class="fu-section-sub" style="color:#9a7535;">Clients marked to be contacted often about open spots, promos, etc. · No 30-day limit</div>
+          </div>
+          <div class="fu-badge" style="background:#7a5c1e;color:#fff;" id="fu-regulars-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-regulars-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
     </div><!-- /tab-followup -->
 
     <!-- ═══ TAB 5: ALL CLIENTS ═══ -->
@@ -1825,6 +1841,21 @@ async function loadFollowUp() {
         ? `<div class="fu-empty" style="color:#6a7535;font-style:normal;">+${data.therapistNotesDueTotal - tnotesDue.length} more · shown tomorrow</div>` : '');
     }
 
+    // — SECTION 5: Regulars — flagged clients to contact more often —
+    const regulars = data.regulars || [];
+    document.getElementById('fu-regulars-count').textContent = regulars.length || '0';
+    const regularsListEl = document.getElementById('fu-regulars-list');
+    if (!regulars.length) {
+      regularsListEl.innerHTML = '<div class="fu-empty">No clients marked as Regulars yet. Mark them from the client profile. ⭐</div>';
+    } else {
+      regularsListEl.innerHTML = regulars.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
+        const tag = `<span class="fu-tag" style="background:#ffe6a8;color:#7a5c1e;">⭐ Regular</span>`;
+        return fuRow(c, i, 'regulars', tag, 'regular', c.lastVisit||'');
+      }).join('');
+    }
+
   } catch(e) {
     hideSpinner();
     const statusEl = document.getElementById('fu-status');
@@ -2191,6 +2222,21 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
     </div>
   </div>`;
 
+  // Regular Client toggle — flags clients who like being reminded often about open
+  // spots/promos; they get their own Follow-Up category (shown at the end of the list)
+  const isRegular = c.isRegular === true;
+  html += `<div class="cp-section" id="cp-regular-section" style="margin-top:24px;background:${isRegular ? '#fff8ed' : '#f7f4ee'};border:1px solid ${isRegular ? 'var(--gold)' : 'var(--border)'};border-radius:var(--r);padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:.78rem;font-weight:500;color:${isRegular ? '#7a5c1e' : 'var(--ink)'};">${isRegular ? '⭐ Regular client' : 'Not marked as a Regular'}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${isRegular ? 'Appears in the "Regulars" Follow-Up list to contact more often about open spots.' : 'Mark clients who like being reminded often about open spots or promos.'}</div>
+      </div>
+      <button id="cp-regular-btn" onclick="acToggleRegularClient('${escHtml(phone)}', ${isRegular})" style="font-size:.72rem;white-space:nowrap;cursor:pointer;border:1.5px solid ${isRegular ? '#e8b4a8' : 'var(--gold)'};border-radius:6px;padding:7px 14px;background:#fff;color:${isRegular ? '#9b3a2a' : '#7a5c1e'};font-family:'Jost',sans-serif;">
+        ${isRegular ? '✕ Remove' : '⭐ Mark as Regular'}
+      </button>
+    </div>
+  </div>`;
+
   // Do Not Contact toggle — keeps this client out of every Follow-Up category
   const optedOut = c.marketingOptIn === false;
   html += `<div class="cp-section" id="cp-optout-section" style="margin-top:24px;background:${optedOut ? '#fdf0ec' : '#f7f4ee'};border:1px solid ${optedOut ? '#e8b4a8' : 'var(--border)'};border-radius:var(--r);padding:14px 16px;">
@@ -2406,6 +2452,45 @@ async function acToggleMarketingOptIn(phone, reEnable) {
     }
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = reEnable ? '✓ Re-enable' : '✕ Stop contacting'; }
+    alert('Could not save — please try again.');
+  }
+}
+
+async function acToggleRegularClient(phone, remove) {
+  if (!phone) return;
+  const btn = document.getElementById('cp-regular-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const newVal = !remove; // if currently regular (remove=true), new value is false
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'set_regular_client', phone: phone, isRegular: newVal })
+    });
+    // Update local state immediately — same trust-the-write pattern as marketing opt-in.
+    if (acProfileClient) acProfileClient.isRegular = newVal;
+    const idx = acAllClients.findIndex(x => normalizePhone(x.phone||'') === normalizePhone(phone));
+    if (idx >= 0) acAllClients[idx].isRegular = newVal;
+    const fIdx = acFiltered.findIndex(x => normalizePhone(x.phone||'') === normalizePhone(phone));
+    if (fIdx >= 0) acFiltered[fIdx].isRegular = newVal;
+    const section = document.getElementById('cp-regular-section');
+    if (section) {
+      const isRegular = newVal;
+      section.style.background = isRegular ? '#fff8ed' : '#f7f4ee';
+      section.style.borderColor = isRegular ? 'var(--gold)' : 'var(--border)';
+      section.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:.78rem;font-weight:500;color:${isRegular ? '#7a5c1e' : 'var(--ink)'};">${isRegular ? '⭐ Regular client' : 'Not marked as a Regular'}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${isRegular ? 'Appears in the "Regulars" Follow-Up list to contact more often about open spots.' : 'Mark clients who like being reminded often about open spots or promos.'}</div>
+      </div>
+      <button id="cp-regular-btn" onclick="acToggleRegularClient('${phone}', ${isRegular})" style="font-size:.72rem;white-space:nowrap;cursor:pointer;border:1.5px solid ${isRegular ? '#e8b4a8' : 'var(--gold)'};border-radius:6px;padding:7px 14px;background:#fff;color:${isRegular ? '#9b3a2a' : '#7a5c1e'};font-family:'Jost',sans-serif;">
+        ${isRegular ? '✕ Remove' : '⭐ Mark as Regular'}
+      </button>
+    </div>`;
+    }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = remove ? '✕ Remove' : '⭐ Mark as Regular'; }
     alert('Could not save — please try again.');
   }
 }
