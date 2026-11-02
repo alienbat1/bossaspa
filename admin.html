@@ -1677,6 +1677,8 @@ async function loadFollowUp() {
           ${tagHtml}
           <button class="fu-btn-contacted" style="margin-top:8px;"
             onclick="markContacted('${rowId}','${nameEsc}','${phone}','${category}','${detailEsc}')">✓ Contacted</button>
+          ${phone ? `<button style="margin-top:6px;font-size:.68rem;color:#9b3a2a;background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Jost',sans-serif;"
+            onclick="fuStopContacting('${rowId}','${nameEsc}','${phone}')">🔕 Stop contacting</button>` : ''}
         </div>
       </div>`;
     }
@@ -2188,8 +2190,22 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
     </div>
   </div>`;
 
+  // Do Not Contact toggle — keeps this client out of every Follow-Up category
+  const optedOut = c.marketingOptIn === false;
+  html += `<div class="cp-section" id="cp-optout-section" style="margin-top:24px;background:${optedOut ? '#fdf0ec' : '#f7f4ee'};border:1px solid ${optedOut ? '#e8b4a8' : 'var(--border)'};border-radius:var(--r);padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:.78rem;font-weight:500;color:${optedOut ? '#9b3a2a' : 'var(--ink)'};">${optedOut ? '🔕 Not receiving follow-up messages' : '🔔 Receiving follow-up messages'}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${optedOut ? 'This client will not appear in any Follow-Up list until re-enabled.' : 'If they ask to stop being contacted, turn this off.'}</div>
+      </div>
+      <button id="cp-optout-btn" onclick="acToggleMarketingOptIn('${escHtml(phone)}', ${optedOut})" style="font-size:.72rem;white-space:nowrap;cursor:pointer;border:1.5px solid ${optedOut ? 'var(--teal)' : '#e8b4a8'};border-radius:6px;padding:7px 14px;background:#fff;color:${optedOut ? 'var(--teal)' : '#9b3a2a'};font-family:'Jost',sans-serif;">
+        ${optedOut ? '✓ Re-enable' : '✕ Stop contacting'}
+      </button>
+    </div>
+  </div>`;
+
   // Merge + Delete section
-  html += `<div class="cp-section" style="margin-top:24px;border-top:1px solid #f0ddd0;padding-top:16px;display:flex;flex-direction:column;gap:8px;">
+  html += `<div class="cp-section" style="margin-top:12px;border-top:1px solid #f0ddd0;padding-top:16px;display:flex;flex-direction:column;gap:8px;">
     <button onclick="acShowManualMerge()" style="font-size:.75rem;color:#7a5c1e;cursor:pointer;border:1.5px solid var(--gold);border-radius:6px;padding:8px 16px;background:#fff8ed;font-family:'Jost',sans-serif;width:100%;">
       🔀 Merge with another client
     </button>
@@ -2349,6 +2365,47 @@ async function acDeleteClient() {
     try { acRenderList(); } catch(_) {}
     // Don't show error — the delete likely worked (no-cors can't confirm)
     console.warn('Delete catch:', e.message);
+  }
+}
+
+async function acToggleMarketingOptIn(phone, reEnable) {
+  if (!phone) return;
+  const btn = document.getElementById('cp-optout-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'set_marketing_optin', phone: phone, optIn: !!reEnable })
+    });
+    // Update local state immediately — no-cors can't confirm the response, but the
+    // write is simple enough (one cell) that we can trust it and reflect it right away.
+    if (acProfileClient) acProfileClient.marketingOptIn = !!reEnable;
+    const idx = acAllClients.findIndex(x => normalizePhone(x.phone||'') === normalizePhone(phone));
+    if (idx >= 0) acAllClients[idx].marketingOptIn = !!reEnable;
+    const fIdx = acFiltered.findIndex(x => normalizePhone(x.phone||'') === normalizePhone(phone));
+    if (fIdx >= 0) acFiltered[fIdx].marketingOptIn = !!reEnable;
+    // Update just the toggle section in place — a full re-render would lose the
+    // already-fetched waivers/forms/referrals sections (we didn't pass them here).
+    const section = document.getElementById('cp-optout-section');
+    if (section) {
+      const optedOut = !reEnable;
+      section.style.background = optedOut ? '#fdf0ec' : '#f7f4ee';
+      section.style.borderColor = optedOut ? '#e8b4a8' : 'var(--border)';
+      section.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:.78rem;font-weight:500;color:${optedOut ? '#9b3a2a' : 'var(--ink)'};">${optedOut ? '🔕 Not receiving follow-up messages' : '🔔 Receiving follow-up messages'}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">${optedOut ? 'This client will not appear in any Follow-Up list until re-enabled.' : 'If they ask to stop being contacted, turn this off.'}</div>
+      </div>
+      <button id="cp-optout-btn" onclick="acToggleMarketingOptIn('${phone}', ${optedOut})" style="font-size:.72rem;white-space:nowrap;cursor:pointer;border:1.5px solid ${optedOut ? 'var(--teal)' : '#e8b4a8'};border-radius:6px;padding:7px 14px;background:#fff;color:${optedOut ? 'var(--teal)' : '#9b3a2a'};font-family:'Jost',sans-serif;">
+        ${optedOut ? '✓ Re-enable' : '✕ Stop contacting'}
+      </button>
+    </div>`;
+    }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = reEnable ? '✓ Re-enable' : '✕ Stop contacting'; }
+    alert('Could not save — please try again.');
   }
 }
 
@@ -3959,6 +4016,45 @@ async function markContacted(rowId, clientName, phone, category, detail) {
   } catch(e) {
     btn.textContent = '✓ Contacted';
     btn.disabled = false;
+    alert('Could not save. Check connection and try again.');
+  }
+}
+
+// Marks a client as "don't contact anymore" directly from a Follow-Up row — removes
+// them from EVERY Follow-Up category going forward, not just the one they're in now.
+async function fuStopContacting(rowId, clientName, phone) {
+  if (!confirm(`Stop sending follow-up messages to ${clientName}?\n\nThey won't appear in any Follow-Up list anymore. You can re-enable this later from their client profile.`)) return;
+  const row = document.getElementById(rowId);
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'set_marketing_optin', phone: phone, optIn: false })
+    });
+    if (row) {
+      row.style.transition = 'opacity .35s, max-height .4s .3s';
+      row.style.overflow   = 'hidden';
+      row.style.maxHeight  = row.offsetHeight + 'px';
+      setTimeout(() => { row.style.opacity = '0'; row.style.maxHeight = '0'; }, 50);
+      setTimeout(() => {
+        const list = row.parentElement;
+        row.remove();
+        if (list && !list.querySelector('.fu-row')) {
+          list.innerHTML = '<div class="fu-empty">No one to follow up with right now.</div>';
+        }
+        if (list) {
+          const section = list.closest('.fu-section') || list.parentElement;
+          const badge   = section && section.querySelector('.fu-badge');
+          if (badge) {
+            const remaining = list.querySelectorAll('.fu-row').length;
+            const cur = parseInt(badge.textContent) || 0;
+            if (!isNaN(cur) && cur > 0) badge.textContent = Math.max(0, cur - 1);
+          }
+        }
+      }, 750);
+    }
+  } catch(e) {
     alert('Could not save. Check connection and try again.');
   }
 }
