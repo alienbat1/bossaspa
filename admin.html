@@ -581,6 +581,12 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
             <input type="text" id="notes-next" placeholder="e.g. Focus on abdomen, increase pressure slightly…">
           </div>
 
+          <div class="field">
+            <label>Therapist asked client to come back in… (days)</label>
+            <input type="number" id="notes-comeback-days" min="1" step="1" placeholder="e.g. 7 — leave blank if not applicable" style="max-width:160px;">
+            <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">If set, this client shows up in Follow-Up → "Therapist Notes — Follow-Up Due" once that many days pass without a new visit.</div>
+          </div>
+
           <!-- Quick tag buttons -->
           <div style="margin-bottom:14px;">
             <div style="font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Quick tags</div>
@@ -626,6 +632,38 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       </div>
 
       <div class="status" id="fu-status" hidden></div>
+
+      <!-- SECTION -1: Birthdays this month (moved to top) -->
+      <div class="fu-section" style="margin-bottom:18px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5e8f0,#ede0f5);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-birthday-list')">
+          <span class="fu-icon">🎂</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#6a1e5a;">Birthdays This Month</div>
+            <div class="fu-section-sub" style="color:#8a3570;">Clients with birthdays this month · Send a special message · Suppressed for 30 days after contact</div>
+          </div>
+          <div class="fu-badge" style="background:#8a3570;color:#fff;" id="fu-birthday-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-birthday-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
+
+      <!-- SECTION -0.5: Therapist Notes — Follow-Up Due -->
+      <div class="fu-section" style="margin-bottom:18px;">
+        <div class="fu-section-header" style="background:linear-gradient(135deg,#eef0e0,#e2e6cc);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-tnotes-list')">
+          <span class="fu-icon">📝</span>
+          <div class="fu-header-text">
+            <div class="fu-section-title" style="color:#4a5a1e;">Therapist Notes — Follow-Up Due</div>
+            <div class="fu-section-sub" style="color:#6a7535;">Therapist asked them to come back by now, and they haven't · Up to 25 per day</div>
+          </div>
+          <div class="fu-badge" style="background:#6a7535;color:#fff;" id="fu-tnotes-count">—</div>
+          <span class="fu-collapse-arrow">▾</span>
+        </div>
+        <div id="fu-tnotes-list" class="fu-list">
+          <div class="fu-empty">Loading…</div>
+        </div>
+      </div>
 
       <!-- SECTION 0: Wax Club expiring -->
       <div class="fu-section" style="margin-bottom:18px;">
@@ -719,21 +757,6 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
           <span class="fu-collapse-arrow">▾</span>
         </div>
         <div id="fu-inactive-list" class="fu-list">
-          <div class="fu-empty">Loading…</div>
-        </div>
-      </div>
-
-      <div class="fu-section" style="margin-top:18px;margin-bottom:32px;">
-        <div class="fu-section-header" style="background:linear-gradient(135deg,#f5e8f0,#ede0f5);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-birthday-list')">
-          <span class="fu-icon">🎂</span>
-          <div class="fu-header-text">
-            <div class="fu-section-title" style="color:#6a1e5a;">Birthdays This Month</div>
-            <div class="fu-section-sub" style="color:#8a3570;">Clients with birthdays this month · Send a special message · Suppressed for 30 days after contact</div>
-          </div>
-          <div class="fu-badge" style="background:#8a3570;color:#fff;" id="fu-birthday-count">—</div>
-          <span class="fu-collapse-arrow">▾</span>
-        </div>
-        <div id="fu-birthday-list" class="fu-list">
           <div class="fu-empty">Loading…</div>
         </div>
       </div>
@@ -1493,6 +1516,7 @@ function notesClearClient() {
   document.getElementById('notes-text').value = '';
   document.getElementById('notes-service').value = '';
   document.getElementById('notes-next').value = '';
+  document.getElementById('notes-comeback-days').value = '';
   document.querySelectorAll('.note-tag').forEach(t => t.classList.remove('selected'));
   notesClearStatus();
 }
@@ -1522,6 +1546,7 @@ async function saveNote() {
   const service = document.getElementById('notes-service').value.trim();
   const noteText = document.getElementById('notes-text').value.trim();
   const next = document.getElementById('notes-next').value.trim();
+  const comeBackDays = document.getElementById('notes-comeback-days').value.trim();
   const errEl = document.getElementById('notes-err');
 
   if (!date || !noteText) {
@@ -1551,6 +1576,7 @@ async function saveNote() {
         service: service,
         notes: fullNote,
         nextRecommendation: next,
+        comeBackDays: comeBackDays,
         visitDate: date,
         date: date,
         timestamp: new Date().toISOString()
@@ -1568,6 +1594,7 @@ async function saveNote() {
     document.getElementById('notes-text').value = '';
     document.getElementById('notes-service').value = '';
     document.getElementById('notes-next').value = '';
+    document.getElementById('notes-comeback-days').value = '';
     document.getElementById('notes-date').value = new Date().toISOString().slice(0,10);
     selectedTags.clear();
     document.querySelectorAll('.note-tag').forEach(t => t.classList.remove('selected'));
@@ -1601,10 +1628,10 @@ async function loadFollowUp() {
   statusEl.setAttribute('hidden','');
 
   // Set loading state in all lists
-  ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
+  ['fu-birthday-list','fu-tnotes-list','fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="fu-empty">Loading…</div>';
   });
-  ['fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-pkggap-count','fu-warm-count','fu-inactive-count','fu-birthday-count'].forEach(id => {
+  ['fu-birthday-count','fu-tnotes-count','fu-waxclub-count','fu-recent-count','fu-pkg-count','fu-pkggap-count','fu-warm-count','fu-inactive-count'].forEach(id => {
     document.getElementById(id).textContent = '…';
   });
 
@@ -1779,13 +1806,30 @@ async function loadFollowUp() {
       }).join('');
     }
 
+    // — SECTION -0.5: Therapist Notes — Follow-Up Due —
+    const tnotesDue = data.therapistNotesDue || [];
+    document.getElementById('fu-tnotes-count').textContent = tnotesDue.length + (data.therapistNotesDueTotal > tnotesDue.length ? '+' : '');
+    const tnotesListEl = document.getElementById('fu-tnotes-list');
+    if (!tnotesDue.length) {
+      tnotesListEl.innerHTML = '<div class="fu-empty">No therapist follow-ups due. ✅</div>';
+    } else {
+      tnotesListEl.innerHTML = tnotesDue.map((c, i) => {
+        const phone = normalizePhone(c.phone || '');
+        c.therapistNote = c.note || '';
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}Was due back by <strong style="color:#4a5a1e;">${escHtml(c.dueDate||'')}</strong>`;
+        const tag = `<span class="fu-tag" style="background:#eef0d0;color:#4a5a1e;">${c.daysOverdue||0}d overdue</span>`;
+        return fuRow(c, i, 'tnotes', tag, 'therapist_note', c.dueDate||'');
+      }).join('') + (data.therapistNotesDueTotal > tnotesDue.length
+        ? `<div class="fu-empty" style="color:#6a7535;font-style:normal;">+${data.therapistNotesDueTotal - tnotesDue.length} more · shown tomorrow</div>` : '');
+    }
+
   } catch(e) {
     hideSpinner();
     const statusEl = document.getElementById('fu-status');
     statusEl.textContent = 'Could not load follow-up data. Check your connection and try again.';
     statusEl.className = 'status err';
     statusEl.removeAttribute('hidden');
-    ['fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list','fu-birthday-list'].forEach(id => {
+    ['fu-birthday-list','fu-tnotes-list','fu-waxclub-list','fu-recent-list','fu-pkg-list','fu-pkggap-list','fu-warm-list','fu-inactive-list'].forEach(id => {
       document.getElementById(id).innerHTML = '<div class="fu-empty">—</div>';
     });
   }
@@ -2539,10 +2583,11 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
   // clientId as a fallback match for clients whose phone ended up blank on the row.
   const clientIdQ = (c && c.clientId) ? `&clientId=${encodeURIComponent(c.clientId)}` : '';
   const base = WEBAPP_URL;
-  const [svcRes, healthRes, waiverRes] = await Promise.all([
+  const [svcRes, healthRes, waiverRes, pkgSessionRes] = await Promise.all([
     fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}${category ? '&category=' + encodeURIComponent(category) : ''}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
     fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
     fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
+    fetch(`${base}?action=get_pkg_session_for_visit&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ found:false })),
   ]);
 
   const qa       = svcRes.answers  || [];
@@ -2551,20 +2596,15 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
   const health   = (healthRes.forms || [])[0] || null;
   const waivers  = waiverRes.waivers || [];
 
-  // Find waiver matching this visit date (or most recent with signature)
+  // Only a waiver signed at THIS exact visit date counts — a waiver signed at an earlier
+  // or later visit never appears here (it already doesn't show for the client to re-sign,
+  // so it shouldn't show on this visit's printout either).
   let waiverRecord = null;
   let waiverSigUrl = null;
-  if (waivers.length) {
-    // 1) Exact date match with signature
-    // 2) Any date match (no sig requirement)
-    // 3) Any waiver with signature
-    // 4) First waiver (last resort)
-    waiverRecord = waivers.find(w => w.date === date && w.hasSig)
-                || waivers.find(w => w.date === date)
-                || waivers.find(w => w.hasSig)
-                || waivers[0];
-    // Try to fetch signature: if selected record has none, iterate all with hasSig
-    const waiverCandidates = waiverRecord ? [waiverRecord, ...waivers.filter(w => w !== waiverRecord && w.hasSig)] : waivers.filter(w => w.hasSig);
+  const waiversOnThisDate = waivers.filter(w => w.date === date);
+  if (waiversOnThisDate.length) {
+    waiverRecord = waiversOnThisDate.find(w => w.hasSig) || waiversOnThisDate[0];
+    const waiverCandidates = [waiverRecord, ...waiversOnThisDate.filter(w => w !== waiverRecord && w.hasSig)];
     for (const cand of waiverCandidates) {
       if (!cand.waiverId) continue;
       try {
@@ -2577,8 +2617,37 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
         }
       } catch(e) { /* keep trying other candidates */ }
     }
-    // If we still don't have a record, fallback
-    if (!waiverRecord) waiverRecord = waivers[0];
+  }
+
+  // Package used at THIS exact visit, if any — current status of that one package only,
+  // plus the signature captured for that specific session. Never other/older packages.
+  let pkgSectionHtml = '';
+  if (pkgSessionRes && pkgSessionRes.found) {
+    const sess = pkgSessionRes.session || {};
+    const pk   = pkgSessionRes.package || null;
+    let pkgSigHtml = '';
+    if (sess.hasSig && sess.sigId) {
+      try {
+        const psRes  = await fetch(`${base}?action=get_pkg_session_sig&sigId=${encodeURIComponent(sess.sigId)}`, { mode:'cors' });
+        const psData = await psRes.json();
+        if (psData.signature && psData.signature.startsWith('data:image')) {
+          pkgSigHtml = `<div class="p-sig-label">Package Session Signature</div><img src="${psData.signature}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`;
+        }
+      } catch(e) { /* no signature available */ }
+    }
+    if (!pkgSigHtml) {
+      pkgSigHtml = `<div class="p-none">No signature saved for this package session.</div>`;
+    }
+    const pkgRows = [
+      `<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml((pk && pk.name) || sess.pkgName || '')}</span></div>`,
+      sess.sessionNum ? `<div class="p-meta-row"><span class="p-meta-key">Session #</span><span class="p-meta-val">${escHtml(String(sess.sessionNum))}${pk && pk.sessionsTotal ? ' of ' + escHtml(pk.sessionsTotal) : ''}</span></div>` : '',
+      pk && pk.sessionsDone !== '' ? `<div class="p-meta-row"><span class="p-meta-key">Sessions Done</span><span class="p-meta-val">${escHtml(pk.sessionsDone)}</span></div>` : '',
+      pk && pk.sessionsLeft !== '' ? `<div class="p-meta-row"><span class="p-meta-key">Sessions Left</span><span class="p-meta-val">${escHtml(pk.sessionsLeft)}</span></div>` : '',
+      pk && pk.purchasedDate ? `<div class="p-meta-row"><span class="p-meta-key">Start Date</span><span class="p-meta-val">${escHtml(pk.purchasedDate)}</span></div>` : '',
+      pk && pk.expiryDate ? `<div class="p-meta-row"><span class="p-meta-key">Expiry Date</span><span class="p-meta-val">${escHtml(pk.expiryDate)}</span></div>` : '',
+      pk && pk.status ? `<div class="p-meta-row"><span class="p-meta-key">Status</span><span class="p-meta-val">${escHtml(pk.status)}</span></div>` : '',
+    ].filter(Boolean).join('');
+    pkgSectionHtml = `<div class="p-section"><div class="p-section-title">Package — This Session</div><div class="p-meta">${pkgRows}</div>${pkgSigHtml}</div>`;
   }
 
   // ── Build client profile block (data that was shown during check-in) ──
@@ -2591,15 +2660,9 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes) {
     if (totalVisits) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Total Visits</span><span class="p-meta-val">${escHtml(String(totalVisits))}</span></div>`);
     const lastVisit = c.lastVisit || c['Last Visit'] || '';
     if (lastVisit)   rows.push(`<div class="p-meta-row"><span class="p-meta-key">Last Visit</span><span class="p-meta-val">${escHtml(String(lastVisit))}</span></div>`);
-    // Packages
-    const pkgs = c._packages || [];
-    pkgs.forEach(pkg => {
-      const pkgName = pkg['Service Name'] || pkg.serviceName || '';
-      const pkgDone = pkg['Sessions Done'] || pkg.sessionsDone || 0;
-      const pkgTotal = pkg['Total Sessions'] || pkg.totalSessions || '';
-      const pkgStatus = pkg.status || '';
-      if (pkgName) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(pkgName)}${pkgTotal ? ` · ${escHtml(String(pkgDone))}/${escHtml(String(pkgTotal))} sessions` : ''}${pkgStatus ? ` · ${escHtml(pkgStatus)}` : ''}</span></div>`);
-    });
+    // Note: package info is NOT shown here — it's shown only in the dedicated
+    // "Package — This Session" section below, and only when this exact visit used a
+    // package, so an old/different package never leaks into this visit's printout.
     if (clientNotes) rows.push(`<div class="p-meta-row"><span class="p-meta-key">Notes</span><span class="p-meta-val">${escHtml(clientNotes)}</span></div>`);
     if (rows.length) {
       clientProfileHtml = `<div class="p-section"><div class="p-section-title">Client Profile</div><div class="p-meta">${rows.join('')}</div></div>`;
@@ -2663,15 +2726,25 @@ By signing below, I confirm that I have read, understood, and agree to all terms
 
   const waiverTextHtml = `<div class="p-waiver-text">${escHtml(_WAIVER_TEXT).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/^/,'<p>').replace(/$/,'</p>')}</div>`;
 
-  let sigHtml;
+  // The waiver section only appears at all when a waiver was actually signed at THIS
+  // exact visit date — a waiver from a different visit never shows here, matching the
+  // check-in flow (it only re-asks for a signature when none is already on file).
+  let waiverSectionHtml = '';
   if (waiverSigUrl) {
-    sigHtml = `<div class="p-sig-label">Client Signature</div><img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`;
-  } else if (!waivers.length) {
-    sigHtml = `<div class="p-none">No waiver record found for this client (phone: ${escHtml(phone)}).</div>`;
-  } else if (!waivers.some(w => w.date === date)) {
-    sigHtml = `<div class="p-none">This client has ${waivers.length} waiver(s) on file, but none signed on ${escHtml(date)} — showing the closest match above, if any. Dates on file: ${escHtml(waivers.map(w=>w.date).join(', '))}.</div>`;
-  } else {
-    sigHtml = `<div class="p-none">A waiver was signed on ${escHtml(date)}, but no signature image was saved with it.</div>`;
+    const sigHtml = `<div class="p-sig-label">Client Signature</div><img src="${waiverSigUrl}" style="max-width:260px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#fff;display:block;margin-top:8px;" />`;
+    waiverSectionHtml = `<div class="p-section">
+  <div class="p-section-title">Informed Consent &amp; Liability Waiver</div>
+  ${waiverInfoHtml}
+  ${waiverTextHtml}
+  ${sigHtml}
+</div>`;
+  } else if (waiverRecord) {
+    // Signed that date but no signature image was saved with it — still worth flagging.
+    waiverSectionHtml = `<div class="p-section">
+  <div class="p-section-title">Informed Consent &amp; Liability Waiver</div>
+  ${waiverInfoHtml}
+  <div class="p-none">A waiver was signed on ${escHtml(date)}, but no signature image was saved with it.</div>
+</div>`;
   }
 
   const html = `<!doctype html><html><head><meta charset=utf8>
@@ -2730,6 +2803,8 @@ By signing below, I confirm that I have read, understood, and agree to all terms
 
 ${clientProfileHtml}
 
+${pkgSectionHtml}
+
 ${svcInfoHtml ? `<div class="p-section"><div class="p-section-title">Service Information</div>${svcInfoHtml}</div>` : ''}
 
 ${qa.length ? `<div class="p-section"><div class="p-section-title">Session Questions</div>${svcFormHtml}</div>` : ''}
@@ -2738,12 +2813,7 @@ ${qa.length ? `<div class="p-section"><div class="p-section-title">Session Quest
 
 <div class="p-section"><div class="p-section-title">Health Form</div>${healthHtml}</div>
 
-<div class="p-section">
-  <div class="p-section-title">Informed Consent &amp; Liability Waiver</div>
-  ${waiverInfoHtml}
-  ${waiverTextHtml}
-  ${sigHtml}
-</div>
+${waiverSectionHtml}
 
 <div style="margin-top:24px;padding-top:12px;border-top:1px solid #d4cbbe;font-size:.68rem;color:#6b7f79;text-align:center;">Bossa Spa · Beverly Hills · ${escHtml(date)}</div>
 <div style="margin-top:16px;text-align:center;"><button onclick="window.print()" style="padding:10px 28px;background:#2C4A43;color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.9rem;cursor:pointer;">🖨️ Print</button></div>
