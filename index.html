@@ -774,6 +774,14 @@ function showScreen(id) {
   if (id === 'svcform') {
     buildSvcForm();
   }
+  if (id === 'health') {
+    // Build the health questions here (not only from the 'service' step validator) —
+    // package clients skip the service-selection screen entirely (service is
+    // auto-picked from the package), so that validator never runs for them and the
+    // Health Check screen was showing up blank with nothing to fill in.
+    buildHealthForm();
+    updateHealthStep();
+  }
   if (id === 'waiver') {
     setTimeout(resizeCanvas, 50);
   }
@@ -794,6 +802,64 @@ function getClientPhone() {
     : document.getElementById('inp-phone').value.trim();
   if (liveVal) confirmedPhone = liveVal;
   return liveVal;
+}
+
+// True when a returning client already has real answers on file for every health
+// question — meaning the Health Check screen can be skipped entirely instead of
+// just offering a "confirm unchanged" tap.
+function hasUsableHealthOnFile() {
+  return !isNewClient && !!lastHealth &&
+    HEALTH_QUESTIONS.some(item => lastHealth[item.q] && lastHealth[item.q].trim() !== '');
+}
+
+// Saves health_form (marked "unchanged", reusing lastHealth) + the visit, using
+// whatever service/package was already selected — used both when the client taps
+// "confirm unchanged" on the Health Check screen, and when that screen is skipped
+// outright for a returning client who already has usable health data on file.
+async function saveHealthUnchangedAndContinue() {
+  showSpinner();
+  const name = getClientName();
+  const phone = getClientPhone();
+  const today = new Date().toLocaleDateString('en-US');
+  const calls = [
+    sendToSheets('health_form', {
+      clientName: name, clientPhone: phone, clientId: confirmedClientId,
+      service: selectedService.name, duration: selectedDuration,
+      date: today, healthConfirmedUnchanged: true, ...lastHealth,
+      svcForm: svcFormAnswers
+    }),
+    sendToSheets('visit', {
+      clientName: name, clientPhone: phone, clientId: confirmedClientId,
+      serviceName: selectedService.name, duration: selectedDuration,
+      serviceCategory: selectedService.cat, isNew: false,
+      date: today, svcForm: svcFormAnswers
+    })
+  ];
+  if (usePackageToday && activePackage) {
+    calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
+    const sig = getPkgSignature();
+    if (sig) {
+      const sessionNum = (activePackage.sessionsDone || 0) + 1;
+      calls.push(sendToSheets('pkg_session_sig', {
+        phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
+        pkgName: activePackage.name, sessionNum, date: today, signature: sig
+      }));
+    }
+  }
+  const _results1 = await Promise.all(calls);
+  hideSpinner();
+  reportSaveErrors(_results1);
+  if (!isNewClient) {
+    const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
+    _printData = { name: _name2, phone: _phone2, date: _today2,
+      email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
+      dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
+      service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
+      serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
+      health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
+      sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
+    populateThanks();
+  }
 }
 
 async function nextScreen() {
@@ -959,54 +1025,10 @@ async function nextScreen() {
 
   if (current === 'health') {
     // Returning client who confirmed no changes — use lastHealth data
-    const hasRealHealthData = lastHealth && !isNewClient &&
-      HEALTH_QUESTIONS.some(item => lastHealth[item.q] && lastHealth[item.q].trim() !== '');
+    const hasRealHealthData = hasUsableHealthOnFile();
     if (healthConfirmed && hasRealHealthData) {
       hideErr('health-err');
-      showSpinner();
-      const name = getClientName();
-      const phone = getClientPhone();
-      const today = new Date().toLocaleDateString('en-US');
-      // Fire health_form + visit in parallel for speed
-      const calls = [
-        sendToSheets('health_form', {
-          clientName: name, clientPhone: phone, clientId: confirmedClientId,
-          service: selectedService.name, duration: selectedDuration,
-          date: today, healthConfirmedUnchanged: true, ...lastHealth,
-          svcForm: svcFormAnswers
-        }),
-        sendToSheets('visit', {
-          clientName: name, clientPhone: phone, clientId: confirmedClientId,
-          serviceName: selectedService.name, duration: selectedDuration,
-          serviceCategory: selectedService.cat, isNew: false,
-          date: today, svcForm: svcFormAnswers
-        })
-      ];
-      if (usePackageToday && activePackage) {
-        calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
-        const sig = getPkgSignature();
-        if (sig) {
-          const sessionNum = (activePackage.sessionsDone || 0) + 1;
-          calls.push(sendToSheets('pkg_session_sig', {
-            phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
-            pkgName: activePackage.name, sessionNum, date: today, signature: sig
-          }));
-        }
-      }
-      const _results1 = await Promise.all(calls);
-      hideSpinner();
-      reportSaveErrors(_results1);
-      if (!isNewClient) {
-        const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
-        _printData = { name: _name2, phone: _phone2, date: _today2,
-          email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
-          dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
-          service: selectedService ? selectedService.name : '', duration: selectedDuration || '',
-          serviceInfo: selectedService ? (SERVICE_INFO[selectedService.name] || null) : null,
-          health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
-          sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
-        populateThanks();
-      }
+      await saveHealthUnchangedAndContinue();
     } else {
       // New client or returning client who updated answers — validate all answered
       const groups = document.querySelectorAll('#healthForm .health-q');
@@ -1087,6 +1109,14 @@ async function nextScreen() {
   }
 
   currentStep++;
+  // Auto-skip the Health Check screen for a returning client who already has usable
+  // health data on file — saves it as "unchanged" automatically instead of showing
+  // the screen. (The waiver screen doesn't need this: buildScreenFlow() already
+  // leaves it out of screenFlow entirely for clients who already have one on file.)
+  while (currentStep < screenFlow.length && screenFlow[currentStep] === 'health' && hasUsableHealthOnFile()) {
+    await saveHealthUnchangedAndContinue();
+    currentStep++;
+  }
   if (currentStep >= screenFlow.length) return;
   showScreen(screenFlow[currentStep]);
   updateStepBar();
