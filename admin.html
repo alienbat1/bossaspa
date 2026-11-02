@@ -3244,11 +3244,16 @@ async function acTogglePkgSessions(pkgId, btn, sessionsDone, clientPhone) {
 }
 
 function acRenderPkgSessionRows(el, sessions, pkgId) {
+  // Stashed so "Edit All" can rebuild the form without a re-fetch.
+  el.dataset.sessionsJson = JSON.stringify(sessions || []);
   if (!sessions.length) {
     el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No sessions recorded yet.</span>';
     return;
   }
-  let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Session Log</div>`;
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Session Log</div>
+    <button onclick="acEditAllPkgSessions('${escHtml(pkgId)}')" style="font-size:.68rem;color:var(--teal);border:1px solid var(--teal);border-radius:4px;padding:2px 8px;background:none;cursor:pointer;font-family:'Jost',sans-serif;">✏️ Edit All</button>
+  </div>`;
   sessions.forEach(s => {
     const sNum  = s.sessionNum || '?';
     const sDate = escHtml(s.date || '');
@@ -3277,6 +3282,124 @@ function acRenderPkgSessionRows(el, sessions, pkgId) {
     </div>`;
   });
   el.innerHTML = html;
+}
+
+// ── Edit All Sessions: fill in date + service(s) for every session in this
+//    package's log in one screen, then save them all with one click — instead
+//    of opening ✏️ on each session one at a time. ──
+function acEditAllPkgSessions(pkgId) {
+  const el = document.getElementById('pkg-sessions-' + pkgId);
+  if (!el) return;
+  let sessions = [];
+  try { sessions = JSON.parse(el.dataset.sessionsJson || '[]'); } catch(e) {}
+  if (!sessions.length) return;
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
+
+  let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Edit All Sessions</div>`;
+  sessions.forEach(s => {
+    const sNum  = s.sessionNum || '?';
+    const sigId = escHtml(s.sigId || '');
+    const rowId = `pkgsess-all-${pkgId}-${sNum}`;
+    let isoDate = '';
+    if (s.date) {
+      const d = new Date(s.date);
+      if (!isNaN(d)) isoDate = d.toISOString().slice(0,10);
+    }
+    html += `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;" data-sigid="${sigId}" data-sessionnum="${escHtml(sNum)}">
+      <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:6px;">Session #${sNum}${s.noShow ? ' <span style="color:#c0392b;font-weight:600;">(No-Show)</span>' : ''}</div>
+      <input type="date" id="${rowId}-dateinp" value="${isoDate}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;margin-bottom:6px;width:fit-content;">
+      <div id="${rowId}-svc-list">
+        <div class="pkgsess-svc-row" style="display:flex;gap:6px;margin-bottom:4px;">
+          <select class="pkgsess-svc-select" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;outline:none;">
+            <option value="">— no visit record (date only) —</option>
+            ${serviceOpts}
+          </select>
+        </div>
+      </div>
+      <button type="button" onclick="acPkgSessAddServiceRow('${rowId}')" style="font-size:.7rem;color:var(--teal);background:none;border:1px dashed var(--teal);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add another service</button>
+    </div>`;
+  });
+  html += `<div style="display:flex;gap:8px;margin-top:4px;">
+    <button onclick="acSaveAllPkgSessions('${escHtml(pkgId)}')" style="flex:1;padding:9px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.84rem;cursor:pointer;">💾 Save All</button>
+    <button onclick="acTogglePkgSessionsCollapseThenReopen('${escHtml(pkgId)}')" style="padding:9px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.8rem;color:var(--muted);cursor:pointer;">Cancel</button>
+  </div>`;
+  el.innerHTML = html;
+}
+
+// Cancel from Edit All — just re-renders the normal (non-edit) session list from
+// the data we already have, no re-fetch needed.
+function acTogglePkgSessionsCollapseThenReopen(pkgId) {
+  const el = document.getElementById('pkg-sessions-' + pkgId);
+  if (!el) return;
+  let sessions = [];
+  try { sessions = JSON.parse(el.dataset.sessionsJson || '[]'); } catch(e) {}
+  acRenderPkgSessionRows(el, sessions, pkgId);
+}
+
+async function acSaveAllPkgSessions(pkgId) {
+  const el = document.getElementById('pkg-sessions-' + pkgId);
+  if (!el) return;
+  const c = acProfileClient;
+  const pkgs = c ? (c._packages || []) : [];
+  const pkg  = pkgs.find(p => (p.packageId || p['Package ID'] || '') === pkgId) || {};
+  const pkgName = pkg.packageName || pkg['Package Name'] || '';
+  const rows = Array.from(el.querySelectorAll('[data-sigid]'));
+  if (!rows.length) return;
+
+  el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Saving all sessions…</span>';
+  let anyVisitsCreated = false;
+  try {
+    for (const rowEl of rows) {
+      const sigId  = rowEl.dataset.sigid || '';
+      const sNum   = rowEl.dataset.sessionnum || '';
+      const rowId  = `pkgsess-all-${pkgId}-${sNum}`;
+      const dateInp = document.getElementById(rowId + '-dateinp');
+      if (!dateInp || !dateInp.value) continue; // skip rows with no date set
+      const dateVal = new Date(dateInp.value + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+      const svcSelects = Array.from(rowEl.querySelectorAll(`#${rowId}-svc-list .pkgsess-svc-select`));
+      const services = svcSelects.map(s => s.value).filter(Boolean);
+
+      if (sigId) {
+        await fetch(WEBAPP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ type: 'edit_pkg_session', sigId, date: dateVal })
+        });
+      } else {
+        await fetch(WEBAPP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            type: 'pkg_session_sig',
+            pkgId, phone: c.phone || '', clientName: c.name || '',
+            pkgName, sessionNum: sNum, date: dateVal, signature: ''
+          })
+        });
+      }
+
+      for (const svc of services) {
+        anyVisitsCreated = true;
+        await fetch(WEBAPP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            type: 'add_visit_manual',
+            clientName: c.name, clientPhone: c.phone || '', clientId: c.clientId || '',
+            date: dateVal, service: svc, therapist: '', notes: 'Package session #' + sNum, next: ''
+            // isPackageSession intentionally omitted — no package decrement here
+          })
+        });
+      }
+    }
+    // One refresh at the end covers both the session log and (if any) the new visits
+    if (c) await acOpenProfile(c);
+    else {
+      el.dataset.loaded = '';
+      el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Saved. Reopen to refresh.</span>';
+    }
+  } catch(e) {
+    el.innerHTML = '<span style="color:#c0392b;font-size:.78rem;">Error saving some sessions — reopen and check which ones still need it.</span>';
+  }
 }
 
 async function acFetchAndShowPkgSig(sigId, sessionNum, date, btn) {
@@ -3641,6 +3764,49 @@ const AC_SERVICES = [
   'Other'
 ];
 const AC_THERAPISTS = ['Maria Marin','Bruna Oliveira','Oksana Feldshtein','Other'];
+
+// ── Admin-only package-combo shortcuts ──────────────────────────────────────
+// These are ONLY used here in the admin's service pickers (Add Visit, Session Log).
+// They never touch checkin_final.html's client-facing service list — check-in has
+// its own completely separate SERVICES object, so clients never see these names.
+// Picking a combo fills in the real, individually-tracked services at once
+// (e.g. "Brazilian Body Shape" + "Facial Lymphatic") instead of making you add
+// each service row by hand every time for a package that always has the same mix.
+const AC_PACKAGE_COMBOS = [
+  { label: 'Body Shape + Facial Lymphatic', services: ['Brazilian Body Shape', 'Facial Lymphatic'] },
+  { label: 'Body Shape + Facial Lymphatic + Sauna', services: ['Brazilian Body Shape', 'Facial Lymphatic', 'Sauna Infrared + Cromotherapy'] },
+  { label: 'Lymphatic + Cavitation', services: ['Lymphatic + Cavitation'] },
+  { label: 'Lymphatic + Sauna', services: ['Lymphatic Drainage', 'Sauna Infrared + Cromotherapy'] }
+];
+
+// Renders one <select> row's HTML — shared by the manual "+ Add another service"
+// buttons and the combo-chip shortcuts below, so both produce identical rows.
+function acSvcSelectRowHtml(selectClass, selected, includeBlank) {
+  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}"${s===selected?' selected':''}>${escHtml(s)}</option>`).join('');
+  return `<div class="${selectClass}-row" style="display:flex;gap:6px;margin-bottom:4px;">
+    <select class="${selectClass}" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;outline:none;">
+      ${includeBlank ? '<option value="">— no visit record (date only) —</option>' : ''}
+      ${serviceOpts}
+    </select>
+    <button type="button" onclick="this.parentElement.remove()" style="padding:0 8px;background:none;border:1.5px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Jost',sans-serif;">✕</button>`
+    + `</div>`;
+}
+
+// The row of "📦 Combo" quick-pick buttons shown above a service-list container.
+function acComboChipsHtml(containerId, selectClass, includeBlank) {
+  const chips = AC_PACKAGE_COMBOS.map(c =>
+    `<button type="button" onclick="acApplyCombo('${containerId}','${selectClass}',${JSON.stringify(c.services).replace(/"/g,'&quot;')},${includeBlank})" style="font-size:.68rem;color:#7a5c1e;background:#fff8ed;border:1px solid var(--gold);border-radius:12px;padding:3px 10px;cursor:pointer;font-family:'Jost',sans-serif;">📦 ${escHtml(c.label)}</button>`
+  ).join('');
+  return `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">${chips}</div>`;
+}
+
+// Clicking a combo chip replaces whatever rows are in the container with one
+// pre-selected row per service in that combo.
+function acApplyCombo(containerId, selectClass, services, includeBlank) {
+  const list = document.getElementById(containerId);
+  if (!list) return;
+  list.innerHTML = services.map(svc => acSvcSelectRowHtml(selectClass, svc, includeBlank)).join('');
+}
 
 function acShowAddVisit(prefillPkgId) {
   const today = new Date().toISOString().slice(0,10);
