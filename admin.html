@@ -955,6 +955,25 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 <script>
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+// ── SHARED_KEY lock: must match Code.gs's SHARED_KEY exactly. Without this, anyone who
+// found the WEBAPP_URL above (visible to anyone who views this page's source — it has
+// to be, since the browser needs it) could read or write every client's data with no
+// login at all. This wraps every fetch() call to WEBAPP_URL below and silently adds
+// ?key=... to it, so none of the ~60 individual fetch() call sites in this file had to
+// be changed by hand. If you ever change this value, change Code.gs's SHARED_KEY to the
+// exact same string too, and checkin_final.html's API_KEY as well.
+const API_KEY = 'Z9JgJcC7ynSLLv0RCLhzwizb7QyynkRQ';
+(function(){
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    if (typeof url === 'string' && url.indexOf(WEBAPP_URL) === 0) {
+      const sep = url.indexOf('?') >= 0 ? '&' : '?';
+      url = url + sep + 'key=' + encodeURIComponent(API_KEY);
+    }
+    return _origFetch(url, opts);
+  };
+})();
+
 let selectedClient = null; // { rowIndex, name, email, notes, ... }
 let allResults = []; // keep full result set for merge detection
 
@@ -3288,42 +3307,46 @@ function acRenderPkgSessionRows(el, sessions, pkgId) {
 //    package's log in one screen, then save them all with one click — instead
 //    of opening ✏️ on each session one at a time. ──
 function acEditAllPkgSessions(pkgId) {
-  const el = document.getElementById('pkg-sessions-' + pkgId);
-  if (!el) return;
-  let sessions = [];
-  try { sessions = JSON.parse(el.dataset.sessionsJson || '[]'); } catch(e) {}
-  if (!sessions.length) return;
-  const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
+  try {
+    const el = document.getElementById('pkg-sessions-' + pkgId);
+    if (!el) { alert('Edit All: could not find the sessions panel (pkgId=' + pkgId + ').'); return; }
+    let sessions = [];
+    try { sessions = JSON.parse(el.dataset.sessionsJson || '[]'); } catch(e) {}
+    if (!sessions.length) { alert('Edit All: no sessions loaded yet. Close and reopen "Sessions & Signatures" first, then try Edit All again.'); return; }
+    const serviceOpts = AC_SERVICES.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
 
-  let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Edit All Sessions</div>`;
-  sessions.forEach(s => {
-    const sNum  = s.sessionNum || '?';
-    const sigId = escHtml(s.sigId || '');
-    const rowId = `pkgsess-all-${pkgId}-${sNum}`;
-    let isoDate = '';
-    if (s.date) {
-      const d = new Date(s.date);
-      if (!isNaN(d)) isoDate = d.toISOString().slice(0,10);
-    }
-    html += `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;" data-sigid="${sigId}" data-sessionnum="${escHtml(sNum)}">
-      <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:6px;">Session #${sNum}${s.noShow ? ' <span style="color:#c0392b;font-weight:600;">(No-Show)</span>' : ''}</div>
-      <input type="date" id="${rowId}-dateinp" value="${isoDate}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;margin-bottom:6px;width:fit-content;">
-      <div id="${rowId}-svc-list">
-        <div class="pkgsess-svc-row" style="display:flex;gap:6px;margin-bottom:4px;">
-          <select class="pkgsess-svc-select" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;outline:none;">
-            <option value="">— no visit record (date only) —</option>
-            ${serviceOpts}
-          </select>
+    let html = `<div style="font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Edit All Sessions</div>`;
+    sessions.forEach(s => {
+      const sNum  = s.sessionNum || '?';
+      const sigId = escHtml(s.sigId || '');
+      const rowId = `pkgsess-all-${pkgId}-${sNum}`;
+      let isoDate = '';
+      if (s.date) {
+        const d = new Date(s.date);
+        if (!isNaN(d)) isoDate = d.toISOString().slice(0,10);
+      }
+      html += `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;" data-sigid="${sigId}" data-sessionnum="${escHtml(sNum)}">
+        <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:6px;">Session #${sNum}${s.noShow ? ' <span style="color:#c0392b;font-weight:600;">(No-Show)</span>' : ''}</div>
+        <input type="date" id="${rowId}-dateinp" value="${isoDate}" style="padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Jost',sans-serif;font-size:.8rem;outline:none;margin-bottom:6px;width:fit-content;">
+        <div id="${rowId}-svc-list">
+          <div class="pkgsess-svc-row" style="display:flex;gap:6px;margin-bottom:4px;">
+            <select class="pkgsess-svc-select" style="flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-family:'Jost',sans-serif;font-size:.78rem;outline:none;">
+              <option value="">— no visit record (date only) —</option>
+              ${serviceOpts}
+            </select>
+          </div>
         </div>
-      </div>
-      <button type="button" onclick="acPkgSessAddServiceRow('${rowId}')" style="font-size:.7rem;color:var(--teal);background:none;border:1px dashed var(--teal);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add another service</button>
+        <button type="button" onclick="acPkgSessAddServiceRow('${rowId}')" style="font-size:.7rem;color:var(--teal);background:none;border:1px dashed var(--teal);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:'Jost',sans-serif;">+ Add another service</button>
+      </div>`;
+    });
+    html += `<div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="acSaveAllPkgSessions('${escHtml(pkgId)}')" style="flex:1;padding:9px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.84rem;cursor:pointer;">💾 Save All</button>
+      <button onclick="acTogglePkgSessionsCollapseThenReopen('${escHtml(pkgId)}')" style="padding:9px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.8rem;color:var(--muted);cursor:pointer;">Cancel</button>
     </div>`;
-  });
-  html += `<div style="display:flex;gap:8px;margin-top:4px;">
-    <button onclick="acSaveAllPkgSessions('${escHtml(pkgId)}')" style="flex:1;padding:9px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.84rem;cursor:pointer;">💾 Save All</button>
-    <button onclick="acTogglePkgSessionsCollapseThenReopen('${escHtml(pkgId)}')" style="padding:9px 14px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.8rem;color:var(--muted);cursor:pointer;">Cancel</button>
-  </div>`;
-  el.innerHTML = html;
+    el.innerHTML = html;
+  } catch(err) {
+    alert('Edit All error: ' + err.message);
+  }
 }
 
 // Cancel from Edit All — just re-renders the normal (non-edit) session list from
@@ -3344,7 +3367,7 @@ async function acSaveAllPkgSessions(pkgId) {
   const pkg  = pkgs.find(p => (p.packageId || p['Package ID'] || '') === pkgId) || {};
   const pkgName = pkg.packageName || pkg['Package Name'] || '';
   const rows = Array.from(el.querySelectorAll('[data-sigid]'));
-  if (!rows.length) return;
+  if (!rows.length) { alert('Save All: no session rows found to save.'); return; }
 
   el.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">Saving all sessions…</span>';
   let anyVisitsCreated = false;
@@ -3399,6 +3422,7 @@ async function acSaveAllPkgSessions(pkgId) {
     }
   } catch(e) {
     el.innerHTML = '<span style="color:#c0392b;font-size:.78rem;">Error saving some sessions — reopen and check which ones still need it.</span>';
+    alert('Save All error: ' + e.message);
   }
 }
 
