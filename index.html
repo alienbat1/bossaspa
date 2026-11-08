@@ -518,6 +518,24 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 // ── CONFIG ──
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx3XZ9EaWoyWc1psuV8IfBtsmhnrtRJoGSkJuK6IbygRI5p_zrqV9EXnekJrsKI7FknMw/exec';
 
+// ── SHARED_KEY lock: must match Code.gs's SHARED_KEY exactly. Without this, anyone who
+// found the WEBAPP_URL above (visible to anyone who views this page's source — it has
+// to be, since the browser needs it) could read or write every client's data with no
+// login at all. This wraps every fetch() call to WEBAPP_URL below and silently adds
+// ?key=... to it, so no individual call site in this file had to be changed by hand.
+// If you ever change this value, change Code.gs's SHARED_KEY to the exact same string too.
+const API_KEY = 'Z9JgJcC7ynSLLv0RCLhzwizb7QyynkRQ';
+(function(){
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    if (typeof url === 'string' && url.indexOf(WEBAPP_URL) === 0) {
+      const sep = url.indexOf('?') >= 0 ? '&' : '?';
+      url = url + sep + 'key=' + encodeURIComponent(API_KEY);
+    }
+    return _origFetch(url, opts);
+  };
+})();
+
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
@@ -3021,7 +3039,16 @@ document.getElementById('discount-none').classList.add('selected');
 showScreen('welcome');
 
 /* ── Print check-in sheet ── */
-function buildCheckinHtml(d) {
+function buildCheckinHtml(d, opts) {
+  // opts.sigAsCid: true when this HTML is going into an EMAIL. Gmail (and most mail
+  // clients) silently strip <img src="data:..."> for security — a base64 signature
+  // embedded that way just shows as a blank/broken box once the email is delivered,
+  // even though it displays fine on-screen here in the app (print uses the data: URI
+  // directly, which is fine since that's rendered locally, not by a mail client).
+  // For email, the signature is instead sent as a real inline attachment and referenced
+  // here as cid:waiver_signature_img — see sendCheckinEmail() and Code.gs's
+  // send_email_html handler, which builds the attachment from d.sigImage.
+  const sigAsCid = !!(opts && opts.sigAsCid);
   // ── CLIENT PROFILE block ──
   const profileRows = [
     d.phone ? `<div class="p-meta-row"><span class="p-meta-key">Phone</span><span class="p-meta-val">${escHtml(d.phone)}</span></div>` : '',
@@ -3082,8 +3109,14 @@ function buildCheckinHtml(d) {
   }).join('');
 
   // ── WAIVER ──
+  // The waiver section — legal text + signature image — only appears on the visit's
+  // form/email when the client actually signed it ON THAT VISIT (d.sigImage present).
+  // If no waiver was signed that day (returning client, already on file from an
+  // earlier visit), this visit's form shows NOTHING about the waiver at all — not the
+  // legal text, not a placeholder note. Only the visit where the signature actually
+  // happened shows the waiver section.
   const waiverDate = d.date || '';
-  const waiverText = `
+  const waiverText = d.sigImage ? `
 <div class="p-section">
   <div class="p-section-title">I N F O R M E D &nbsp; C O N S E N T &nbsp; &amp; &nbsp; L I A B I L I T Y &nbsp; W A I V E R</div>
   <div class="p-meta" style="margin-bottom:12px;">
@@ -3111,12 +3144,9 @@ function buildCheckinHtml(d) {
   </div>
   <div style="margin-top:10px;">
     <div class="p-q" style="margin-bottom:6px;">WAIVER SIGNATURE</div>
-    ${d.sigImage
-      ? `<img src="${d.sigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />`
-      : `<div style="font-size:.8rem;color:#6b7f79;font-style:italic;">Waiver previously signed — on file</div>`
-    }
+    <img src="${sigAsCid ? 'cid:waiver_signature_img' : d.sigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />
   </div>
-</div>`;
+</div>` : '';
 
   // Package row
   const pkgHtml = d.pkg
@@ -3246,12 +3276,15 @@ function emailModalSend() {
 async function sendCheckinEmail(toEmail, d) {
   showSpinner('Sending email…');
   try {
-    const html = buildCheckinHtml(d);
+    const html = buildCheckinHtml(d, { sigAsCid: true });
     const body = {
       type: 'send_email_html',
       toEmail,
       subject: 'Bossa Spa — Check-In · ' + (d.name || ''),
-      htmlBody: html
+      htmlBody: html,
+      // Sent separately (not as a data: URI inside htmlBody) so Code.gs can attach it
+      // as a real inline image — Gmail strips data: URI images from received mail.
+      sigImageData: d.sigImage || ''
     };
     const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
     // mode:'cors' (not 'no-cors') so we can actually read whether the send
