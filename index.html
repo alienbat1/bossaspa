@@ -2266,6 +2266,22 @@ function matchServiceFromPackage(pkgName) {
   if (!pkgName) return null;
   const p = pkgName.toLowerCase();
 
+  // 0. Known combo overrides — checked FIRST, before the generic substring
+  //    match below, so a package that covers two services at once isn't
+  //    mistakenly matched to just one of them because its name happens to
+  //    contain that one service's name as a literal substring.
+  if (/lymphatic\s*\+\s*cav|cavitation/i.test(pkgName)) {
+    // e.g. "Lymphatic + Cavitation" → that exact combo service
+    const exact = SERVICES.find(s => s.id === 'lymphatic-cav');
+    if (exact) return exact;
+  }
+  if (/facial/i.test(pkgName) && /body/i.test(pkgName) && /lymphatic/i.test(pkgName)) {
+    // e.g. "Facial Lymphatic + Body Lymphatic" (any word order) → the single
+    // combined session that covers both face and body in one visit
+    const exact = SERVICES.find(s => s.id === 'lymphatic-body-face');
+    if (exact) return exact;
+  }
+
   // 1. Try to find a service whose name is contained in the package name (or vice-versa)
   //    e.g. "Lymphatic + Cavitation 10x" → matches service "Lymphatic + Cavitation"
   const byName = SERVICES.find(s => {
@@ -2276,11 +2292,6 @@ function matchServiceFromPackage(pkgName) {
 
   // 2. Keyword fallback → first service in the category
   let matchCat = '';
-  if (/lymphatic\s*\+\s*cav|cavitation/i.test(pkgName)) {
-    // specific: linfática + cavitação → that exact service
-    const exact = SERVICES.find(s => s.id === 'lymphatic-cav');
-    if (exact) return exact;
-  }
   if (/post.?surg/i.test(pkgName))     matchCat = 'Lymphatic'; // leave user to pick area
   else if (/lymphatic/i.test(pkgName)) matchCat = 'Lymphatic';
   else if (/facial/i.test(pkgName))    matchCat = 'Facial';
