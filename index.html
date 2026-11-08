@@ -883,7 +883,8 @@ async function saveHealthUnchangedAndContinue() {
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
       services: buildServicesSummaryForPrint(),
       health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
-      sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
+      sigImage: null, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
+      pkg: (usePackageToday && activePackage) ? activePackage : null };
     populateThanks();
   }
 }
@@ -1110,7 +1111,8 @@ async function nextScreen() {
           serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
           services: buildServicesSummaryForPrint(),
           health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
-          sigImage: null, pkg: (usePackageToday && activePackage) ? activePackage : null };
+          sigImage: null, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
+          pkg: (usePackageToday && activePackage) ? activePackage : null };
         populateThanks();
       }
     }
@@ -1168,7 +1170,8 @@ async function nextScreen() {
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
       services: buildServicesSummaryForPrint(),
       health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
-      sigImage: sigImage, pkg: (usePackageToday && activePackage) ? activePackage : null };
+      sigImage: sigImage, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
+      pkg: (usePackageToday && activePackage) ? activePackage : null };
     populateThanks();
   }
 
@@ -3152,6 +3155,20 @@ function buildCheckinHtml(d, opts) {
   const pkgHtml = d.pkg
     ? `<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(d.pkg.name)} — 1 session used</span></div>` : '';
 
+  // Package session signature — this is a SEPARATE signature from the waiver (captured
+  // on its own screen, confirming "I'm using a session from my package today"), so it
+  // needs its own section. Previously this was captured and saved to the sheet but never
+  // shown on the visit's own printed/emailed form at all, even though the client signed
+  // it as part of that same check-in.
+  const pkgSigHtml = d.pkgSigImage
+    ? `<div class="p-section">
+  <div class="p-section-title">P A C K A G E &nbsp; S E S S I O N &nbsp; S I G N A T U R E</div>
+  <div class="p-meta" style="margin-bottom:10px;">
+    <div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml((d.pkg && d.pkg.name) || '')}</span></div>
+  </div>
+  <img src="${sigAsCid ? 'cid:pkg_signature_img' : d.pkgSigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />
+</div>` : '';
+
   const html = `<!doctype html><html><head><meta charset=utf8>
 <title>Bossa Spa — Check-In · ${escHtml(d.name)}</title>
 <style>
@@ -3189,6 +3206,7 @@ function buildCheckinHtml(d, opts) {
   ${pkgHtml}
 </div>
 ${profileHtml}
+${pkgSigHtml}
 ${svcInfoHtml}
 ${svcFormHtml}
 <div class="p-section"><div class="p-section-title">H E A L T H &nbsp; F O R M</div>${healthRows}</div>
@@ -3284,7 +3302,10 @@ async function sendCheckinEmail(toEmail, d) {
       htmlBody: html,
       // Sent separately (not as a data: URI inside htmlBody) so Code.gs can attach it
       // as a real inline image — Gmail strips data: URI images from received mail.
-      sigImageData: d.sigImage || ''
+      sigImageData: d.sigImage || '',
+      // Package session signature (a separate signature from the waiver) — same reason,
+      // sent as a real inline attachment instead of a data: URI baked into htmlBody.
+      inlineImages: d.pkgSigImage ? [{ cid: 'pkg_signature_img', dataUri: d.pkgSigImage }] : []
     };
     const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
     // mode:'cors' (not 'no-cors') so we can actually read whether the send
