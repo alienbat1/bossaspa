@@ -2011,24 +2011,27 @@ async function acOpenProfile(c) {
   contentEl.innerHTML = `<div class="empty"><div class="spinner" style="margin:0 auto;"></div><div class="spinner-text" style="margin-top:12px;">Loading profile…</div></div>`;
 
   // Fetch full profile: visits, packages, forms, referrals
-  let visits = [], packages = [], forms = [], referrals = [], referredBy = '', referredByPhone = '', contactHistory = [];
+  let visits = [], packages = [], forms = [], referrals = [], referredBy = '', referredByPhone = '', contactHistory = [], therapistNotes = [];
   try {
     const phone = c.phone || '';
     if (phone) {
-      const [vRes, pRes, rRes, fcRes] = await Promise.all([
+      const [vRes, pRes, rRes, fcRes, tnRes] = await Promise.all([
         fetch(WEBAPP_URL + '?action=get_visits&phone=' + encodeURIComponent(phone) + '&limit=200', { mode:'cors' }),
         fetch(WEBAPP_URL + '?action=get_packages&phone=' + encodeURIComponent(phone), { mode:'cors' }),
         fetch(WEBAPP_URL + '?action=get_referrals&phone=' + encodeURIComponent(phone), { mode:'cors' }),
-        fetch(WEBAPP_URL + '?action=get_follow_up_contacts&phone=' + encodeURIComponent(phone), { mode:'cors' })
+        fetch(WEBAPP_URL + '?action=get_follow_up_contacts&phone=' + encodeURIComponent(phone), { mode:'cors' }),
+        fetch(WEBAPP_URL + '?action=get_therapist_notes&phone=' + encodeURIComponent(phone), { mode:'cors' })
       ]);
       const vData = await vRes.json();
       const pData = await pRes.json();
       const rData = await rRes.json();
       const fcData = await fcRes.json().catch(() => ({ contacts: [] }));
+      const tnData = await tnRes.json().catch(() => ({ notes: [] }));
       visits   = vData.visits   || [];
       packages = pData.packages || [];
       referrals = rData.referrals || [];
       contactHistory = fcData.contacts || [];
+      therapistNotes = tnData.notes || [];
     } else {
       // No phone — try by clientId
       if (c.clientId) {
@@ -2056,7 +2059,7 @@ async function acOpenProfile(c) {
     } catch(e) {}
   } catch(e) {}
 
-  acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory);
+  acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory, therapistNotes);
 }
 
 function acShowList() {
@@ -2065,8 +2068,8 @@ function acShowList() {
 }
 
 let acVisitsShowing = 5;
-function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory) {
-  referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || ''; contactHistory = contactHistory || [];
+function acRenderProfile(c, visits, packages, forms, referrals, referredBy, referredByPhone, contactHistory, therapistNotes) {
+  referrals = referrals || []; referredBy = referredBy || ''; referredByPhone = referredByPhone || ''; contactHistory = contactHistory || []; therapistNotes = therapistNotes || [];
   acVisitsShowing = 5;
   // Store packages and visits on client for Add Visit modal / duplicate-detection
   if (acProfileClient) { acProfileClient._packages = packages || []; acProfileClient._visits = visits || []; }
@@ -2133,6 +2136,30 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         ${pkgId ? `<div id="pkg-sessions-${safePkgId}" style="display:none;margin-top:8px;"></div>` : ''}
       </div>`;
     });
+  }
+  html += `</div>`;
+
+  // Therapist Notes — full history, newest first, read straight from THERAPIST_NOTES
+  // so it's always in sync even if a note never got merged into a VISITS row.
+  html += `<div class="cp-section"><div class="cp-section-title">Therapist Notes (${therapistNotes.length})</div>`;
+  if (!therapistNotes.length) {
+    html += `<div style="font-size:.8rem;color:var(--muted);padding:8px 0;">No therapist notes on file.</div>`;
+  } else {
+    const showingId = 'tn-list-' + (phone || 'x');
+    const shown = therapistNotes.slice(0, 5);
+    const rest  = therapistNotes.slice(5);
+    const noteCard = n => `<div class="cp-visit-card">
+        <div class="cp-visit-date">${escHtml(n.date||'')}${n.service ? ` <span style="color:var(--muted);font-weight:400;">· ${escHtml(n.service)}</span>` : ''}</div>
+        <div class="cp-visit-note">${escHtml(n.note||'')}</div>
+        ${n.next ? `<div class="cp-visit-next">→ ${escHtml(n.next)}</div>` : ''}
+        ${n.therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(n.therapist)}</div>` : ''}
+        ${n.comeBackBy ? `<div style="font-size:.68rem;color:var(--teal);margin-top:4px;">📅 Come back by: ${escHtml(n.comeBackBy)}</div>` : ''}
+      </div>`;
+    html += shown.map(noteCard).join('');
+    if (rest.length) {
+      html += `<div id="${showingId}" hidden>${rest.map(noteCard).join('')}</div>
+        <button onclick="document.getElementById('${showingId}').hidden=false;this.remove();" style="font-size:.72rem;color:var(--teal);background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Jost',sans-serif;margin-top:4px;">Show ${rest.length} more</button>`;
+    }
   }
   html += `</div>`;
 
@@ -2753,11 +2780,12 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes, forE
   // clientId as a fallback match for clients whose phone ended up blank on the row.
   const clientIdQ = (c && c.clientId) ? `&clientId=${encodeURIComponent(c.clientId)}` : '';
   const base = WEBAPP_URL;
-  const [svcRes, healthRes, waiverRes, pkgSessionRes] = await Promise.all([
+  const [svcRes, healthRes, waiverRes, pkgSessionRes, tnRes] = await Promise.all([
     fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}${category ? '&category=' + encodeURIComponent(category) : ''}${service ? '&service=' + encodeURIComponent(service) : ''}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
     fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
     fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
     fetch(`${base}?action=get_pkg_session_for_visit&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ found:false })),
+    fetch(`${base}?action=get_therapist_notes&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ notes:[] })),
   ]);
 
   const qa       = svcRes.answers  || [];
@@ -2765,6 +2793,24 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes, forE
   const svcDur   = svcRes.duration || '';
   const health   = (healthRes.forms || [])[0] || null;
   const waivers  = waiverRes.waivers || [];
+
+  // Visit Notes: the VISITS row's own Notes column (visitNotes, passed in) is the
+  // primary source, but it can be out of date or never got merged — so it's combined
+  // with every THERAPIST_NOTES entry logged for this exact date + service, which is
+  // read straight from THERAPIST_NOTES itself and never depends on that merge having
+  // worked. Only entries that haven't already ended up inside visitNotes are added,
+  // so re-printing/re-emailing never duplicates the same note.
+  const tnForThisVisit = (tnRes.notes || []).filter(n => {
+    if (n.date !== date) return false;
+    if (service && n.service && n.service.trim().toLowerCase() !== service.trim().toLowerCase()) return false;
+    return true;
+  });
+  const extraNotes = tnForThisVisit
+    .map(n => n.note)
+    .filter(n => n && (!visitNotes || !visitNotes.includes(n)));
+  if (extraNotes.length) {
+    visitNotes = [visitNotes, ...extraNotes].filter(Boolean).join('\n');
+  }
 
   // Only a waiver signed at THIS exact visit date counts — a waiver signed at an earlier
   // or later visit never appears here (it already doesn't show for the client to re-sign,
