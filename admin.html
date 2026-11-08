@@ -2560,7 +2560,7 @@ function acRenderVisitCards(visits, limit) {
       ${next      ? `<div class="cp-visit-next">→ ${escHtml(next)}</div>` : ''}
       ${therapist ? `<div class="cp-visit-therapist">Therapist: ${escHtml(therapist)}</div>` : ''}
       <div id="${visitKey}-wrap" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-        <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
+        <button onclick="acToggleVisitForm('${visitKey}','${escHtml(phone)}','${escHtml(date)}','${escHtml(category)}','${escHtml(service)}')" style="font-size:.68rem;color:var(--teal);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:3px 10px;background:var(--beige);font-family:'Jost',sans-serif;">
           📋 Check-in answers
         </button>
         <button onclick="acPrintVisitForm('${escHtml(phone)}','${escHtml(date)}','${escHtml(service)}','${escHtml(category)}','${escHtml(notes)}')" style="font-size:.68rem;color:#5a6;cursor:pointer;border:1px solid #5a6;border-radius:4px;padding:3px 10px;background:#f2f7f2;font-family:'Jost',sans-serif;">
@@ -2613,7 +2613,7 @@ function acShowMoreVisits(visits) {
 
 // ── Visit check-in answers toggle ────────────────────────────────────────────
 const _visitFormCache = {};
-async function acToggleVisitForm(key, phone, date, category) {
+async function acToggleVisitForm(key, phone, date, category, service) {
   const detail = document.getElementById(key + '-detail');
   const btn    = document.querySelector(`[onclick*="${key}"]`);
   if (!detail) return;
@@ -2640,7 +2640,7 @@ async function acToggleVisitForm(key, phone, date, category) {
   try {
     const clientIdQ = (acProfileClient && acProfileClient.clientId) ? '&clientId=' + encodeURIComponent(acProfileClient.clientId) : '';
     const res  = await fetch(
-      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date) + (category ? '&category=' + encodeURIComponent(category) : '') + clientIdQ,
+      WEBAPP_URL + '?action=get_session_answers&phone=' + encodeURIComponent(phone) + '&date=' + encodeURIComponent(date) + (category ? '&category=' + encodeURIComponent(category) : '') + (service ? '&service=' + encodeURIComponent(service) : '') + clientIdQ,
       { mode: 'cors' }
     );
     const data = await res.json();
@@ -2754,7 +2754,7 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes, forE
   const clientIdQ = (c && c.clientId) ? `&clientId=${encodeURIComponent(c.clientId)}` : '';
   const base = WEBAPP_URL;
   const [svcRes, healthRes, waiverRes, pkgSessionRes] = await Promise.all([
-    fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}${category ? '&category=' + encodeURIComponent(category) : ''}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
+    fetch(`${base}?action=get_session_answers&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}${category ? '&category=' + encodeURIComponent(category) : ''}${service ? '&service=' + encodeURIComponent(service) : ''}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ answers:[] })),
     fetch(`${base}?action=get_forms&phone=${encodeURIComponent(phone)}${clientIdQ}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ forms:[] })),
     fetch(`${base}?action=get_waivers&phone=${encodeURIComponent(phone)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ waivers:[] })),
     fetch(`${base}?action=get_pkg_session_for_visit&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}`, { mode:'cors' }).then(r=>r.json()).catch(()=>({ found:false })),
