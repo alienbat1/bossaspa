@@ -60,6 +60,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .radio-opt::before{content:'';width:16px;height:16px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;}
 .radio-opt.selected{border-color:var(--teal);background:#f0f5f4;}
 .radio-opt.selected::before{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px #fff;}
+.radio-opt.pkg-check::before{display:none;}
 
 /* Category scroll */
 .cat-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px 0;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
@@ -313,6 +314,15 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
       <div class="err-msg" id="pkg-err">Please select an option to continue.</div>
     </div>
 
+    <!-- Two or more active packages at once (different services bought separately) —
+         client/staff picks which one(s) apply today instead of the single Yes/No above. -->
+    <div id="pkg-multi-section" style="display:none;">
+      <div class="section-label" style="margin-top:4px;">Your Packages</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">You have more than one active package. Select which one(s) you're using today — check more than one if you're doing more than one service today.</div>
+      <div id="pkg-multi-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px;"></div>
+      <div class="err-msg" id="pkg-multi-err">Please select at least one package, or "I'll pay separately today".</div>
+    </div>
+
     <!-- Visit History section (collapsible, shown after package info) -->
     <div id="visits-history-wrap" style="margin-bottom:16px;margin-top:20px;display:none;">
       <button onclick="toggleVisitHistory()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer;font-family:'Jost',sans-serif;">
@@ -384,7 +394,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
     <button onclick="pkgsignClear()" style="background:none;border:none;font-size:.72rem;color:var(--muted);cursor:pointer;margin-bottom:16px;padding:0;text-decoration:underline;">Clear signature</button>
 
     <div id="pkgsign-err" class="err-msg" style="margin-bottom:10px;display:none;color:var(--error);font-size:.8rem;">Please sign to confirm this session.</div>
-    <button class="btn" onclick="nextScreen()">Confirm Session →</button>
+    <button class="btn" id="pkgsign-btn" onclick="nextScreen()">Confirm Session →</button>
   </div>
 
   <!-- SCREEN 3: SERVICE SELECTION -->
@@ -541,10 +551,20 @@ function escHtml(s) {
 }
 
 // Client history state
-let activePackage    = null;  // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration }
+let activePackage    = null;  // { pkgId, name, sessionsLeft, sessionsDone, sessionsTotal, expiry, purchased, duration } — first of activePackages, kept for any older code that still reads the singular field
+let activePackages   = [];    // EVERY active package with sessions left — a client can genuinely have more than one at once (e.g. two different services bought separately)
 let inactivePackages = [];    // [{ pkgId, name, status, expiry, purchased, sessionsTotal, sessDone, sessLeft, duration }]
 let visitHistory     = [];    // [{ date, service, duration, category, source }]
 let usePackageToday  = null;  // true / false — set on package screen
+// Multi-package support: selectedPackages is which of activePackages the client is
+// actually using THIS visit (1 entry in the common single-package case, 2+ when she's
+// using two packages for two different services in the same visit). pkgSignatures
+// collects one signature per package (keyed by pkgId); pkgSignIndex tracks which
+// package the pkgsign screen is currently showing, since that one screen is reused
+// in a loop — once per selected package — rather than duplicated per package.
+let selectedPackages = [];
+let pkgSignatures    = {};
+let pkgSignIndex     = 0;
 
 const CATEGORIES = ['Lymphatic','Body Treatments','Massage','Couples','Facial','Sauna','Wax'];
 
@@ -842,6 +862,35 @@ function buildServicesSummaryForPrint() {
   }));
 }
 
+// One use_package + one pkg_session_sig call per package actually used this visit —
+// covers the common single-package case (1 entry) and the two-packages-in-one-visit
+// case alike, since selectedPackages already holds whichever one(s) were chosen.
+// Signatures come from pkgSignatures (captured during the pkgsign screen loop, one per
+// package) rather than reading the canvas live — by submission time the canvas has been
+// cleared/reused for whichever package was signed last.
+function buildPkgUseCalls(name, phone, today) {
+  if (!usePackageToday || !selectedPackages.length) return [];
+  const calls = [];
+  selectedPackages.forEach(pkg => {
+    calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: pkg.pkgId }));
+    const sig = pkgSignatures[pkg.pkgId];
+    if (sig) {
+      const sessionNum = (pkg.sessionsDone || 0) + 1;
+      calls.push(sendToSheets('pkg_session_sig', {
+        phone, clientId: confirmedClientId, pkgId: pkg.pkgId, clientName: name,
+        pkgName: pkg.name, sessionNum, date: today, signature: sig
+      }));
+    }
+  });
+  return calls;
+}
+
+// For the printed/emailed check-in sheet: one { pkg, sigImage } entry per package used.
+function buildPkgsForPrint() {
+  if (!usePackageToday || !selectedPackages.length) return [];
+  return selectedPackages.map(pkg => ({ pkg, sigImage: pkgSignatures[pkg.pkgId] || null }));
+}
+
 // Saves health_form (marked "unchanged", reusing lastHealth) + the visit, using
 // whatever service/package was already selected — used both when the client taps
 // "confirm unchanged" on the Health Check screen, and when that screen is skipped
@@ -858,24 +907,15 @@ async function saveHealthUnchangedAndContinue() {
       date: today, healthConfirmedUnchanged: true, ...lastHealth,
       svcForm: svcFormAnswers
     }),
-    ...buildVisitSaveCalls(name, phone, today)
+    ...buildVisitSaveCalls(name, phone, today),
+    ...buildPkgUseCalls(name, phone, today)
   ];
-  if (usePackageToday && activePackage) {
-    calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
-    const sig = getPkgSignature();
-    if (sig) {
-      const sessionNum = (activePackage.sessionsDone || 0) + 1;
-      calls.push(sendToSheets('pkg_session_sig', {
-        phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
-        pkgName: activePackage.name, sessionNum, date: today, signature: sig
-      }));
-    }
-  }
   const _results1 = await Promise.all(calls);
   hideSpinner();
   reportSaveErrors(_results1);
   if (!isNewClient) {
     const _name2 = getClientName(), _phone2 = getClientPhone(), _today2 = new Date().toLocaleDateString('en-US');
+    const _pkgs = buildPkgsForPrint();
     _printData = { name: _name2, phone: _phone2, date: _today2,
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
@@ -883,8 +923,8 @@ async function saveHealthUnchangedAndContinue() {
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
       services: buildServicesSummaryForPrint(),
       health: lastHealth || {}, svcForm: Object.assign({}, svcFormAnswers),
-      sigImage: null, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
-      pkg: (usePackageToday && activePackage) ? activePackage : null };
+      sigImage: null, pkgSigImage: _pkgs.length ? _pkgs[0].sigImage : null,
+      pkg: _pkgs.length ? _pkgs[0].pkg : null, pkgs: _pkgs };
     populateThanks();
   }
 }
@@ -915,6 +955,10 @@ async function nextScreen() {
         lastHealth        = found.lastHealth || null;
         lastSvcForm       = found.lastSvcForm || null;
         activePackage     = found.activePackage || null;
+        activePackages    = found.activePackages || (activePackage ? [activePackage] : []);
+        selectedPackages  = [];
+        pkgSignatures     = {};
+        pkgSignIndex      = 0;
         inactivePackages  = found.inactivePackages || [];
         visitHistory      = found.visitHistory || [];
         clientHasWaiver   = !!found.hasWaiver;
@@ -997,14 +1041,37 @@ async function nextScreen() {
   }
 
   if (current === 'package') {
-    const hasActive = activePackage && activePackage.sessionsLeft > 0;
+    const hasActive = activePackages.length > 0;
     if (hasActive && usePackageToday === null) {
       document.getElementById('pkg-err').classList.add('show');
+      document.getElementById('pkg-multi-err').classList.add('show');
       return;
     }
     document.getElementById('pkg-err').classList.remove('show');
-    // If using package, pkgsign screen is next (already in flow via rebuildScreenFlowWithPkgSign)
-    // If NOT using package, service screen is next — service selection still needed
+    document.getElementById('pkg-multi-err').classList.remove('show');
+    // Build selectedServices from whichever package(s) were picked — works the same
+    // whether the client used just one or (two packages for two different services)
+    // several. Each matched package gets its own entry in selectedServices, which the
+    // rest of the visit (session-questions, info, saving) already knows how to loop over.
+    if (selectedPackages.length > 0) {
+      selectedServices = [];
+      selectedPackages.forEach(pkg => {
+        const match = matchServiceFromPackage(pkg.name);
+        if (match) {
+          const duration = match.durs && match.durs.length === 1 ? match.durs[0] : (match.durs.length === 0 ? '' : null);
+          selectedServices.push({ svc: match, duration });
+        }
+      });
+      if (selectedServices.length) {
+        selectedService  = selectedServices[0].svc;
+        selectedDuration = selectedServices[0].duration;
+      }
+      pkgSignIndex  = 0;
+      pkgSignatures = {};
+      populatePkgSignScreen(0);
+    }
+    // If using package(s), pkgsign screen is next (already in flow via rebuildScreenFlowWithPkgSign)
+    // If NOT using any package, service screen is next — service selection still needed
   }
 
   if (current === 'pkgsign') {
@@ -1013,7 +1080,17 @@ async function nextScreen() {
       return;
     }
     document.getElementById('pkgsign-err').style.display = 'none';
-    // Always skip service screen when using package — service is auto-selected (or not needed)
+    // Capture this package's signature before moving on
+    const signedPkg = selectedPackages[pkgSignIndex];
+    if (signedPkg) pkgSignatures[signedPkg.pkgId] = getPkgSignature();
+    // More packages left to sign for? Stay on this same screen and show the next one —
+    // don't advance currentStep, so "Back" from the next package returns here correctly.
+    if (pkgSignIndex + 1 < selectedPackages.length) {
+      pkgSignIndex++;
+      populatePkgSignScreen(pkgSignIndex); // already resets the canvas and pkgsignHasSig
+      return;
+    }
+    // Always skip service screen when using package(s) — service is auto-selected (or not needed)
     const svcIdx = screenFlow.indexOf('service');
     if (svcIdx !== -1) {
       currentStep = svcIdx; // currentStep++ below lands on svcIdx+1 (info)
@@ -1087,23 +1164,14 @@ async function nextScreen() {
           service: selectedService.name, duration: selectedDuration,
           date: today, ...answers, svcForm: svcFormAnswers
         }),
-        ...buildVisitSaveCalls(name, phone, today)
+        ...buildVisitSaveCalls(name, phone, today),
+        ...buildPkgUseCalls(name, phone, today)
       ];
-      if (usePackageToday && activePackage) {
-        calls.push(sendToSheets('use_package', { phone, clientId: confirmedClientId, pkgId: activePackage.pkgId }));
-        const sig = getPkgSignature();
-        if (sig) {
-          const sessionNum = (activePackage.sessionsDone || 0) + 1;
-          calls.push(sendToSheets('pkg_session_sig', {
-            phone, clientId: confirmedClientId, pkgId: activePackage.pkgId, clientName: name,
-            pkgName: activePackage.name, sessionNum, date: today, signature: sig
-          }));
-        }
-      }
       const _results2 = await Promise.all(calls);
       hideSpinner();
       reportSaveErrors(_results2);
       if (!isNewClient) {
+        const _pkgs = buildPkgsForPrint();
         _printData = { name, phone, date: today,
           email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
           dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
@@ -1111,8 +1179,8 @@ async function nextScreen() {
           serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
           services: buildServicesSummaryForPrint(),
           health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
-          sigImage: null, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
-          pkg: (usePackageToday && activePackage) ? activePackage : null };
+          sigImage: null, pkgSigImage: _pkgs.length ? _pkgs[0].sigImage : null,
+          pkg: _pkgs.length ? _pkgs[0].pkg : null, pkgs: _pkgs };
         populateThanks();
       }
     }
@@ -1163,6 +1231,7 @@ async function nextScreen() {
       clearSig();
       return;
     }
+    const _pkgs = buildPkgsForPrint();
     _printData = { name, phone, date: today2,
       email: (document.getElementById('inp-email')||{}).value || clientEmail || '',
       dob: clientDob || '', totalVisits: clientTotalVisits, lastVisit: clientLastVisit || '',
@@ -1170,8 +1239,8 @@ async function nextScreen() {
       serviceInfo: selectedService ? (SERVICE_INFO[selectedService.id] || null) : null,
       services: buildServicesSummaryForPrint(),
       health: collectHealth(), svcForm: Object.assign({}, svcFormAnswers),
-      sigImage: sigImage, pkgSigImage: (usePackageToday && activePackage) ? getPkgSignature() : null,
-      pkg: (usePackageToday && activePackage) ? activePackage : null };
+      sigImage: sigImage, pkgSigImage: _pkgs.length ? _pkgs[0].sigImage : null,
+      pkg: _pkgs.length ? _pkgs[0].pkg : null, pkgs: _pkgs };
     populateThanks();
   }
 
@@ -1194,9 +1263,11 @@ function populateThanks() {
   const name = getClientName().split(' ')[0];
   document.getElementById('thanks-name').textContent = name + ', you\'re all set! 🌿';
   let pkgRow = '';
-  if (usePackageToday && activePackage) {
-    const remaining = Math.max(0, activePackage.sessionsLeft - 1);
-    pkgRow = '<div class="thanks-row"><span class="thanks-key">Package</span><span class="thanks-val">1 session used — ' + remaining + ' remaining</span></div>';
+  if (usePackageToday && selectedPackages.length) {
+    pkgRow = selectedPackages.map(pkg => {
+      const remaining = Math.max(0, pkg.sessionsLeft - 1);
+      return '<div class="thanks-row"><span class="thanks-key">Package</span><span class="thanks-val">' + escHtml(pkg.name) + ' — 1 session used, ' + remaining + ' remaining</span></div>';
+    }).join('');
   }
   document.getElementById('thanks-detail').innerHTML =
     '<div class="thanks-row"><span class="thanks-key">Service</span><span class="thanks-val">' + selectedService.name + '</span></div>' +
@@ -1228,6 +1299,10 @@ function resetApp() {
   clientTotalVisits = null;
   clientLastVisit   = '';
   activePackage     = null;
+  activePackages    = [];
+  selectedPackages  = [];
+  pkgSignatures     = {};
+  pkgSignIndex      = 0;
   inactivePackages = [];
   visitHistory     = [];
   usePackageToday  = null;
@@ -2051,7 +2126,7 @@ function ensureAddSvcObserver() {
 
 // ── PACKAGE / HISTORY SCREEN ──
 function populatePackageScreen() {
-  const hasActive = activePackage && activePackage.sessionsLeft > 0;
+  const hasActive = activePackages.length > 0;
   const hasVisits = visitHistory && visitHistory.length > 0;
 
   // Welcome banner with client name
@@ -2062,9 +2137,11 @@ function populatePackageScreen() {
 
   // Reset package use selection
   usePackageToday = null;
+  selectedPackages = [];
   document.getElementById('pkg-yes').classList.remove('selected');
   document.getElementById('pkg-no').classList.remove('selected');
   document.getElementById('pkg-err').classList.remove('show');
+  document.getElementById('pkg-multi-err').classList.remove('show');
 
   // ── Visit summary cards (always shown when visits exist) ──
   const summaryEl = document.getElementById('visits-summary-cards');
@@ -2112,10 +2189,14 @@ function populatePackageScreen() {
     historyWrap.style.display = 'none';
   }
 
-  // ── Active package section ──
-  const pkgSection = document.getElementById('pkg-active-section');
-  if (hasActive) {
-    const pkg = activePackage;
+  // ── Active package section(s) ──
+  // One active package: the familiar Yes/No card. Two or more (genuinely separate
+  // packages for different services, not one replacing another): a checklist instead,
+  // so each can be independently chosen and correctly decremented.
+  const pkgSection  = document.getElementById('pkg-active-section');
+  const multiSection = document.getElementById('pkg-multi-section');
+  if (activePackages.length === 1) {
+    const pkg = activePackages[0];
     // Use the matched service name for the question (more precise than category keyword)
     const matchedSvc = matchServiceFromPackage(pkg.name);
     const svcLabel = matchedSvc ? matchedSvc.name : pkg.name;
@@ -2128,9 +2209,54 @@ function populatePackageScreen() {
     document.getElementById('pkg-use-question').textContent =
       'You have a ' + svcLabel + ' package — would you like to use a session today?';
     pkgSection.style.display = 'block';
+    multiSection.style.display = 'none';
+  } else if (activePackages.length >= 2) {
+    pkgSection.style.display = 'none';
+    multiSection.style.display = 'block';
+    renderPkgMultiList();
   } else {
     pkgSection.style.display = 'none';
+    multiSection.style.display = 'none';
   }
+}
+
+// ── Multi-package selection (2+ active packages at once) ──
+function renderPkgMultiList() {
+  const wrap = document.getElementById('pkg-multi-list');
+  if (!wrap) return;
+  const payingSeparately = usePackageToday === false && selectedPackages.length === 0;
+  wrap.innerHTML = activePackages.map(pkg => {
+    const matchedSvc = matchServiceFromPackage(pkg.name);
+    const svcLabel = matchedSvc ? matchedSvc.name : pkg.name;
+    const checked = selectedPackages.some(p => p.pkgId === pkg.pkgId);
+    return `<div class="radio-opt pkg-check ${checked ? 'selected' : ''}" onclick="togglePkgMultiSelect('${escHtml(pkg.pkgId)}')" style="flex-direction:column;align-items:flex-start;">
+      <span>${checked ? '☑️' : '⬜️'} ${escHtml(pkg.name)}</span>
+      <span style="opacity:.7;font-size:.75rem;margin-top:2px;">${escHtml(svcLabel)} — ${pkg.sessionsLeft} session${pkg.sessionsLeft === 1 ? '' : 's'} left</span>
+    </div>`;
+  }).join('') +
+  `<div class="radio-opt pkg-check ${payingSeparately ? 'selected' : ''}" onclick="selectNoPkgMulti()">💳 No — I'll pay separately today</div>`;
+}
+
+function togglePkgMultiSelect(pkgId) {
+  const idx = selectedPackages.findIndex(p => p.pkgId === pkgId);
+  if (idx >= 0) {
+    selectedPackages.splice(idx, 1);
+  } else {
+    const pkg = activePackages.find(p => p.pkgId === pkgId);
+    if (pkg) selectedPackages.push(pkg);
+  }
+  usePackageToday = selectedPackages.length > 0;
+  document.getElementById('pkg-multi-err').classList.remove('show');
+  rebuildScreenFlowWithPkgSign(selectedPackages.length > 0);
+  renderPkgMultiList();
+}
+
+function selectNoPkgMulti() {
+  selectedPackages = [];
+  usePackageToday = false;
+  document.getElementById('pkg-multi-err').classList.remove('show');
+  rebuildScreenFlowWithPkgSign(false);
+  renderPkgMultiList();
 }
 
 function togglePkgHistory() {
@@ -2207,10 +2333,10 @@ function checkWaxClub(svc) {
   msg.textContent = '';
   if (!svc || svc.cat !== 'Wax') return;
 
-  // Check 1: active Wax Club package
-  const waxClubPkg = activePackage && /wax.?club/i.test(activePackage.name || '') && activePackage.sessionsLeft > 0 ? activePackage : null;
-  const waxClubInactive = !waxClubPkg && [...inactivePackages].find(p => /wax.?club/i.test(p.name || '') && (p.status || '').toLowerCase() === 'active' && (p.sessionsLeft || 0) > 0);
-  const waxPkg = waxClubPkg || waxClubInactive;
+  // Check 1: active Wax Club package — searched across ALL of this client's active
+  // packages (not just the first one), since she may have a separate Wax Club package
+  // alongside another unrelated active package.
+  const waxPkg = activePackages.find(p => /wax.?club/i.test(p.name || '') && (p.sessionsLeft || 0) > 0);
   if (waxPkg) {
     msg.textContent = 'Wax Club member — ' + (waxPkg.sessionsLeft || '') + ' session' + (waxPkg.sessionsLeft !== 1 ? 's' : '') + ' remaining. Wax Club price applies! 💛';
     banner.style.display = 'block';
@@ -2249,10 +2375,8 @@ function checkWaxClubOnPackageScreen() {
   const banner = document.getElementById('pkg-waxclub-banner');
   const msg    = document.getElementById('pkg-waxclub-msg');
   if (!banner || !msg) return;
-  // Look for active Wax Club package
-  const waxPkg = (activePackage && /wax.?club/i.test(activePackage.name || '') && activePackage.sessionsLeft > 0)
-               ? activePackage
-               : inactivePackages.find(p => /wax.?club/i.test(p.name || '') && (p.status || '').toLowerCase() === 'active' && (p.sessionsLeft || 0) > 0);
+  // Look for active Wax Club package among ALL active packages (not just the first)
+  const waxPkg = activePackages.find(p => /wax.?club/i.test(p.name || '') && (p.sessionsLeft || 0) > 0);
   if (waxPkg) {
     msg.textContent = 'You have an active Wax Club membership with ' + (waxPkg.sessionsLeft || '') + ' session' + (waxPkg.sessionsLeft !== 1 ? 's' : '') + ' remaining. Wax Club pricing will apply to your wax service today.';
     banner.style.display = 'block';
@@ -2309,15 +2433,14 @@ function selectPkgUse(useIt) {
   document.getElementById('pkg-no').classList.toggle('selected', !useIt);
   document.getElementById('pkg-err').classList.remove('show');
 
+  // Just record the choice here — matching the service, building selectedServices and
+  // populating the (possibly multi-package) pkgsign screen all happen uniformly in
+  // nextScreen()'s 'package' step once selectedPackages is set, same code path whether
+  // this was a single package's Yes/No or the multi-package checklist.
   if (useIt && activePackage) {
-    const match = matchServiceFromPackage(activePackage.name);
-    if (match) {
-      selectedService  = match;
-      selectedDuration = match.durs && match.durs.length === 1 ? match.durs[0] : (match.durs.length === 0 ? '' : null);
-    }
-    // Populate pkg sign screen
-    populatePkgSignScreen();
-  } else if (!useIt) {
+    selectedPackages = [activePackage];
+  } else {
+    selectedPackages = [];
     selectedService  = null;
     selectedDuration = null;
   }
@@ -2328,9 +2451,10 @@ function selectPkgUse(useIt) {
 // ── PACKAGE SIGN SCREEN ──
 let pkgsignCanvas = null, pkgsignCtx = null, pkgsignDrawing = false, pkgsignHasSig = false;
 
-function populatePkgSignScreen() {
-  if (!activePackage) return;
-  const pkg = activePackage;
+function populatePkgSignScreen(idx) {
+  idx = idx || 0;
+  const pkg = selectedPackages[idx];
+  if (!pkg) return;
   const sessionNum = (pkg.sessionsDone || 0) + 1;
   document.getElementById('pkgsign-pkg-name').textContent = pkg.name || 'Package';
   document.getElementById('pkgsign-done').textContent = pkg.sessionsDone || 0;
@@ -2338,8 +2462,15 @@ function populatePkgSignScreen() {
   document.getElementById('pkgsign-total').textContent = pkg.sessionsTotal || 0;
   document.getElementById('pkgsign-statement').textContent =
     `I confirm the use of session #${sessionNum} from my "${pkg.name}" package for today's appointment at Bossa.`;
-  document.getElementById('pkgsign-sub').textContent =
-    `Please review your package and sign to confirm session #${sessionNum}.`;
+  // When using more than one package this visit, show which one this is ("1 of 2") so
+  // it's clear another signature screen is coming next.
+  document.getElementById('pkgsign-sub').textContent = selectedPackages.length > 1
+    ? `Package ${idx + 1} of ${selectedPackages.length} — please review and sign to confirm session #${sessionNum}.`
+    : `Please review your package and sign to confirm session #${sessionNum}.`;
+  const pkgsignBtn = document.getElementById('pkgsign-btn');
+  if (pkgsignBtn) {
+    pkgsignBtn.textContent = (idx + 1 < selectedPackages.length) ? 'Confirm & Next Package →' : 'Confirm Session →';
+  }
 
   // Session history from visitHistory (filtered to package service)
   const histEl = document.getElementById('pkgsign-history');
@@ -3162,23 +3293,24 @@ function buildCheckinHtml(d, opts) {
   </div>
 </div>` : '';
 
-  // Package row
-  const pkgHtml = d.pkg
-    ? `<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(d.pkg.name)} — 1 session used</span></div>` : '';
+  // Package row(s) — d.pkgs is one entry per package actually used this visit (the
+  // common case has exactly one; a visit using two packages for two different
+  // services has two). Falls back to the older singular d.pkg for safety.
+  const pkgList = (d.pkgs && d.pkgs.length) ? d.pkgs : (d.pkg ? [{ pkg: d.pkg, sigImage: d.pkgSigImage }] : []);
+  const pkgHtml = pkgList.map(({ pkg }) =>
+    `<div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(pkg.name)} — 1 session used</span></div>`
+  ).join('');
 
-  // Package session signature — this is a SEPARATE signature from the waiver (captured
-  // on its own screen, confirming "I'm using a session from my package today"), so it
-  // needs its own section. Previously this was captured and saved to the sheet but never
-  // shown on the visit's own printed/emailed form at all, even though the client signed
-  // it as part of that same check-in.
-  const pkgSigHtml = d.pkgSigImage
-    ? `<div class="p-section">
-  <div class="p-section-title">P A C K A G E &nbsp; S E S S I O N &nbsp; S I G N A T U R E</div>
+  // Package session signature(s) — SEPARATE from the waiver signature (each captured on
+  // its own pkgsign screen, confirming "I'm using a session from my package today"), so
+  // each gets its own section. One per package used, each with its own cid for email.
+  const pkgSigHtml = pkgList.filter(p => p.sigImage).map(({ pkg, sigImage }, i) => `<div class="p-section">
+  <div class="p-section-title">P A C K A G E &nbsp; S E S S I O N &nbsp; S I G N A T U R E${pkgList.length > 1 ? ' — ' + escHtml(pkg.name).toUpperCase() : ''}</div>
   <div class="p-meta" style="margin-bottom:10px;">
-    <div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml((d.pkg && d.pkg.name) || '')}</span></div>
+    <div class="p-meta-row"><span class="p-meta-key">Package</span><span class="p-meta-val">${escHtml(pkg.name || '')}</span></div>
   </div>
-  <img src="${sigAsCid ? 'cid:pkg_signature_img' : d.pkgSigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />
-</div>` : '';
+  <img src="${sigAsCid ? 'cid:pkg_signature_img_' + i : sigImage}" style="max-width:220px;max-height:100px;border:1px solid #ccc;border-radius:6px;padding:8px;background:#fff;display:block;" />
+</div>`).join('');
 
   const html = `<!doctype html><html><head><meta charset=utf8>
 <title>Bossa Spa — Check-In · ${escHtml(d.name)}</title>
@@ -3314,9 +3446,12 @@ async function sendCheckinEmail(toEmail, d) {
       // Sent separately (not as a data: URI inside htmlBody) so Code.gs can attach it
       // as a real inline image — Gmail strips data: URI images from received mail.
       sigImageData: d.sigImage || '',
-      // Package session signature (a separate signature from the waiver) — same reason,
-      // sent as a real inline attachment instead of a data: URI baked into htmlBody.
-      inlineImages: d.pkgSigImage ? [{ cid: 'pkg_signature_img', dataUri: d.pkgSigImage }] : []
+      // Package session signature(s) (separate from the waiver) — same reason, sent as
+      // real inline attachments instead of data: URIs baked into htmlBody. One per
+      // package used this visit, matching the cid_N names buildCheckinHtml references.
+      inlineImages: (d.pkgs && d.pkgs.length)
+        ? d.pkgs.filter(p => p.sigImage).map((p, i) => ({ cid: 'pkg_signature_img_' + i, dataUri: p.sigImage }))
+        : (d.pkgSigImage ? [{ cid: 'pkg_signature_img', dataUri: d.pkgSigImage }] : [])
     };
     const base = typeof WEBAPP_URL !== 'undefined' ? WEBAPP_URL : '';
     // mode:'cors' (not 'no-cors') so we can actually read whether the send
