@@ -115,6 +115,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
 .pkg-card-meta{font-size:.73rem;color:var(--muted);margin-top:3px;}
 .pkg-status{display:inline-block;font-size:.6rem;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;margin-left:6px;vertical-align:middle;}
 .pkg-status.active{background:#d4ede4;color:#2a6b44;}
+.pkg-status.waiting{background:#fdf1d6;color:#8a6414;}
 .pkg-status.completed{background:#e8e4f5;color:#4a3a7a;}
 .pkg-status.expired{background:#fde8e4;color:#9b3a2a;}
 
@@ -502,6 +503,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
               <label>Status</label>
               <select id="pkg-status-sel">
                 <option value="Active">Active</option>
+                <option value="Waiting">Waiting (starts after current package)</option>
                 <option value="Completed">Completed</option>
                 <option value="Expired">Expired</option>
               </select>
@@ -4333,6 +4335,7 @@ function acEditPkg(p) {
       <div class="field"><label>Status</label>
         <select id="mpkg-status" style="${fieldStyle}">
           <option value="Active" ${status==='Active'?'selected':''}>Active</option>
+          <option value="Waiting" ${status==='Waiting'?'selected':''}>Waiting (starts after current package)</option>
           <option value="Completed" ${status==='Completed'?'selected':''}>Completed</option>
           <option value="Expired" ${status==='Expired'?'selected':''}>Expired</option>
         </select>
