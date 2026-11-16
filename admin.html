@@ -2214,10 +2214,15 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
           ${date ? `<div style="font-size:.68rem;color:var(--muted);">${escHtml(date)}</div>` : ''}
         </div>`;
       if (qa.length) {
-        qa.forEach(item => {
+        // Merge " — note" answers inline with their parent question
+        const noteMapCp = {};
+        qa.forEach(item => { if ((item.q||'').endsWith(' — note')) noteMapCp[item.q.slice(0,-7)] = item.a||''; });
+        qa.filter(item => !(item.q||'').endsWith(' — note')).forEach(item => {
+          const noteText = noteMapCp[item.q] || '';
+          const aDisplay = escHtml(item.a||'—') + (noteText ? `<span style="color:var(--muted);font-style:italic;"> — ${escHtml(noteText)}</span>` : '');
           html += `<div style="margin-bottom:8px;">
             <div class="cp-form-q">${escHtml(item.q||'')}</div>
-            <div class="cp-form-a">${escHtml(item.a||'—')}</div>
+            <div class="cp-form-a">${aDisplay}</div>
           </div>`;
         });
       } else {
