@@ -797,6 +797,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
             oninput="acFilterClients()"
             onkeydown="if(event.key==='Enter')acFilterClients()">
           <button class="btn-search" onclick="acLoadClients()">↻</button>
+          <button class="btn-search" onclick="acOpenAddClient()" style="margin-left:6px;background:var(--teal);color:#fff;padding:0 14px;font-size:.8rem;letter-spacing:.04em;border-radius:8px;border:none;cursor:pointer;height:38px;">+ Add Client</button>
         </div>
 
         <div class="ac-filters">
@@ -4990,5 +4991,104 @@ function authSubmit() {
     setTimeout(() => err.textContent = '', 2500);
   }
 }
+
+
+// ── Add Client modal ──────────────────────────────────────────────────────────
+function acOpenAddClient() {
+  const existing = document.getElementById('ac-add-client-modal');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-add-client-modal" onclick="if(event.target.id==='ac-add-client-modal')document.getElementById('ac-add-client-modal').remove()">
+    <div style="background:#fff;border-radius:14px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.18);position:relative;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--teal);font-weight:400;margin-bottom:18px;">New Client</div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Full Name *</label>
+          <input id="ac-nc-name" type="text" autocomplete="off" placeholder="e.g. Jane Smith"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Phone</label>
+          <input id="ac-nc-phone" type="tel" autocomplete="off" placeholder="e.g. 3105551234"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Email</label>
+          <input id="ac-nc-email" type="email" autocomplete="off" placeholder="e.g. jane@email.com"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Date of Birth</label>
+          <input id="ac-nc-dob" type="text" autocomplete="off" placeholder="MM/DD/YYYY"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">How did they hear about us?</label>
+          <select id="ac-nc-heard" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;background:#fff;">
+            <option value="">— select —</option>
+            <option>Instagram</option>
+            <option>Google</option>
+            <option>Yelp</option>
+            <option>Referral</option>
+            <option>ClassPass</option>
+            <option>Groupon</option>
+            <option>Walk-in</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="ac-nc-err" style="color:#c05050;font-size:.78rem;margin-top:10px;min-height:18px;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button onclick="document.getElementById('ac-add-client-modal').remove()" style="padding:10px 16px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
+        <button onclick="acSaveNewClient()" style="padding:10px 20px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;font-weight:500;">Save Client</button>
+      </div>
+    </div>
+  </div>`);
+  document.getElementById('ac-nc-name').focus();
+}
+
+async function acSaveNewClient() {
+  const name  = (document.getElementById('ac-nc-name').value  || '').trim();
+  const phone = (document.getElementById('ac-nc-phone').value || '').trim();
+  const email = (document.getElementById('ac-nc-email').value || '').trim();
+  const dob   = (document.getElementById('ac-nc-dob').value   || '').trim();
+  const heard = (document.getElementById('ac-nc-heard').value || '').trim();
+  const errEl = document.getElementById('ac-nc-err');
+
+  if (!name) { errEl.textContent = 'Name is required.'; document.getElementById('ac-nc-name').focus(); return; }
+
+  const btn = document.querySelector('#ac-add-client-modal button[onclick="acSaveNewClient()"]');
+  const origText = btn.textContent;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: SHARED_KEY, type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('ac-add-client-modal').remove();
+      acLoadClients(); // refresh list
+      // Show quick confirmation
+      const toast = document.createElement('div');
+      toast.textContent = `✓ ${name} added`;
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:10px 22px;border-radius:8px;font-family:Jost,sans-serif;font-size:.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.18);';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2800);
+    } else {
+      errEl.textContent = data.error || 'Could not save. Try again.';
+      btn.textContent = origText; btn.disabled = false;
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Try again.';
+    btn.textContent = origText; btn.disabled = false;
+  }
+}
+
 </script>
 </body></html>
