@@ -2905,9 +2905,28 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes, forE
     : '<div class="p-none">No session questions recorded for this visit.</div>';
 
   // Build health form HTML (from HEALTH sheet via get_forms)
-  const healthHtml = health && health.answers && health.answers.length
-    ? health.answers.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
-    : '<div class="p-none">No health form on record.</div>';
+  // Note answers are stored as separate items with key "Question — note"; merge them
+  // with their parent answer so they display inline rather than as an orphan row.
+  function buildHealthHtml(answers) {
+    if (!answers || !answers.length) return '<div class="p-none">No health form on record.</div>';
+    // Build a lookup of note text keyed by the base question
+    const noteMap = {};
+    answers.forEach(item => {
+      if ((item.q||'').endsWith(' — note')) {
+        const baseQ = item.q.slice(0, -7); // strip ' — note'
+        noteMap[baseQ] = item.a || '';
+      }
+    });
+    // Render only base questions (skip the " — note" rows), appending note inline
+    return answers
+      .filter(item => !(item.q||'').endsWith(' — note'))
+      .map(item => {
+        const note = noteMap[item.q] || '';
+        const ansHtml = escHtml(item.a||'') + (note ? `<span style="color:var(--muted);font-style:italic;"> — ${escHtml(note)}</span>` : '');
+        return `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${ansHtml}</div></div>`;
+      }).join('');
+  }
+  const healthHtml = buildHealthHtml(health && health.answers);
 
   // Waiver text (full text embedded here since it's not stored in the sheet)
   const _WAIVER_TEXT = `BOSSA SPA — INFORMED CONSENT & LIABILITY WAIVER
