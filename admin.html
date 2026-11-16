@@ -1221,10 +1221,12 @@ async function savePhone() {
 
 function normalizePhone(raw) {
   if (!raw) return '';
-  const s = raw.replace(/\D/g, '');
-  if (s.length === 11 && s.startsWith('1')) return s.slice(1);
+  const trimmed = raw.toString().trim();
+  const hasPlus = trimmed.startsWith('+');
+  const s = trimmed.replace(/\D/g, '');
   if (s.length === 10) return s;
-  if (s.length > 10) return s.slice(-10);
+  if (s.length === 11 && s.startsWith('1')) return s.slice(1);
+  if (s.length > 10 && (hasPlus || !s.startsWith('1'))) return '+' + s;
   return s.length >= 7 ? s : '';
 }
 
@@ -1704,9 +1706,7 @@ async function loadFollowUp() {
           ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
           ${contactNote ? `<div class="fu-row-note" style="color:#7c5c2e;background:#fff8ee;border-left:3px solid #e8c47a;padding:4px 8px;border-radius:0 4px 4px 0;margin-top:4px;">📝 ${escHtml(contactNote)}</div>` : ''}
           ${phone || email ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
-            ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
-            ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
-            ${phone ? `<a class="fu-btn-sms" href="sms:${phone}&body=${smsBody}">💬 Text</a>` : ''}
+            ${phone ? contactButtons(phone, smsBody) : ''}
             ${email ? `<a class="fu-btn-email" href="mailto:${email}?subject=${emailSubj}&body=${emailBody}" target="_blank">✉️ Email</a>` : ''}
           </div>` : ''}
         </div>
@@ -2089,9 +2089,7 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         ${c.clientId ? `ID: ${escHtml(c.clientId)}` : ''}
       </div>
       ${(phone || c.email) ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
-        ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
-        ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
-        ${phone ? `<a class="fu-btn-sms" href="sms:${phone}">💬 Text</a>` : ''}
+        ${phone ? contactButtons(phone, '') : ''}
         ${c.email ? `<a class="fu-btn-email" href="mailto:${escHtml(c.email)}" target="_blank">✉️ Email</a>` : ''}
       </div>` : ''}
     </div>
@@ -3746,8 +3744,8 @@ function acStartEdit(field, c, currentVal) {
 
   const displayVal = currentVal === '—' ? '' : currentVal;
   const labelMap2 = {name:'Name', phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
-  const typeMap   = {phone:'tel', email:'email', name:'text', dob:'date', notes:'text'};
-  const phMap     = {name:'Full name', phone:'(310) 555-0000', email:'email@example.com', dob:'', notes:'Notes…'};
+  const typeMap   = {phone:'text', email:'email', name:'text', dob:'date', notes:'text'};
+  const phMap     = {name:'Full name', phone:'(310) 555-0000 or +61 468 674 576', email:'email@example.com', dob:'', notes:'Notes…'};
   row.innerHTML = `
     <span class="cp-editable-label">${labelMap2[field]||field}</span>
     <div class="cp-edit-inline">
@@ -3769,7 +3767,11 @@ async function acSaveField(field, c) {
   const inp = document.getElementById('cp-inp-' + field);
   if (!inp) return;
   let newVal = inp.value.trim();
-  if (field === 'phone') newVal = normalizePhone(newVal);
+  if (field === 'phone') {
+    // Normalize for storage — international numbers (starting with +) are preserved
+    // as-is after stripping internal spaces; US numbers are normalized to 10 digits.
+    newVal = normalizePhone(newVal) || newVal.replace(/\s+/g, '');
+  }
 
   const rowId = 'cp-row-' + field;
   const row = document.getElementById(rowId);
@@ -4440,6 +4442,28 @@ function formatPhone(p) {
   const s = p.replace(/\D/g,'');
   if (s.length === 10) return '(' + s.slice(0,3) + ') ' + s.slice(3,6) + '-' + s.slice(6);
   return p;
+}
+
+// Returns true for international numbers (stored as +<digits>)
+function isIntl(phone) { return phone && phone.startsWith('+'); }
+
+// WhatsApp deep-link: intl numbers already have country code, US needs +1 prefix
+function waHref(phone) {
+  if (!phone) return '';
+  if (isIntl(phone)) return 'https://wa.me/' + phone.replace(/\D/g,'');
+  return 'https://wa.me/1' + phone.replace(/\D/g,'');
+}
+
+// Contact buttons: for intl numbers WhatsApp is primary; for US, Call + Text + WA
+function contactButtons(phone, smsBody) {
+  if (!phone) return '';
+  if (isIntl(phone)) {
+    return `<a class="fu-btn-wa" href="${waHref(phone)}" target="_blank">💬 WhatsApp</a>`;
+  }
+  const smsParam = smsBody ? '&body=' + smsBody : '';
+  return `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
+          <a class="fu-btn-wa" href="${waHref(phone)}" target="_blank">💬 WhatsApp</a>
+          <a class="fu-btn-sms" href="sms:${phone}${smsParam}">💬 Text</a>`;
 }
 
 /* ── Mark as Contacted ── */
