@@ -304,10 +304,31 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by name to find clients without a phone number.</div>
       </div>
 
-      <div class="search-wrap">
-        <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
-          onkeydown="if(event.key==='Enter')doSearch()">
-        <button class="btn-search" onclick="doSearch()">Search</button>
+      <!-- Mode toggle -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="lu-mode-search" onclick="luSetMode('search')"
+          style="padding:7px 16px;border-radius:8px;border:1.5px solid var(--teal);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;background:var(--teal);color:#fff;">Search</button>
+        <button id="lu-mode-browse" onclick="luSetMode('browse')"
+          style="padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;background:var(--beige);color:var(--ink);">Browse all (no phone)</button>
+      </div>
+
+      <!-- Search mode -->
+      <div id="lu-search-pane">
+        <div class="search-wrap">
+          <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
+            onkeydown="if(event.key==='Enter')doSearch()">
+          <button class="btn-search" onclick="doSearch()">Search</button>
+        </div>
+      </div>
+
+      <!-- Browse mode -->
+      <div id="lu-browse-pane" hidden>
+        <div id="lu-browse-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;" id="lu-browse-nav" hidden>
+          <button onclick="luBrowsePage(-1)" id="lu-prev" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--beige);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;" disabled>← Prev</button>
+          <span id="lu-page-info" style="font-size:.78rem;color:var(--muted);flex:1;text-align:center;"></span>
+          <button onclick="luBrowsePage(1)" id="lu-next" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--beige);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Next →</button>
+        </div>
       </div>
 
       <div class="status" id="status-msg" hidden></div>
@@ -995,6 +1016,117 @@ function setStatus(msg, type) {
 }
 function clearStatus() {
   document.getElementById('status-msg').setAttribute('hidden','');
+}
+
+// ── Client Lookup: mode toggle + browse ──────────────────────────────────────
+let luMode = 'search';
+let luBrowseAll = [];
+let luBrowseCur = 0;
+const LU_PAGE = 10;
+
+function luSetMode(mode) {
+  luMode = mode;
+  document.getElementById('lu-mode-search').style.background = mode === 'search' ? 'var(--teal)' : 'var(--beige)';
+  document.getElementById('lu-mode-search').style.color      = mode === 'search' ? '#fff' : 'var(--ink)';
+  document.getElementById('lu-mode-search').style.borderColor= mode === 'search' ? 'var(--teal)' : 'var(--border)';
+  document.getElementById('lu-mode-browse').style.background = mode === 'browse' ? 'var(--teal)' : 'var(--beige)';
+  document.getElementById('lu-mode-browse').style.color      = mode === 'browse' ? '#fff' : 'var(--ink)';
+  document.getElementById('lu-mode-browse').style.borderColor= mode === 'browse' ? 'var(--teal)' : 'var(--border)';
+  document.getElementById('lu-search-pane').hidden = mode !== 'search';
+  document.getElementById('lu-browse-pane').hidden = mode !== 'browse';
+  document.getElementById('results-area').hidden   = mode !== 'search';
+  if (mode === 'browse') luLoadBrowse();
+}
+
+async function luLoadBrowse() {
+  const listEl = document.getElementById('lu-browse-list');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px;">Loading…</div>';
+  try {
+    const url = WEBAPP_URL + '?action=search_no_phone&q=&limit=500';
+    const r = await fetch(url);
+    const d = await r.json();
+    luBrowseAll = d.results || [];
+    luBrowseCur = 0;
+    luRenderBrowse();
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--error);font-size:.82rem;padding:8px;">Could not load. Try again.</div>';
+  }
+}
+
+function luRenderBrowse() {
+  const listEl  = document.getElementById('lu-browse-list');
+  const navEl   = document.getElementById('lu-browse-nav');
+  const prevBtn = document.getElementById('lu-prev');
+  const nextBtn = document.getElementById('lu-next');
+  const infoEl  = document.getElementById('lu-page-info');
+
+  if (!luBrowseAll.length) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px;">No clients without a phone number. 🎉</div>';
+    navEl.hidden = true;
+    return;
+  }
+
+  const start = luBrowseCur * LU_PAGE;
+  const page  = luBrowseAll.slice(start, start + LU_PAGE);
+  const total = luBrowseAll.length;
+  const pages = Math.ceil(total / LU_PAGE);
+
+  listEl.innerHTML = page.map(c => {
+    const nameEsc  = escHtml(c.name  || '—');
+    const emailEsc = escHtml(c.email || '');
+    const noteEsc  = escHtml(c.notes || '');
+    const idEsc    = escHtml(c.clientId || '');
+    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;font-size:.9rem;">${nameEsc}</div>
+        ${emailEsc ? `<div style="font-size:.75rem;color:var(--muted);">${emailEsc}</div>` : ''}
+        ${noteEsc  ? `<div style="font-size:.73rem;color:var(--muted);font-style:italic;">${noteEsc}</div>` : ''}
+        ${idEsc    ? `<div style="font-size:.7rem;color:var(--muted);">ID: ${idEsc}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button onclick="luSelectForPhone(${JSON.stringify(c)})"
+          style="padding:6px 12px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-family:'Jost',sans-serif;font-size:.75rem;cursor:pointer;">Add Phone</button>
+        <button onclick="luDeleteClient(${JSON.stringify(c)})"
+          style="padding:6px 10px;background:none;border:1.5px solid #e0a0a0;color:#c05050;border-radius:7px;font-family:'Jost',sans-serif;font-size:.75rem;cursor:pointer;">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  infoEl.textContent = `${start + 1}–${Math.min(start + LU_PAGE, total)} of ${total} clients`;
+  prevBtn.disabled = luBrowseCur === 0;
+  nextBtn.disabled = luBrowseCur >= pages - 1;
+  navEl.hidden = pages <= 1;
+}
+
+function luBrowsePage(dir) {
+  luBrowseCur += dir;
+  luRenderBrowse();
+  document.getElementById('lu-browse-pane').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function luSelectForPhone(c) {
+  luSetMode('search');
+  // Pre-fill the search with their name and trigger selection
+  document.getElementById('inp-search').value = c.name;
+  doSearch();
+}
+
+async function luDeleteClient(c) {
+  if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+  try {
+    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'delete_client_row', rowIndex: c.rowIndex, clientId: c.clientId, name: c.name })
+    });
+    // Remove from local list and re-render
+    luBrowseAll = luBrowseAll.filter(x => x.rowIndex !== c.rowIndex);
+    if (luBrowseCur * LU_PAGE >= luBrowseAll.length && luBrowseCur > 0) luBrowseCur--;
+    luRenderBrowse();
+  } catch(e) {
+    alert('Could not delete. Try again.');
+  }
 }
 
 async function doSearch() {
