@@ -5065,10 +5065,10 @@ async function acSaveNewClient() {
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   try {
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(WEBAPP_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: SHARED_KEY, type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
+      body: JSON.stringify({ key: API_KEY, type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
     });
     const data = await res.json();
     if (data.success) {
