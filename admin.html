@@ -4518,7 +4518,7 @@ async function markContacted(rowId, clientName, phone, category, detail) {
   };
 
   try {
-    await fetch(WEBAPP_URL, {
+    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
@@ -5065,25 +5065,21 @@ async function acSaveNewClient() {
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   try {
-    const res = await fetch(WEBAPP_URL, {
+    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: API_KEY, type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
     });
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('ac-add-client-modal').remove();
-      acLoadClients(); // refresh list
-      // Show quick confirmation
-      const toast = document.createElement('div');
-      toast.textContent = `✓ ${name} added`;
-      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:10px 22px;border-radius:8px;font-family:Jost,sans-serif;font-size:.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.18);';
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2800);
-    } else {
-      errEl.textContent = data.error || 'Could not save. Try again.';
-      btn.textContent = origText; btn.disabled = false;
-    }
+    // no-cors means we can't read the response — assume success after 800ms
+    await new Promise(r => setTimeout(r, 800));
+    document.getElementById('ac-add-client-modal').remove();
+    acLoadClients();
+    const toast = document.createElement('div');
+    toast.textContent = `✓ ${name} added`;
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:10px 22px;border-radius:8px;font-family:Jost,sans-serif;font-size:.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.18);';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
   } catch(e) {
     errEl.textContent = 'Network error. Try again.';
     btn.textContent = origText; btn.disabled = false;
