@@ -1795,7 +1795,7 @@ async function loadFollowUp() {
         c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${pkgPart}Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
         const pkgBadge = c.hasPackage ? `<span class="fu-tag" style="background:#d4ede4;color:#1a5c3a;">📦 Has package</span>` : '';
         const tag = `${pkgBadge}<span class="fu-tag" style="background:#eef0e0;color:#4a5a1e;">${gapLabel}</span>`;
-        return fuRow(c, i, 'pkggap', tag, 'pkg_gap', c.packageName||'');
+        return fuRow(c, i, 'pkggap', tag, 'gap_alert', c.packageName||'');
       }).join('') + (data.pkgActiveGapTotal > pkgActiveGap.length
         ? `<div class="fu-empty" style="color:#2a6b44;font-style:normal;">+${data.pkgActiveGapTotal - pkgActiveGap.length} more · shown tomorrow</div>` : '');
     }
