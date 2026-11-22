@@ -304,31 +304,10 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.06em;">Search by name to find clients without a phone number.</div>
       </div>
 
-      <!-- Mode toggle -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button id="lu-mode-search" onclick="luSetMode('search')"
-          style="padding:7px 16px;border-radius:8px;border:1.5px solid var(--teal);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;background:var(--teal);color:#fff;">Search</button>
-        <button id="lu-mode-browse" onclick="luSetMode('browse')"
-          style="padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;background:var(--beige);color:var(--ink);">Browse all (no phone)</button>
-      </div>
-
-      <!-- Search mode -->
-      <div id="lu-search-pane">
-        <div class="search-wrap">
-          <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
-            onkeydown="if(event.key==='Enter')doSearch()">
-          <button class="btn-search" onclick="doSearch()">Search</button>
-        </div>
-      </div>
-
-      <!-- Browse mode -->
-      <div id="lu-browse-pane" hidden>
-        <div id="lu-browse-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;" id="lu-browse-nav" hidden>
-          <button onclick="luBrowsePage(-1)" id="lu-prev" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--beige);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;" disabled>← Prev</button>
-          <span id="lu-page-info" style="font-size:.78rem;color:var(--muted);flex:1;text-align:center;"></span>
-          <button onclick="luBrowsePage(1)" id="lu-next" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--beige);font-family:'Jost',sans-serif;font-size:.78rem;cursor:pointer;">Next →</button>
-        </div>
+      <div class="search-wrap">
+        <input type="text" id="inp-search" placeholder="Search by name…" autocomplete="off" autocorrect="off"
+          onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="btn-search" onclick="doSearch()">Search</button>
       </div>
 
       <div class="status" id="status-msg" hidden></div>
@@ -741,8 +720,8 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
         <div class="fu-section-header" style="background:linear-gradient(135deg,#e8f4ef,#d4ede4);border-radius:var(--r) var(--r) 0 0;" onclick="toggleFuSection(this,'fu-pkggap-list')">
           <span class="fu-icon">⚠️</span>
           <div class="fu-header-text">
-            <div class="fu-section-title" style="color:#1a5c3a;">Active Package — Gap Alert</div>
-            <div class="fu-section-sub" style="color:#2a6b44;">Has active package but no visit in 14+ days · Needs to come back to continue treatment</div>
+            <div class="fu-section-title" style="color:#1a5c3a;">Gap Alerts</div>
+            <div class="fu-section-sub" style="color:#2a6b44;">Any client with no visit in 2 weeks–3 months · Up to 30 per day, longest gap first</div>
           </div>
           <div class="fu-badge" style="background:#2a6b44;color:#fff;" id="fu-pkggap-count">—</div>
           <span class="fu-collapse-arrow">▾</span>
@@ -790,7 +769,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
           <span class="fu-icon">⭐</span>
           <div class="fu-header-text">
             <div class="fu-section-title" style="color:#7a5c1e;">Regulars</div>
-            <div class="fu-section-sub" style="color:#9a7535;">Clients marked to be contacted often about open spots, promos, etc. · No 30-day limit</div>
+            <div class="fu-section-sub" style="color:#9a7535;">Marked as Regular, no visit in 1+ month · No 30-day limit</div>
           </div>
           <div class="fu-badge" style="background:#7a5c1e;color:#fff;" id="fu-regulars-count">—</div>
           <span class="fu-collapse-arrow">▾</span>
@@ -818,7 +797,6 @@ body{background:var(--cream);color:var(--ink);font-family:'Jost',sans-serif;font
             oninput="acFilterClients()"
             onkeydown="if(event.key==='Enter')acFilterClients()">
           <button class="btn-search" onclick="acLoadClients()">↻</button>
-          <button class="btn-search" onclick="acOpenAddClient()" style="margin-left:6px;background:var(--teal);color:#fff;padding:0 14px;font-size:.8rem;letter-spacing:.04em;border-radius:8px;border:none;cursor:pointer;height:38px;">+ Add Client</button>
         </div>
 
         <div class="ac-filters">
@@ -1016,117 +994,6 @@ function setStatus(msg, type) {
 }
 function clearStatus() {
   document.getElementById('status-msg').setAttribute('hidden','');
-}
-
-// ── Client Lookup: mode toggle + browse ──────────────────────────────────────
-let luMode = 'search';
-let luBrowseAll = [];
-let luBrowseCur = 0;
-const LU_PAGE = 10;
-
-function luSetMode(mode) {
-  luMode = mode;
-  document.getElementById('lu-mode-search').style.background = mode === 'search' ? 'var(--teal)' : 'var(--beige)';
-  document.getElementById('lu-mode-search').style.color      = mode === 'search' ? '#fff' : 'var(--ink)';
-  document.getElementById('lu-mode-search').style.borderColor= mode === 'search' ? 'var(--teal)' : 'var(--border)';
-  document.getElementById('lu-mode-browse').style.background = mode === 'browse' ? 'var(--teal)' : 'var(--beige)';
-  document.getElementById('lu-mode-browse').style.color      = mode === 'browse' ? '#fff' : 'var(--ink)';
-  document.getElementById('lu-mode-browse').style.borderColor= mode === 'browse' ? 'var(--teal)' : 'var(--border)';
-  document.getElementById('lu-search-pane').hidden = mode !== 'search';
-  document.getElementById('lu-browse-pane').hidden = mode !== 'browse';
-  document.getElementById('results-area').hidden   = mode !== 'search';
-  if (mode === 'browse') luLoadBrowse();
-}
-
-async function luLoadBrowse() {
-  const listEl = document.getElementById('lu-browse-list');
-  listEl.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px;">Loading…</div>';
-  try {
-    const url = WEBAPP_URL + '?action=search_no_phone&q=&limit=500';
-    const r = await fetch(url);
-    const d = await r.json();
-    luBrowseAll = d.results || [];
-    luBrowseCur = 0;
-    luRenderBrowse();
-  } catch(e) {
-    listEl.innerHTML = '<div style="color:var(--error);font-size:.82rem;padding:8px;">Could not load. Try again.</div>';
-  }
-}
-
-function luRenderBrowse() {
-  const listEl  = document.getElementById('lu-browse-list');
-  const navEl   = document.getElementById('lu-browse-nav');
-  const prevBtn = document.getElementById('lu-prev');
-  const nextBtn = document.getElementById('lu-next');
-  const infoEl  = document.getElementById('lu-page-info');
-
-  if (!luBrowseAll.length) {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px;">No clients without a phone number. 🎉</div>';
-    navEl.hidden = true;
-    return;
-  }
-
-  const start = luBrowseCur * LU_PAGE;
-  const page  = luBrowseAll.slice(start, start + LU_PAGE);
-  const total = luBrowseAll.length;
-  const pages = Math.ceil(total / LU_PAGE);
-
-  listEl.innerHTML = page.map(c => {
-    const nameEsc  = escHtml(c.name  || '—');
-    const emailEsc = escHtml(c.email || '');
-    const noteEsc  = escHtml(c.notes || '');
-    const idEsc    = escHtml(c.clientId || '');
-    return `<div style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:500;font-size:.9rem;">${nameEsc}</div>
-        ${emailEsc ? `<div style="font-size:.75rem;color:var(--muted);">${emailEsc}</div>` : ''}
-        ${noteEsc  ? `<div style="font-size:.73rem;color:var(--muted);font-style:italic;">${noteEsc}</div>` : ''}
-        ${idEsc    ? `<div style="font-size:.7rem;color:var(--muted);">ID: ${idEsc}</div>` : ''}
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button onclick="luSelectForPhone(${JSON.stringify(c)})"
-          style="padding:6px 12px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-family:'Jost',sans-serif;font-size:.75rem;cursor:pointer;">Add Phone</button>
-        <button onclick="luDeleteClient(${JSON.stringify(c)})"
-          style="padding:6px 10px;background:none;border:1.5px solid #e0a0a0;color:#c05050;border-radius:7px;font-family:'Jost',sans-serif;font-size:.75rem;cursor:pointer;">Delete</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  infoEl.textContent = `${start + 1}–${Math.min(start + LU_PAGE, total)} of ${total} clients`;
-  prevBtn.disabled = luBrowseCur === 0;
-  nextBtn.disabled = luBrowseCur >= pages - 1;
-  navEl.hidden = pages <= 1;
-}
-
-function luBrowsePage(dir) {
-  luBrowseCur += dir;
-  luRenderBrowse();
-  document.getElementById('lu-browse-pane').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function luSelectForPhone(c) {
-  luSetMode('search');
-  // Pre-fill the search with their name and trigger selection
-  document.getElementById('inp-search').value = c.name;
-  doSearch();
-}
-
-async function luDeleteClient(c) {
-  if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
-  try {
-    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ type: 'delete_client_row', rowIndex: c.rowIndex, clientId: c.clientId, name: c.name })
-    });
-    // Remove from local list and re-render
-    luBrowseAll = luBrowseAll.filter(x => x.rowIndex !== c.rowIndex);
-    if (luBrowseCur * LU_PAGE >= luBrowseAll.length && luBrowseCur > 0) luBrowseCur--;
-    luRenderBrowse();
-  } catch(e) {
-    alert('Could not delete. Try again.');
-  }
 }
 
 async function doSearch() {
@@ -1354,12 +1221,10 @@ async function savePhone() {
 
 function normalizePhone(raw) {
   if (!raw) return '';
-  const trimmed = raw.toString().trim();
-  const hasPlus = trimmed.startsWith('+');
-  const s = trimmed.replace(/\D/g, '');
-  if (s.length === 10) return s;
+  const s = raw.replace(/\D/g, '');
   if (s.length === 11 && s.startsWith('1')) return s.slice(1);
-  if (s.length > 10 && (hasPlus || !s.startsWith('1'))) return '+' + s;
+  if (s.length === 10) return s;
+  if (s.length > 10) return s.slice(-10);
   return s.length >= 7 ? s : '';
 }
 
@@ -1839,7 +1704,9 @@ async function loadFollowUp() {
           ${note ? `<div class="fu-row-note">Therapist: ${escHtml(note)}</div>` : ''}
           ${contactNote ? `<div class="fu-row-note" style="color:#7c5c2e;background:#fff8ee;border-left:3px solid #e8c47a;padding:4px 8px;border-radius:0 4px 4px 0;margin-top:4px;">📝 ${escHtml(contactNote)}</div>` : ''}
           ${phone || email ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
-            ${phone ? contactButtons(phone, smsBody) : ''}
+            ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
+            ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
+            ${phone ? `<a class="fu-btn-sms" href="sms:${phone}&body=${smsBody}">💬 Text</a>` : ''}
             ${email ? `<a class="fu-btn-email" href="mailto:${email}?subject=${emailSubj}&body=${emailBody}" target="_blank">✉️ Email</a>` : ''}
           </div>` : ''}
         </div>
@@ -1914,18 +1781,20 @@ async function loadFollowUp() {
         ? `<div class="fu-empty" style="color:var(--gold);font-style:normal;">+${data.pkgTotal - packages.length} more · shown tomorrow</div>` : '');
     }
 
-    // — SECTION 2b: Active Package — No Visit 14+ Days —
+    // — SECTION 2b: Gap Alerts (any client, 14d–3mo since last visit) —
     const pkgActiveGap = data.pkgActiveGap || [];
     document.getElementById('fu-pkggap-count').textContent = pkgActiveGap.length + (data.pkgActiveGapTotal > pkgActiveGap.length ? '+' : '');
     const pkgGapList = document.getElementById('fu-pkggap-list');
     if (!pkgActiveGap.length) {
-      pkgGapList.innerHTML = '<div class="fu-empty">All package clients came in within the last 2 weeks. 🎉</div>';
+      pkgGapList.innerHTML = '<div class="fu-empty">Nobody in the 2-week–3-month gap window right now. 🎉</div>';
     } else {
       pkgGapList.innerHTML = pkgActiveGap.map((c, i) => {
         const phone = normalizePhone(c.phone || '');
-        const gapLabel = c.daysGap != null ? `${c.daysGap}d gap` : 'never visited';
-        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${escHtml(c.packageName||'')} · ${c.sessionsLeft} sessions left · Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
-        const tag = `<span class="fu-tag" style="background:#d4ede4;color:#1a5c3a;">${gapLabel}</span>`;
+        const gapLabel = `${c.daysGap}d gap`;
+        const pkgPart = c.hasPackage ? `${escHtml(c.packageName||'Package')} · ${c.sessionsLeft} sessions left · ` : 'No active package · ';
+        c._meta = `${phone ? formatPhone(phone) + ' · ' : ''}${pkgPart}Last visit: ${escHtml(c.lastVisit||'never recorded')}`;
+        const pkgBadge = c.hasPackage ? `<span class="fu-tag" style="background:#d4ede4;color:#1a5c3a;">📦 Has package</span>` : '';
+        const tag = `${pkgBadge}<span class="fu-tag" style="background:#eef0e0;color:#4a5a1e;">${gapLabel}</span>`;
         return fuRow(c, i, 'pkggap', tag, 'pkg_gap', c.packageName||'');
       }).join('') + (data.pkgActiveGapTotal > pkgActiveGap.length
         ? `<div class="fu-empty" style="color:#2a6b44;font-style:normal;">+${data.pkgActiveGapTotal - pkgActiveGap.length} more · shown tomorrow</div>` : '');
@@ -2222,7 +2091,9 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
         ${c.clientId ? `ID: ${escHtml(c.clientId)}` : ''}
       </div>
       ${(phone || c.email) ? `<div class="fu-actions" style="margin-top:7px;flex-wrap:wrap;gap:5px;">
-        ${phone ? contactButtons(phone, '') : ''}
+        ${phone ? `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>` : ''}
+        ${phone ? `<a class="fu-btn-wa" href="https://wa.me/1${phone}" target="_blank">💬 WhatsApp</a>` : ''}
+        ${phone ? `<a class="fu-btn-sms" href="sms:${phone}">💬 Text</a>` : ''}
         ${c.email ? `<a class="fu-btn-email" href="mailto:${escHtml(c.email)}" target="_blank">✉️ Email</a>` : ''}
       </div>` : ''}
     </div>
@@ -2347,15 +2218,10 @@ function acRenderProfile(c, visits, packages, forms, referrals, referredBy, refe
           ${date ? `<div style="font-size:.68rem;color:var(--muted);">${escHtml(date)}</div>` : ''}
         </div>`;
       if (qa.length) {
-        // Merge " — note" answers inline with their parent question
-        const noteMapCp = {};
-        qa.forEach(item => { if ((item.q||'').endsWith(' — note')) noteMapCp[item.q.slice(0,-7)] = item.a||''; });
-        qa.filter(item => !(item.q||'').endsWith(' — note')).forEach(item => {
-          const noteText = noteMapCp[item.q] || '';
-          const aDisplay = escHtml(item.a||'—') + (noteText ? `<span style="color:var(--muted);font-style:italic;"> — ${escHtml(noteText)}</span>` : '');
+        qa.forEach(item => {
           html += `<div style="margin-bottom:8px;">
             <div class="cp-form-q">${escHtml(item.q||'')}</div>
-            <div class="cp-form-a">${aDisplay}</div>
+            <div class="cp-form-a">${escHtml(item.a||'—')}</div>
           </div>`;
         });
       } else {
@@ -3043,28 +2909,9 @@ async function acBuildVisitHtml(phone, date, service, category, visitNotes, forE
     : '<div class="p-none">No session questions recorded for this visit.</div>';
 
   // Build health form HTML (from HEALTH sheet via get_forms)
-  // Note answers are stored as separate items with key "Question — note"; merge them
-  // with their parent answer so they display inline rather than as an orphan row.
-  function buildHealthHtml(answers) {
-    if (!answers || !answers.length) return '<div class="p-none">No health form on record.</div>';
-    // Build a lookup of note text keyed by the base question
-    const noteMap = {};
-    answers.forEach(item => {
-      if ((item.q||'').endsWith(' — note')) {
-        const baseQ = item.q.slice(0, -7); // strip ' — note'
-        noteMap[baseQ] = item.a || '';
-      }
-    });
-    // Render only base questions (skip the " — note" rows), appending note inline
-    return answers
-      .filter(item => !(item.q||'').endsWith(' — note'))
-      .map(item => {
-        const note = noteMap[item.q] || '';
-        const ansHtml = escHtml(item.a||'') + (note ? `<span style="color:var(--muted);font-style:italic;"> — ${escHtml(note)}</span>` : '');
-        return `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${ansHtml}</div></div>`;
-      }).join('');
-  }
-  const healthHtml = buildHealthHtml(health && health.answers);
+  const healthHtml = health && health.answers && health.answers.length
+    ? health.answers.map(item => `<div class="p-qa"><div class="p-q">${escHtml(item.q||'')}</div><div class="p-a">${escHtml(item.a||'')}</div></div>`).join('')
+    : '<div class="p-none">No health form on record.</div>';
 
   // Waiver text (full text embedded here since it's not stored in the sheet)
   const _WAIVER_TEXT = `BOSSA SPA — INFORMED CONSENT & LIABILITY WAIVER
@@ -3901,8 +3748,8 @@ function acStartEdit(field, c, currentVal) {
 
   const displayVal = currentVal === '—' ? '' : currentVal;
   const labelMap2 = {name:'Name', phone:'Phone', email:'Email', dob:'Date of Birth', notes:'Notes'};
-  const typeMap   = {phone:'text', email:'email', name:'text', dob:'date', notes:'text'};
-  const phMap     = {name:'Full name', phone:'(310) 555-0000 or +61 468 674 576', email:'email@example.com', dob:'', notes:'Notes…'};
+  const typeMap   = {phone:'tel', email:'email', name:'text', dob:'date', notes:'text'};
+  const phMap     = {name:'Full name', phone:'(310) 555-0000', email:'email@example.com', dob:'', notes:'Notes…'};
   row.innerHTML = `
     <span class="cp-editable-label">${labelMap2[field]||field}</span>
     <div class="cp-edit-inline">
@@ -3924,11 +3771,7 @@ async function acSaveField(field, c) {
   const inp = document.getElementById('cp-inp-' + field);
   if (!inp) return;
   let newVal = inp.value.trim();
-  if (field === 'phone') {
-    // Normalize for storage — international numbers (starting with +) are preserved
-    // as-is after stripping internal spaces; US numbers are normalized to 10 digits.
-    newVal = normalizePhone(newVal) || newVal.replace(/\s+/g, '');
-  }
+  if (field === 'phone') newVal = normalizePhone(newVal);
 
   const rowId = 'cp-row-' + field;
   const row = document.getElementById(rowId);
@@ -4601,28 +4444,6 @@ function formatPhone(p) {
   return p;
 }
 
-// Returns true for international numbers (stored as +<digits>)
-function isIntl(phone) { return phone && phone.startsWith('+'); }
-
-// WhatsApp deep-link: intl numbers already have country code, US needs +1 prefix
-function waHref(phone) {
-  if (!phone) return '';
-  if (isIntl(phone)) return 'https://wa.me/' + phone.replace(/\D/g,'');
-  return 'https://wa.me/1' + phone.replace(/\D/g,'');
-}
-
-// Contact buttons: for intl numbers WhatsApp is primary; for US, Call + Text + WA
-function contactButtons(phone, smsBody) {
-  if (!phone) return '';
-  if (isIntl(phone)) {
-    return `<a class="fu-btn-wa" href="${waHref(phone)}" target="_blank">💬 WhatsApp</a>`;
-  }
-  const smsParam = smsBody ? '&body=' + smsBody : '';
-  return `<a class="fu-btn-call" href="tel:${phone}">📞 Call</a>
-          <a class="fu-btn-wa" href="${waHref(phone)}" target="_blank">💬 WhatsApp</a>
-          <a class="fu-btn-sms" href="sms:${phone}${smsParam}">💬 Text</a>`;
-}
-
 /* ── Mark as Contacted ── */
 async function markContacted(rowId, clientName, phone, category, detail) {
   const row = document.getElementById(rowId);
@@ -4650,7 +4471,7 @@ async function markContacted(rowId, clientName, phone, category, detail) {
   };
 
   try {
-    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
+    await fetch(WEBAPP_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
@@ -5123,100 +4944,5 @@ function authSubmit() {
     setTimeout(() => err.textContent = '', 2500);
   }
 }
-
-
-// ── Add Client modal ──────────────────────────────────────────────────────────
-function acOpenAddClient() {
-  const existing = document.getElementById('ac-add-client-modal');
-  if (existing) existing.remove();
-  document.body.insertAdjacentHTML('beforeend', `
-  <div style="position:fixed;inset:0;background:rgba(26,40,32,.55);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;" id="ac-add-client-modal" onclick="if(event.target.id==='ac-add-client-modal')document.getElementById('ac-add-client-modal').remove()">
-    <div style="background:#fff;border-radius:14px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.18);position:relative;">
-      <div style="font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--teal);font-weight:400;margin-bottom:18px;">New Client</div>
-
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div>
-          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Full Name *</label>
-          <input id="ac-nc-name" type="text" autocomplete="off" placeholder="e.g. Jane Smith"
-            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
-        </div>
-        <div>
-          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Phone</label>
-          <input id="ac-nc-phone" type="tel" autocomplete="off" placeholder="e.g. 3105551234"
-            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
-        </div>
-        <div>
-          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Email</label>
-          <input id="ac-nc-email" type="email" autocomplete="off" placeholder="e.g. jane@email.com"
-            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
-        </div>
-        <div>
-          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Date of Birth</label>
-          <input id="ac-nc-dob" type="text" autocomplete="off" placeholder="MM/DD/YYYY"
-            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;">
-        </div>
-        <div>
-          <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">How did they hear about us?</label>
-          <select id="ac-nc-heard" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:.88rem;background:#fff;">
-            <option value="">— select —</option>
-            <option>Instagram</option>
-            <option>Google</option>
-            <option>Yelp</option>
-            <option>Referral</option>
-            <option>ClassPass</option>
-            <option>Groupon</option>
-            <option>Walk-in</option>
-            <option>Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="ac-nc-err" style="color:#c05050;font-size:.78rem;margin-top:10px;min-height:18px;"></div>
-
-      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
-        <button onclick="document.getElementById('ac-add-client-modal').remove()" style="padding:10px 16px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;color:var(--muted);cursor:pointer;">Cancel</button>
-        <button onclick="acSaveNewClient()" style="padding:10px 20px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-family:'Jost',sans-serif;font-size:.82rem;cursor:pointer;font-weight:500;">Save Client</button>
-      </div>
-    </div>
-  </div>`);
-  document.getElementById('ac-nc-name').focus();
-}
-
-async function acSaveNewClient() {
-  const name  = (document.getElementById('ac-nc-name').value  || '').trim();
-  const phone = (document.getElementById('ac-nc-phone').value || '').trim();
-  const email = (document.getElementById('ac-nc-email').value || '').trim();
-  const dob   = (document.getElementById('ac-nc-dob').value   || '').trim();
-  const heard = (document.getElementById('ac-nc-heard').value || '').trim();
-  const errEl = document.getElementById('ac-nc-err');
-
-  if (!name) { errEl.textContent = 'Name is required.'; document.getElementById('ac-nc-name').focus(); return; }
-
-  const btn = document.querySelector('#ac-add-client-modal button[onclick="acSaveNewClient()"]');
-  const origText = btn.textContent;
-  btn.textContent = 'Saving…'; btn.disabled = true;
-
-  try {
-    await fetch(WEBAPP_URL + '?key=' + encodeURIComponent(API_KEY), {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ type: 'new_client', name, phone, email, dob, heardAboutUs: heard })
-    });
-    // no-cors means we can't read the response — assume success after 800ms
-    await new Promise(r => setTimeout(r, 800));
-    document.getElementById('ac-add-client-modal').remove();
-    acLoadClients();
-    const toast = document.createElement('div');
-    toast.textContent = `✓ ${name} added`;
-    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:10px 22px;border-radius:8px;font-family:Jost,sans-serif;font-size:.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.18);';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2800);
-  } catch(e) {
-    errEl.textContent = 'Network error. Try again.';
-    btn.textContent = origText; btn.disabled = false;
-  }
-}
-
 </script>
 </body></html>
